@@ -2,308 +2,209 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Receptor V9 - Estratega</title>
+    <title>Receptor V10 - Validador</title>
     <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
     <style>
-        :root { --bg: #050505; --panel: #111; --main: #00ff41; --warn: #ffcc00; --err: #ff3333; }
-        * { box-sizing: border-box; }
+        :root { --bg: #050505; --panel: #111; --main: #00ff41; --err: #ff3333; }
+        body { background: var(--bg); color: #fff; font-family: monospace; margin: 0; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
         
-        body { 
-            background: var(--bg); color: #fff; font-family: 'Consolas', monospace; 
-            margin: 0; display: flex; flex-direction: column; height: 100vh; overflow: hidden;
-        }
+        #stage { flex: 1; background: #000; display: flex; justify-content: center; align-items: center; overflow: hidden; position: relative; }
+        #vid { position: absolute; opacity: 0; }
+        #canvas { width: 100%; height: 100%; object-fit: contain; }
+        .scope { position: absolute; width: 300px; height: 300px; border: 2px solid var(--err); z-index: 10; pointer-events: none; }
+        .scope::after { content: "🎯 SCAN"; color: var(--err); font-weight: bold; position: absolute; bottom: -20px; width: 100%; text-align: center; }
 
-        /* --- VISOR --- */
-        #media-stage {
-            flex: 1; position: relative; background: #000; display: flex; justify-content: center; align-items: center; overflow: hidden;
-        }
-        #screen-video { position: absolute; opacity: 0; pointer-events: none; } /* Oculto, usado para captura */
-        #processing-canvas { width: 100%; height: 100%; object-fit: contain; } /* Lo que vemos */
+        .dash { background: var(--panel); border-top: 1px solid #333; padding: 10px; z-index: 20; }
+        .meta { display: grid; grid-template-columns: 1fr auto; background: #222; padding: 5px; font-size: 0.8rem; margin-bottom: 5px; }
+        .hash { grid-column: span 2; color: #aaa; font-size: 0.7rem; }
         
-        /* Mira Sniper */
-        .sniper-scope {
-            position: absolute; width: 300px; height: 300px;
-            border: 2px solid var(--err); box-shadow: 0 0 0 9999px rgba(0,0,0,0.85);
-            pointer-events: none; z-index: 10;
-            display: flex; justify-content: center; align-items: flex-end;
-        }
-        .sniper-scope::after { content: "🎯 ENCUADRA EL QR AQUÍ"; color: var(--err); font-weight: bold; margin-bottom: -25px; }
-
-        /* --- DASHBOARD --- */
-        .dashboard { 
-            background: var(--panel); border-top: 2px solid #333; padding: 10px; 
-            display: flex; flex-direction: column; gap: 8px; z-index: 20; height: auto; max-height: 50vh; overflow-y: auto;
-        }
-
-        /* METADATOS (Header) */
-        .meta-box {
-            display: grid; grid-template-columns: 1fr 1fr; background: #1a1a1a; padding: 8px; border-radius: 4px; border: 1px solid #333;
-        }
-        .meta-label { color: #888; font-size: 0.75rem; }
-        .meta-val { color: #fff; font-weight: bold; font-size: 0.9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .hash-val { grid-column: span 2; font-size: 0.7rem; color: var(--warn); font-family: monospace; letter-spacing: 1px; }
-
-        /* VISUALIZADOR DE MAPA (Defrag style) */
-        .chunk-map {
-            display: flex; height: 10px; width: 100%; background: #222; margin: 5px 0;
-        }
-        .map-segment { flex: 1; height: 100%; background: #333; }
-        .map-ok { background: var(--main); }
-        .map-missing { background: var(--err); }
-
-        /* CONTROLES */
-        .btn-row { display: flex; gap: 5px; }
-        button {
-            flex: 1; padding: 10px; background: #222; border: 1px solid #444; color: #aaa;
-            cursor: pointer; font-weight: bold; text-transform: uppercase;
-        }
-        button.active { background: #003300; border-color: var(--main); color: var(--main); }
-        button.dl { background: var(--main); color: #000; animation: pulse 1.5s infinite; }
-
-        /* PANEL DE ESTRATEGIA (La solución al problema) */
-        .strategy-panel {
-            background: #2a0000; border: 1px solid var(--err); padding: 10px; 
-            border-radius: 4px; display: none; text-align: center;
-        }
-        .strat-title { color: var(--err); font-weight: bold; font-size: 0.9rem; display: block; margin-bottom: 5px; }
-        .strat-range { font-size: 1.2rem; background: #000; color: #fff; padding: 5px; font-family: monospace; display: block; margin-bottom: 5px; }
-        .strat-note { font-size: 0.75rem; color: #ccc; }
-
-        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.8; } 100% { opacity: 1; } }
+        .prog { height: 10px; background: #333; width: 100%; margin: 5px 0; }
+        .fill { height: 100%; width: 0%; background: var(--main); }
+        
+        .strat { background: #330000; color: #fff; padding: 5px; text-align: center; font-size: 0.9rem; display: none; border: 1px solid var(--err); }
+        
+        button { width: 100%; padding: 12px; background: #333; color: #fff; border: 1px solid #555; cursor: pointer; font-weight: bold; margin-top: 5px; }
+        button.dl { background: var(--main); color: #000; display: none; }
     </style>
 </head>
-<body onload="setMode('cam')">
+<body onload="init()">
 
-<div id="media-stage">
-    <div id="reader" style="width:100%; height:100%; display:none;"></div>
-    <video id="screen-video" autoplay playsinline muted></video>
-    <canvas id="processing-canvas" style="display:none;"></canvas>
-    <div class="sniper-scope" id="scope"></div>
+<div id="stage">
+    <div id="reader" style="display:none; width:100%; height:100%;"></div>
+    <video id="vid" autoplay playsinline muted></video>
+    <canvas id="canvas" style="display:none;"></canvas>
+    <div class="scope" id="scope"></div>
 </div>
 
-<div class="dashboard">
-    <div class="meta-box">
-        <div>
-            <div class="meta-label">ARCHIVO</div>
-            <div class="meta-val" id="lbl-name">Esperando...</div>
-        </div>
-        <div style="text-align:right;">
-            <div class="meta-label">TAMAÑO</div>
-            <div class="meta-val" id="lbl-size">0 KB</div>
-        </div>
-        <div class="hash-val" id="lbl-hash">HASH: -</div>
+<div class="dash">
+    <div class="meta">
+        <div id="lbl-name">Esperando Header...</div>
+        <div id="lbl-cnt">0/0</div>
+        <div class="hash" id="lbl-hash">SHA256: -</div>
+    </div>
+    
+    <div class="prog"><div class="fill" id="bar"></div></div>
+    <div id="lbl-spd" style="font-size:0.7rem; color:#888; text-align:right;">0 pq/s</div>
+
+    <div class="strat" id="strat-box">
+        ⚠️ FALTAN PAQUETES: <span id="strat-txt">-</span>
     </div>
 
-    <div style="display:flex; justify-content:space-between; font-size:0.8rem; color:#aaa;">
-        <span id="lbl-progress">0 / 0 (0%)</span>
-        <span id="lbl-speed" style="color:var(--main)">0 pq/s</span>
+    <div style="display:flex; gap:5px;">
+        <button onclick="setMode('cam')">📷 CAM</button>
+        <button onclick="setMode('screen')">💻 PANTALLA</button>
     </div>
-    <div class="chunk-map" id="chunk-map"></div>
-
-    <div class="strategy-panel" id="strat-panel">
-        <span class="strat-title">⚠️ ZONA DE RECUPERACIÓN DETECTADA</span>
-        <span class="strat-range" id="strat-msg">Calculando...</span>
-        <span class="strat-note">Configura este rango en el Emisor para terminar rápido.</span>
-    </div>
-
-    <div class="btn-row">
-        <button id="btn-cam" onclick="setMode('cam')">📷 CÁMARA</button>
-        <button id="btn-screen" onclick="setMode('screen')">🖥️ PANTALLA</button>
-    </div>
-    <button id="btn-dl" class="dl" style="display:none;" onclick="downloadFile()">💾 GUARDAR ARCHIVO</button>
+    <button id="btn-dl" class="dl" onclick="verifyAndDownload()">VALIDANDO INTEGRIDAD...</button>
 </div>
 
 <script>
-    let sys = {
-        mode: 'cam', qr: null, stream: null, detector: null, loop: null, 
-        canvas: null, ctx: null,
-        session: { active: false, total: 0, chunks: [], count: 0, name: "", packetsSec: 0, lastStratCalc: 0 }
-    };
+    let sys = { mode: 'cam', session: { active: false, chunks: [], count: 0, total: 0, hash: null } };
+    let detector, stream, loop, qr;
 
-    // --- SETUP ---
-    async function setMode(mode) {
-        stopAll();
-        sys.mode = mode;
-        document.getElementById('btn-cam').classList.toggle('active', mode === 'cam');
-        document.getElementById('btn-screen').classList.toggle('active', mode === 'screen');
-        document.getElementById('scope').style.display = mode === 'screen' ? 'flex' : 'none';
-        document.getElementById('processing-canvas').style.display = mode === 'screen' ? 'block' : 'none';
+    function init() { setMode('cam'); }
 
-        if(mode === 'cam') initCam(); else initScreen();
+    async function setMode(m) {
+        stop();
+        sys.mode = m;
+        document.getElementById('scope').style.display = m === 'screen' ? 'block' : 'none';
+        document.getElementById('canvas').style.display = m === 'screen' ? 'block' : 'none';
+        
+        if(m === 'cam') {
+            document.getElementById('reader').style.display = 'block';
+            qr = new Html5Qrcode("reader");
+            qr.start({ facingMode: "environment" }, { fps: 30, qrbox: 250 }, onData, ()=>{});
+        } else {
+            if(!('BarcodeDetector' in window)) return alert("Usa Chrome/Edge");
+            detector = new BarcodeDetector({ formats: ['qr_code'] });
+            try {
+                stream = await navigator.mediaDevices.getDisplayMedia({ video: { cursor: "never" }, audio: false });
+                document.getElementById('vid').srcObject = stream;
+                loopScreen();
+            } catch(e) { setMode('cam'); }
+        }
     }
 
-    function stopAll() {
-        if(sys.qr?.isScanning) sys.qr.stop().catch(()=>{});
-        if(sys.stream) sys.stream.getTracks().forEach(t => t.stop());
-        cancelAnimationFrame(sys.loop);
+    function stop() {
+        if(qr?.isScanning) qr.stop().catch(()=>{});
+        if(stream) stream.getTracks().forEach(t => t.stop());
+        cancelAnimationFrame(loop);
         document.getElementById('reader').style.display = 'none';
     }
 
-    async function initCam() {
-        document.getElementById('reader').style.display = 'block';
-        sys.qr = new Html5Qrcode("reader");
-        sys.qr.start({ facingMode: "environment" }, { fps: 30, qrbox: 250 }, onData, ()=>{});
-    }
-
-    async function initScreen() {
-        if (!('BarcodeDetector' in window)) return alert("Usa Chrome/Edge");
-        sys.detector = new BarcodeDetector({ formats: ['qr_code'] });
-        sys.canvas = document.getElementById('processing-canvas');
-        sys.ctx = sys.canvas.getContext('2d', { willReadFrequently: true });
-
-        try {
-            sys.stream = await navigator.mediaDevices.getDisplayMedia({ video: { cursor: "never" }, audio: false });
-            document.getElementById('screen-video').srcObject = sys.stream;
-            loopScreen();
-        } catch(e) { setMode('cam'); }
-    }
-
-    // --- LOOP INTELIGENTE (SNIPER) ---
     async function loopScreen() {
-        const video = document.getElementById('screen-video');
-        if (video.readyState === 4 && sys.stream.active) {
-            // Zoom x2 al centro (300px -> Canvas)
-            const size = 300; 
-            sys.canvas.width = size; sys.canvas.height = size;
-            sys.ctx.drawImage(video, (video.videoWidth/2)-(size/2), (video.videoHeight/2)-(size/2), size, size, 0, 0, size, size);
-            
+        const v = document.getElementById('vid');
+        const c = document.getElementById('canvas');
+        const ctx = c.getContext('2d', {willReadFrequently: true});
+        
+        if(v.readyState === 4 && stream.active) {
+            // Sniper Zoom
+            const s = 350;
+            c.width = s; c.height = s;
+            ctx.drawImage(v, (v.videoWidth/2)-(s/2), (v.videoHeight/2)-(s/2), s, s, 0, 0, s, s);
             try {
-                const bitmaps = await sys.detector.detect(sys.canvas);
-                bitmaps.forEach(b => onData(b.rawValue));
-            } catch(e) {}
+                const b = await detector.detect(c);
+                b.forEach(x => onData(x.rawValue));
+            } catch(e){}
         }
-        sys.loop = requestAnimationFrame(loopScreen);
+        loop = requestAnimationFrame(loopScreen);
     }
 
-    // --- PROCESAMIENTO ---
-    function onData(text) {
+    function onData(txt) {
         try {
-            const data = JSON.parse(text);
-            
-            // 1. HEADER (Prioridad Visual Máxima)
-            if (data.t === "H" && !sys.session.active) {
-                sys.session.active = true;
-                sys.session.total = data.c;
-                sys.session.name = data.n;
-                sys.session.chunks = new Array(data.c).fill(null);
-                
-                // Actualizar UI Inmediatamente
-                document.getElementById('lbl-name').innerText = data.n;
-                document.getElementById('lbl-size').innerText = "~" + (data.s ? (data.s/1024).toFixed(1) : "?") + " KB";
-                document.getElementById('lbl-hash').innerText = "HASH: " + (data.h || "N/A");
-                renderMap(); // Crear mapa vacío
+            const d = JSON.parse(txt);
+            if(d.t === "H" && !sys.session.active) {
+                sys.session = { active: true, total: d.c, name: d.n, hash: d.h, chunks: new Array(d.c).fill(null), count: 0 };
+                document.getElementById('lbl-name').innerText = d.n;
+                document.getElementById('lbl-hash').innerText = "ESPERADO: " + (d.h || "SIN FIRMA");
                 return;
             }
-
-            // 2. CHUNKS
-            if (sys.session.active && Array.isArray(data)) {
-                const [idx, content] = data;
-                if (sys.session.chunks[idx] === null) {
-                    sys.session.chunks[idx] = content;
+            if(sys.session.active && Array.isArray(d)) {
+                if(sys.session.chunks[d[0]] === null) {
+                    sys.session.chunks[d[0]] = d[1];
                     sys.session.count++;
-                    sys.session.packetsSec++;
-                    updateUI(idx); // Pasar idx para pintar solo ese pixel del mapa si queremos (optimización)
+                    updateUI();
                 }
             }
-        } catch(e) {}
+        } catch(e){}
     }
 
-    // --- UI & ESTRATEGIA ---
-    function updateUI(lastIdx) {
+    function updateUI() {
         const s = sys.session;
-        const pct = Math.floor((s.count / s.total) * 100);
-        document.getElementById('lbl-progress').innerText = `${s.count} / ${s.total} (${pct}%)`;
-
-        // Si terminó
+        const pct = Math.floor((s.count/s.total)*100);
+        document.getElementById('bar').style.width = pct + "%";
+        document.getElementById('lbl-cnt').innerText = `${s.count}/${s.total}`;
+        
         if(s.count === s.total) {
-            document.getElementById('btn-dl').style.display = 'block';
-            document.getElementById('strat-panel').style.display = 'none';
-            stopAll();
-            return;
-        }
-
-        // --- ALGORITMO ESTRATEGA (Corre cada 500ms o si está estancado) ---
-        const now = Date.now();
-        if (now - s.lastStratCalc > 1000 && pct > 80) { // Solo si faltan pocos (<20%)
-            runStrategy();
-            s.lastStratCalc = now;
+            document.getElementById('strat-box').style.display = 'none';
+            const btn = document.getElementById('btn-dl');
+            btn.style.display = 'block';
+            btn.innerText = "VERIFICAR Y GUARDAR 💾";
+            stop();
+        } else if (pct > 80 && s.count % 10 === 0) {
+            calcStrategy();
         }
     }
 
-    function renderMap() {
-        // Dibujamos un mapa simple de 100 segmentos
-        // (Visualización aproximada para no saturar el DOM con 3000 divs)
-        // Nota: En esta versión simplificada no lo actualizo frame a frame para rendimiento, 
-        // pero la estrategia numérica es lo importante.
-    }
-
-    // --- EL CEREBRO DE RECUPERACIÓN ---
-    function runStrategy() {
+    function calcStrategy() {
         const s = sys.session;
         let missing = [];
-        
-        // 1. Identificar todos los faltantes
         for(let i=0; i<s.total; i++) if(s.chunks[i] === null) missing.push(i);
-
-        if(missing.length === 0) return;
-
-        // 2. Encontrar el "Cluster" más denso (Donde hay más huecos juntos)
-        // Buscamos ventanas de 100 bloques
-        let bestStart = missing[0];
-        let bestEnd = missing[0];
-        let maxDensity = 0;
-        
-        // Algoritmo simple: Divide en rangos de 200 y ve cual tiene mas faltantes
-        let ranges = [];
-        let rangeSize = 200;
-        
-        for (let i = 0; i < s.total; i += rangeSize) {
-            let count = 0;
-            let end = Math.min(i + rangeSize, s.total);
-            for (let j = i; j < end; j++) {
-                if (s.chunks[j] === null) count++;
+        if(missing.length > 0) {
+            // Algoritmo simple de clustering
+            let range = 200;
+            let bestStart = 0;
+            let maxMiss = 0;
+            for(let i=0; i<s.total; i+=range) {
+                let cnt = 0;
+                for(let j=i; j<Math.min(i+range, s.total); j++) if(s.chunks[j] === null) cnt++;
+                if(cnt > maxMiss) { maxMiss = cnt; bestStart = i; }
             }
-            if (count > 0) ranges.push({start: i, end: end-1, count: count});
-        }
-
-        // Ordenar por donde hay más trabajo (Mayor beneficio)
-        ranges.sort((a,b) => b.count - a.count);
-
-        if (ranges.length > 0) {
-            const best = ranges[0];
-            const msg = document.getElementById('strat-msg');
-            const panel = document.getElementById('strat-panel');
-            
-            panel.style.display = 'block';
-            msg.innerHTML = `DESDE: <span style="color:#fff">${best.start}</span> | HASTA: <span style="color:#fff">${best.end}</span>`;
-            
-            // Subtítulo inteligente
-            document.querySelector('.strat-note').innerText = 
-                `Faltan ${best.count} bloques en esta zona. ¡Ataca aquí primero!`;
+            document.getElementById('strat-box').style.display = 'block';
+            document.getElementById('strat-txt').innerHTML = `RANGO: ${bestStart} - ${bestStart+range}`;
         }
     }
 
-    window.downloadFile = function() {
+    async function verifyAndDownload() {
+        const s = sys.session;
+        const btn = document.getElementById('btn-dl');
+        btn.innerText = "⏳ CALCULANDO HASH...";
+        
         try {
-            const b64 = sys.session.chunks.join('');
+            // 1. Reconstruir
+            const b64 = s.chunks.join('');
             const bin = atob(b64);
-            const arr = new Uint8Array(bin.length);
-            for(let i=0; i<bin.length; i++) arr[i] = bin.charCodeAt(i);
-            const blob = new Blob([arr], {type: "application/octet-stream"});
-            const a = document.createElement('a');
-            a.href = URL.createObjectURL(blob);
-            a.download = sys.session.name;
-            a.click();
-        } catch(e) { alert("Error al armar archivo. Faltan datos críticos."); }
-    }
+            const len = bin.length;
+            const arr = new Uint8Array(len);
+            for(let i=0; i<len; i++) arr[i] = bin.charCodeAt(i);
 
-    setInterval(() => {
-        if(sys.session.active) {
-            document.getElementById('lbl-speed').innerText = sys.session.packetsSec + " pq/s";
-            sys.session.packetsSec = 0;
+            // 2. Calcular Hash del resultado
+            const hashBuf = await crypto.subtle.digest('SHA-256', arr);
+            const hashArr = Array.from(new Uint8Array(hashBuf));
+            const calcHash = hashArr.map(b => b.toString(16).padStart(2, '0')).join('');
+            
+            // 3. Comparar (Primeros 16 chars si el header vino truncado, o full si coincide)
+            // El emisor V5 envía 16 chars. 
+            const expected = s.hash; 
+            const calculatedPartial = calcHash.substring(0, expected.length);
+
+            if(calculatedPartial === expected) {
+                btn.style.background = "#00ff41";
+                btn.innerText = "✅ VALIDADO - DESCARGANDO";
+                const blob = new Blob([arr], {type: "application/octet-stream"});
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(blob);
+                a.download = s.name;
+                a.click();
+            } else {
+                btn.style.background = "red";
+                btn.innerText = "❌ ERROR DE HASH (CORRUPTO)";
+                alert(`Error de Integridad!\nEsperado: ${expected}\nCalculado: ${calculatedPartial}`);
+            }
+
+        } catch(e) {
+            alert("Error fatal: " + e);
         }
-    }, 1000);
+    }
 </script>
 </body>
 </html>
