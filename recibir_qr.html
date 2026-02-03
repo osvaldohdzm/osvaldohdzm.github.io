@@ -2,150 +2,312 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Receptor V3 - Corregido</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Receptor V5 - AirGap Ultimate</title>
     <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
     <style>
-        :root { --main: #00ff41; --bg: #000; }
+        :root { --main: #00ff41; --bg: #050505; --panel: #111; --err: #ff3333; }
+        * { box-sizing: border-box; }
+        
         body { 
-            background: var(--bg); color: #fff; font-family: sans-serif; 
-            margin: 0; display: flex; flex-direction: column; height: 100vh;
+            background: var(--bg); color: #fff; font-family: 'Segoe UI', Roboto, sans-serif; 
+            margin: 0; display: flex; flex-direction: column; height: 100vh; overflow: hidden;
         }
-        #reader { width: 100%; flex: 1; background: #000; }
-        .controls { padding: 20px; background: #111; border-top: 2px solid #333; }
-        .status-txt { color: var(--main); text-align: center; font-weight: bold; margin-bottom: 10px; font-size: 0.9rem; }
-        .progress-container { height: 15px; background: #333; border-radius: 10px; margin-bottom: 10px; overflow: hidden; }
-        .progress-bar { height: 100%; width: 0%; background: var(--main); transition: width 0.2s; }
-        .info { display: grid; grid-template-columns: 1fr 1fr; font-size: 0.8rem; gap: 5px; color: #ccc; }
-        button { 
-            width: 100%; padding: 12px; margin-top: 10px; border: none; 
-            border-radius: 5px; font-weight: bold; cursor: pointer;
+
+        /* --- VISOR CENTRAL --- */
+        #media-stage {
+            flex: 1; position: relative; background: #000; display: flex; 
+            justify-content: center; align-items: center; overflow: hidden;
         }
-        .btn-retry { background: #444; color: white; }
-        .btn-dl { background: var(--main); color: black; display: none; }
+        
+        #reader { width: 100%; height: 100%; display: none; } /* Cámara */
+        #screen-video { width: 100%; height: 100%; object-fit: contain; display: none; } /* Pantalla */
+        
+        /* HUD / Overlay */
+        .overlay {
+            position: absolute; border: 2px solid rgba(0, 255, 65, 0.3);
+            pointer-events: none; z-index: 10;
+            width: 80%; height: 60%;
+            display: flex; justify-content: center; align-items: flex-end;
+        }
+        .overlay::after {
+            content: "ENCUADRE ACTIVO"; 
+            color: var(--main); font-size: 0.8rem; font-weight: bold; padding-bottom: 10px;
+            text-shadow: 0 0 5px var(--main);
+        }
+
+        /* --- PANEL INFERIOR --- */
+        .controls { 
+            background: var(--panel); border-top: 2px solid #333; 
+            padding: 15px; display: flex; flex-direction: column; gap: 10px; z-index: 20;
+            box-shadow: 0 -10px 30px rgba(0,0,0,0.8);
+        }
+
+        /* Botones de Fuente */
+        .source-tabs { display: flex; gap: 10px; margin-bottom: 5px; }
+        .tab-btn {
+            flex: 1; padding: 12px; background: #222; border: 1px solid #444; color: #888;
+            border-radius: 6px; cursor: pointer; transition: all 0.2s; font-weight: bold;
+        }
+        .tab-btn.active { 
+            background: #002200; border-color: var(--main); color: var(--main); 
+            box-shadow: 0 0 10px rgba(0, 255, 65, 0.2); 
+        }
+
+        /* Info y Progreso */
+        .status-header { text-align: center; color: var(--main); font-weight: bold; font-size: 1rem; min-height: 1.5em; }
+        
+        .progress-track { height: 12px; background: #333; border-radius: 6px; overflow: hidden; }
+        .progress-fill { height: 100%; width: 0%; background: var(--main); transition: width 0.2s; }
+
+        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; font-size: 0.85rem; color: #ccc; gap: 5px; }
+        
+        /* Botón Descarga */
+        #btn-dl { 
+            width: 100%; padding: 15px; background: var(--main); color: #000; border: none; 
+            font-weight: bold; font-size: 1.1rem; border-radius: 6px; cursor: pointer; display: none; 
+            animation: pulse 2s infinite; text-transform: uppercase;
+        }
+        @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(0, 255, 65, 0.7); } 70% { box-shadow: 0 0 0 10px rgba(0, 255, 65, 0); } 100% { box-shadow: 0 0 0 0 rgba(0, 255, 65, 0); } }
+
     </style>
 </head>
-<body>
+<body onload="setMode('cam')">
 
-<div id="reader"></div>
+<div id="media-stage">
+    <div id="reader"></div>
+    <video id="screen-video" autoplay playsinline muted></video>
+    <div class="overlay"></div>
+</div>
 
 <div class="controls">
-    <div id="status" class="status-txt">INICIALIZANDO...</div>
-    <div class="progress-container"><div id="bar" class="progress-bar"></div></div>
-    <div class="info">
+    <div class="source-tabs">
+        <button class="tab-btn" id="tab-cam" onclick="setMode('cam')">📷 CÁMARA</button>
+        <button class="tab-btn" id="tab-screen" onclick="setMode('screen')">💻 PANTALLA (TURBO)</button>
+    </div>
+
+    <div id="status" class="status-header">INICIANDO...</div>
+
+    <div class="progress-track">
+        <div id="bar" class="progress-fill"></div>
+    </div>
+
+    <div class="stats-grid">
         <div>Archivo: <span id="lbl-name">-</span></div>
-        <div>Bloques: <span id="lbl-parts">0/0</span></div>
+        <div>Partes: <span id="lbl-parts">0/0</span></div>
         <div>Velocidad: <span id="lbl-speed">0</span> pq/s</div>
         <div>Progreso: <span id="lbl-pct">0%</span></div>
     </div>
-    <button class="btn-retry" onclick="restartCamera()">RE-ENFOCAR / REINTENTAR 🔄</button>
-    <button id="btn-dl" class="btn-dl" onclick="downloadFile()">DESCARGAR 💾</button>
+
+    <button id="btn-dl" onclick="downloadFile()">DESCARGAR ARCHIVO 💾</button>
 </div>
 
 <script>
-    let html5QrCode;
-    let session = { active: false, total: 0, chunks: [], count: 0, filename: "archivo.bin", packetsSec: 0 };
+    // --- ESTADO ---
+    let html5QrCode = null; // Librería
+    let screenStream = null; // Stream Nativo
+    let barcodeDetector = null; // API Nativa (Chrome/Edge/Android)
+    let loopId = null; // ID del requestAnimationFrame
 
-    function startCamera() {
-        // 1. Limpiamos instancia previa si existe
-        if (html5QrCode) {
-            html5QrCode.clear();
-        }
+    let session = {
+        active: false,
+        total: 0,
+        chunks: [],
+        count: 0,
+        filename: "archivo.bin",
+        packetsSec: 0,
+        startTime: 0
+    };
 
-        html5QrCode = new Html5Qrcode("reader");
-
-        // 2. CONFIGURACIÓN CLAVE: Solo enviamos 1 key para evitar el error
-        const config = { facingMode: "environment" }; 
+    // --- INICIALIZACIÓN ---
+    async function setMode(mode) {
+        // Reset completo
+        await stopAll();
         
-        const scanConfig = {
-            fps: 25,
-            qrbox: (w, h) => {
-                let size = Math.min(w, h) * 0.8;
-                return { width: size, height: size };
-            }
-        };
+        // UI Update
+        document.getElementById('tab-cam').classList.toggle('active', mode === 'cam');
+        document.getElementById('tab-screen').classList.toggle('active', mode === 'screen');
+        
+        const readerEl = document.getElementById('reader');
+        const videoEl = document.getElementById('screen-video');
 
-        html5QrCode.start(config, scanConfig, onScanSuccess, onScanError)
-            .then(() => updateStatus("CÁMARA LISTA", "#00ff41"))
-            .catch(err => {
-                updateStatus("ERROR: " + err, "red");
-                console.error(err);
-            });
+        if(mode === 'cam') {
+            videoEl.style.display = 'none';
+            readerEl.style.display = 'block';
+            initCamera();
+        } else {
+            readerEl.style.display = 'none';
+            videoEl.style.display = 'block';
+            initScreenShare();
+        }
     }
 
-    function onScanSuccess(decodedText) {
+    async function stopAll() {
+        if(html5QrCode && html5QrCode.isScanning) {
+            await html5QrCode.stop().catch(e=>console.log(e));
+            html5QrCode.clear();
+        }
+        if(screenStream) {
+            screenStream.getTracks().forEach(t => t.stop());
+            screenStream = null;
+        }
+        if(loopId) cancelAnimationFrame(loopId);
+        document.getElementById('screen-video').srcObject = null;
+    }
+
+    // --- MODO CÁMARA (Librería html5-qrcode) ---
+    async function initCamera() {
+        updateStatus("INICIANDO CÁMARA...", "#fff");
+        html5QrCode = new Html5Qrcode("reader");
+
+        // SOLUCIÓN AL ERROR DE 4 KEYS: Configuración separada
+        const cameraConstraints = { facingMode: "environment" };
+        const scanConfig = { 
+            fps: 30, 
+            qrbox: (w, h) => ({ width: w*0.8, height: w*0.8 }) 
+        };
+
         try {
-            const data = JSON.parse(decodedText);
+            await html5QrCode.start(
+                cameraConstraints, 
+                scanConfig, 
+                (txt) => processData(txt), // Success
+                (err) => {} // Fail (silencio)
+            );
+            updateStatus("CÁMARA LISTA - APUNTA AL EMISOR", "#00ff41");
+        } catch (err) {
+            updateStatus("ERROR CÁMARA: " + err, "red");
+        }
+    }
+
+    // --- MODO PANTALLA (Nativo BarcodeDetector - TURBO) ---
+    async function initScreenShare() {
+        if (!('BarcodeDetector' in window)) {
+            alert("Tu navegador no soporta detección acelerada. Usa Chrome o Edge para el modo TURBO.");
+        } else {
+            barcodeDetector = new BarcodeDetector({ formats: ['qr_code'] });
+        }
+
+        try {
+            updateStatus("SELECCIONA LA PESTAÑA/VENTANA DEL EMISOR", "yellow");
+            screenStream = await navigator.mediaDevices.getDisplayMedia({ video: { cursor: "never" }, audio: false });
             
-            // Si es el Header
+            const video = document.getElementById('screen-video');
+            video.srcObject = screenStream;
+            
+            // Loop de escaneo de alto rendimiento
+            const scanLoop = async () => {
+                if(!screenStream || !screenStream.active) return;
+                
+                if (video.readyState === video.HAVE_ENOUGH_DATA && barcodeDetector) {
+                    try {
+                        // DETECCIÓN MULTIPLE: Esto permite leer 2 QRs a la vez
+                        const bitmaps = await barcodeDetector.detect(video);
+                        bitmaps.forEach(bmp => processData(bmp.rawValue));
+                    } catch (e) { console.error(e); }
+                }
+                loopId = requestAnimationFrame(scanLoop);
+            };
+
+            updateStatus("MODO TURBO ACTIVO - ESPERANDO DATOS", "#00ff41");
+            scanLoop();
+
+        } catch (err) {
+            updateStatus("CANCELADO POR USUARIO", "orange");
+            setMode('cam'); // Fallback
+        }
+    }
+
+    // --- LÓGICA DE PROCESAMIENTO (Cerebro) ---
+    function processData(text) {
+        try {
+            const data = JSON.parse(text);
+
+            // 1. HEADER (Objeto {t:'H',...})
             if (data.t === "H" && !session.active) {
                 session.active = true;
                 session.total = data.c;
                 session.filename = data.n;
                 session.chunks = new Array(data.c).fill(null);
-                document.getElementById('lbl-name').innerText = data.n;
-                updateStatus("RECIBIENDO DATOS...", "yellow");
+                
+                document.getElementById('lbl-name').innerText = data.n.length > 20 ? data.n.substring(0,20)+'...' : data.n;
+                updateStatus("📥 RECIBIENDO DATOS...", "#00ff41");
                 return;
             }
 
-            // Si son fragmentos de datos
+            // 2. PAYLOAD (Array [index, data])
             if (session.active && Array.isArray(data)) {
-                const [idx, content] = data;
+                const idx = data[0];
+                const content = data[1];
+
+                // Solo procesar si no lo tenemos ya (Evita duplicados y gasto CPU)
                 if (session.chunks[idx] === null) {
                     session.chunks[idx] = content;
                     session.count++;
                     session.packetsSec++;
+                    
                     updateUI();
-                    if (session.count === session.total) finalize();
+
+                    if (session.count === session.total) {
+                        finishDownload();
+                    }
                 }
             }
-        } catch (e) {}
+        } catch (e) {
+            // Ignorar ruido
+        }
     }
-
-    function onScanError(err) { /* Errores de lectura ignorados para fluidez */ }
 
     function updateUI() {
-        const pct = Math.floor((session.count / session.total) * 100);
-        document.getElementById('bar').style.width = pct + "%";
-        document.getElementById('lbl-pct').innerText = pct + "%";
-        document.getElementById('lbl-parts').innerText = `${session.count}/${session.total}`;
+        // Actualizar visualmente cada ciertos frames para no laguear
+        if (session.count % 5 === 0 || session.count === session.total) {
+            const pct = Math.floor((session.count / session.total) * 100);
+            document.getElementById('bar').style.width = pct + "%";
+            document.getElementById('lbl-pct').innerText = pct + "%";
+            document.getElementById('lbl-parts').innerText = `${session.count}/${session.total}`;
+        }
     }
 
-    function updateStatus(msg, col) {
-        const s = document.getElementById('status');
-        s.innerText = msg;
-        s.style.color = col;
+    function updateStatus(msg, color) {
+        const el = document.getElementById('status');
+        el.innerText = msg;
+        el.style.color = color;
     }
 
-    function finalize() {
-        updateStatus("¡LISTO PARA DESCARGAR!", "#00ff41");
-        document.getElementById('btn-dl').style.display = "block";
-        if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+    async function finishDownload() {
+        await stopAll();
+        updateStatus("✅ TRANSFERENCIA COMPLETA", "#00ff41");
+        document.getElementById('btn-dl').style.display = 'block';
+        if(navigator.vibrate) navigator.vibrate([100, 50, 100, 50, 200]);
     }
 
-    function downloadFile() {
-        const blob = new Blob([Uint8Array.from(atob(session.chunks.join('')), c => c.charCodeAt(0))], {type: "application/octet-stream"});
+    window.downloadFile = function() {
+        const b64Data = session.chunks.join('');
+        // Conversión eficiente Base64 -> Blob
+        const byteCharacters = atob(b64Data);
+        const byteNumbers = new Array(byteCharacters.length);
+        for (let i = 0; i < byteCharacters.length; i++) {
+            byteNumbers[i] = byteCharacters.charCodeAt(i);
+        }
+        const byteArray = new Uint8Array(byteNumbers);
+        const blob = new Blob([byteArray], {type: "application/octet-stream"});
+
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
         a.download = session.filename;
         a.click();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
     }
 
-    function restartCamera() {
-        if (html5QrCode) {
-            html5QrCode.stop().then(() => startCamera()).catch(() => startCamera());
-        } else {
-            startCamera();
-        }
-    }
-
+    // Velocímetro
     setInterval(() => {
-        document.getElementById('lbl-speed').innerText = session.packetsSec;
-        session.packetsSec = 0;
+        if(session.active && session.count < session.total) {
+            document.getElementById('lbl-speed').innerText = session.packetsSec;
+            session.packetsSec = 0;
+        }
     }, 1000);
 
-    window.onload = startCamera;
 </script>
 </body>
 </html>
