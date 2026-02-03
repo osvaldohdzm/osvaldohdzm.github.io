@@ -2,209 +2,211 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Receptor V11 - Diagnóstico</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RECEPTOR TITANIUM V13</title>
     <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
     <style>
-        :root { --bg: #000; --panel: #111; --main: #00ff41; --err: #ff3333; --warn: #ffcc00; }
-        body { background: var(--bg); color: #fff; font-family: 'Consolas', monospace; margin: 0; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+        body { background: #000; color: #fff; font-family: monospace; margin: 0; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
         
-        #stage { flex: 1; background: #050505; display: flex; justify-content: center; align-items: center; position: relative; }
-        #reader { width: 100%; height: 100%; object-fit: cover; }
+        /* CÁMARA */
+        #reader { flex: 1; width: 100%; object-fit: cover; }
         
+        /* HUD (HEAD UP DISPLAY) */
         .hud { 
-            background: var(--panel); border-top: 2px solid #333; padding: 10px; 
-            display: flex; flex-direction: column; gap: 8px; z-index: 100;
+            background: rgba(10, 10, 10, 0.95); border-top: 2px solid #333; 
+            padding: 15px; display: flex; flex-direction: column; gap: 10px; 
+            box-shadow: 0 -5px 20px rgba(0,0,0,0.5);
         }
 
-        .bar-container { height: 15px; background: #222; width: 100%; position: relative; border-radius: 3px; overflow: hidden; }
-        .bar-fill { height: 100%; width: 0%; background: var(--main); transition: width 0.2s; }
-        
-        .info-row { display: flex; justify-content: space-between; font-size: 0.8rem; color: #aaa; }
-        .big-text { font-size: 1.2rem; font-weight: bold; color: #fff; }
-        
-        /* Caja de Errores */
-        .error-box { 
-            background: #220000; border: 1px solid var(--err); color: var(--err); 
-            padding: 8px; font-size: 0.8rem; display: none; flex-direction: column; gap: 5px;
-        }
-        .copy-btn { 
-            background: var(--warn); color: #000; border: none; padding: 5px; 
-            cursor: pointer; font-weight: bold; text-transform: uppercase; font-size: 0.75rem;
-        }
+        .meta-row { display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem; color: #aaa; }
+        .filename { color: #fff; font-weight: bold; max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-        button.action-btn { width: 100%; padding: 12px; background: #333; color: #fff; border: 1px solid #555; font-weight: bold; cursor: pointer; }
-        button.success { background: var(--main); color: #000; border-color: var(--main); }
+        /* BARRA DE PROGRESO "DIGITAL" */
+        .progress-track { height: 12px; background: #222; border-radius: 6px; overflow: hidden; position: relative; }
+        .progress-fill { height: 100%; width: 0%; background: #00f3ff; transition: width 0.2s ease-out; box-shadow: 0 0 10px #00f3ff; }
+        
+        /* ALERTAS */
+        .status-box { 
+            padding: 10px; border-radius: 6px; text-align: center; font-weight: bold; font-size: 0.9rem; cursor: pointer; display: none; 
+        }
+        .st-missing { background: #330000; border: 1px solid #ff0055; color: #ff0055; }
+        .st-success { background: #002200; border: 1px solid #00ff41; color: #00ff41; }
+
+        button { 
+            width: 100%; padding: 15px; background: #222; color: #fff; border: 1px solid #444; 
+            border-radius: 8px; font-weight: bold; font-size: 1rem; cursor: pointer;
+        }
+        button:disabled { opacity: 0.3; cursor: default; }
     </style>
 </head>
-<body onload="init()">
+<body>
 
-<div id="stage">
-    <div id="reader"></div>
-    <div style="position:absolute; color:var(--main); font-size:2rem; opacity:0.5; pointer-events:none;">[ ]</div>
-</div>
+<div id="reader"></div>
 
 <div class="hud">
-    <div class="info-row">
-        <span id="lbl-name">Esperando Header...</span>
-        <span id="lbl-hash">SHA: -</span>
+    <div class="meta-row">
+        <div class="filename" id="lbl-name">ESPERANDO SEÑAL...</div>
+        <div id="lbl-pct">0%</div>
     </div>
     
-    <div class="bar-container">
-        <div class="bar-fill" id="prog-bar"></div>
-    </div>
-    
-    <div class="info-row">
-        <span class="big-text" id="lbl-perc">0%</span>
-        <span id="lbl-count">0 / 0 Paquetes</span>
+    <div class="progress-track">
+        <div class="progress-fill" id="bar"></div>
     </div>
 
-    <div id="missing-panel" class="error-box">
-        <div style="display:flex; justify-content:space-between; align-items:center;">
-            <span>⚠️ BLOQUES FALTANTES DETECTADOS</span>
-            <button class="copy-btn" onclick="copyMissing()">📋 COPIAR REPORTE</button>
-        </div>
-        <div id="missing-list" style="word-break: break-all; opacity: 0.8; max-height: 40px; overflow-y: auto;">-</div>
+    <div id="alert-missing" class="status-box st-missing" onclick="copyMissingReport()">
+        ⚠️ PAQUETES PERDIDOS (Click Copiar)
     </div>
 
-    <button id="btn-action" class="action-btn" onclick="finalize()" disabled>ESPERANDO DATOS...</button>
+    <button id="btn-save" disabled onclick="saveFile()">💾 GUARDAR ARCHIVO</button>
 </div>
 
 <script>
-    let sys = { 
-        active: false, chunks: [], total: 0, receivedCount: 0, 
-        meta: { name: "", hash: "" },
-        missingStr: ""
+    const sys = {
+        active: false,
+        totalChunks: 0,
+        receivedChunks: 0,
+        dataSlots: [], // Array de Uint8Array (NO Strings)
+        meta: { name: "", hash: "" }
     };
-    let html5QrCode;
 
-    function init() {
-        html5QrCode = new Html5Qrcode("reader");
-        html5QrCode.start(
-            { facingMode: "environment" }, 
-            { fps: 30, qrbox: 250, aspectRatio: 1.0 },
-            onScan, 
-            (err) => {} // Ignorar errores de frame vacío
-        );
-    }
+    const scanner = new Html5Qrcode("reader");
+    
+    // Configuración optimizada para velocidad
+    const config = { fps: 30, qrbox: { width: 250, height: 250 }, aspectRatio: 1.0 };
+    
+    scanner.start({ facingMode: "environment" }, config, onData, onError);
 
-    function onScan(decodedText) {
+    function onData(decodedText) {
         try {
-            const data = JSON.parse(decodedText);
-            
-            // Caso 1: Header
-            if(data.t === "H" && !sys.active) {
-                startSession(data);
+            const packet = JSON.parse(decodedText);
+
+            // TIPO 1: HEADER
+            if(packet.t === "H" && !sys.active) {
+                initSession(packet);
                 return;
             }
 
-            // Caso 2: Bloque de datos
-            if(sys.active && Array.isArray(data)) {
-                const idx = data[0];
-                const content = data[1];
-                
-                if(idx < sys.total && sys.chunks[idx] === null) {
-                    sys.chunks[idx] = content;
-                    sys.receivedCount++;
-                    updateUI();
-                }
+            // TIPO 2: DATA BLOQUE [index, base64]
+            if(sys.active && Array.isArray(packet)) {
+                processBlock(packet[0], packet[1]);
             }
+
         } catch(e) {
-            // Ignorar basura
+            // Ignorar JSON malformado (Ruido)
         }
     }
 
-    function startSession(header) {
+    function onError(err) { /* Ignorar cuadros vacíos */ }
+
+    function initSession(header) {
         sys.active = true;
-        sys.total = header.c;
+        sys.totalChunks = header.c;
         sys.meta.name = header.n;
         sys.meta.hash = header.h;
-        sys.chunks = new Array(sys.total).fill(null);
-        sys.receivedCount = 0;
-        
-        document.getElementById('lbl-name').innerText = header.n.substring(0, 20);
-        document.getElementById('lbl-hash').innerText = `SHA: ${header.h}...`;
+        // Pre-reservar memoria
+        sys.dataSlots = new Array(header.c).fill(null);
+        sys.receivedChunks = 0;
+
+        document.getElementById('lbl-name').innerText = header.n;
         updateUI();
     }
 
-    function updateUI() {
-        const pct = Math.floor((sys.receivedCount / sys.total) * 100);
-        document.getElementById('prog-bar').style.width = pct + "%";
-        document.getElementById('lbl-perc').innerText = pct + "%";
-        document.getElementById('lbl-count').innerText = `${sys.receivedCount} / ${sys.total}`;
+    function processBlock(index, base64Data) {
+        // 1. Verificaciones rápidas
+        if(index >= sys.totalChunks || sys.dataSlots[index] !== null) return;
 
-        // Lógica de bloques faltantes (Se activa si hay gaps y tenemos >10% de datos)
-        if(sys.receivedCount < sys.total && sys.receivedCount > 1) {
-            calculateMissing();
-        } else if (sys.receivedCount === sys.total) {
-            document.getElementById('missing-panel').style.display = 'none';
-            const btn = document.getElementById('btn-action');
-            btn.disabled = false;
-            btn.classList.add('success');
-            btn.innerText = "✅ DESCARGAR ARCHIVO";
+        // 2. DECODIFICACIÓN SEGURA (EL CORAZÓN DEL SISTEMA)
+        try {
+            // Convertimos Base64 -> String Binario -> Uint8Array INMEDIATAMENTE
+            // Si el Base64 está roto, 'atob' falla aquí y NO guardamos nada.
+            const binaryString = atob(base64Data);
+            const len = binaryString.length;
+            const bytes = new Uint8Array(len);
+            
+            for (let i = 0; i < len; i++) {
+                bytes[i] = binaryString.charCodeAt(i);
+            }
+
+            // 3. Guardar SOLO si fue exitoso
+            sys.dataSlots[index] = bytes;
+            sys.receivedChunks++;
+            updateUI();
+
+        } catch (error) {
+            console.warn("Bloque corrupto detectado y rechazado:", index);
+            // No hacemos nada más, el bloque queda como null y se pedirá luego.
         }
     }
 
-    function calculateMissing() {
+    function updateUI() {
+        const pct = Math.floor((sys.receivedChunks / sys.totalChunks) * 100);
+        document.getElementById('bar').style.width = pct + "%";
+        document.getElementById('lbl-pct').innerText = pct + "%";
+
+        const missingDiv = document.getElementById('alert-missing');
+        const saveBtn = document.getElementById('btn-save');
+
+        if(sys.receivedChunks === sys.totalChunks) {
+            missingDiv.style.display = 'none';
+            saveBtn.disabled = false;
+            saveBtn.style.background = "#00ff41";
+            saveBtn.style.color = "#000";
+            saveBtn.innerText = "✅ DESCARGAR AHORA";
+            // Detener cámara para ahorrar recursos
+            scanner.stop().catch(()=>{});
+        } else if (sys.receivedChunks > 0 && pct < 100) {
+            missingDiv.style.display = 'block';
+            missingDiv.innerText = `⚠️ FALTA ${(sys.totalChunks - sys.receivedChunks)} BLOQUES (Click para Reporte)`;
+        }
+    }
+
+    function copyMissingReport() {
+        // Generar lista comprimida (ej: "1-5, 8, 10-12")
+        let missing = [];
+        for(let i=0; i<sys.totalChunks; i++) {
+            if(sys.dataSlots[i] === null) missing.push(i);
+        }
+
+        if(missing.length === 0) return;
+
         let ranges = [];
-        let start = -1;
-        
-        // Algoritmo para agrupar indices consecutivos: 1,2,3 -> "1-3"
-        for(let i=0; i<sys.total; i++) {
-            if(sys.chunks[i] === null) {
-                if(start === -1) start = i;
+        let start = missing[0], prev = missing[0];
+
+        for(let i=1; i<=missing.length; i++) {
+            if(missing[i] === prev + 1) {
+                prev = missing[i];
             } else {
-                if(start !== -1) {
-                    ranges.push(start === i-1 ? `${start}` : `${start}-${i-1}`);
-                    start = -1;
-                }
+                ranges.push(start === prev ? start : `${start}-${prev}`);
+                start = missing[i];
+                prev = missing[i];
             }
         }
-        if(start !== -1) ranges.push(start === sys.total-1 ? `${start}` : `${start}-${sys.total-1}`);
-
-        sys.missingStr = ranges.join(',');
         
-        // Mostrar panel
-        const pnl = document.getElementById('missing-panel');
-        pnl.style.display = 'flex';
-        // Mostrar solo un resumen visual corto
-        const displayTxt = sys.missingStr.length > 50 ? sys.missingStr.substring(0,50)+"..." : sys.missingStr;
-        document.getElementById('missing-list').innerText = displayTxt || "Analizando...";
-    }
-
-    function copyMissing() {
-        if(!sys.missingStr) return;
-        navigator.clipboard.writeText(sys.missingStr).then(() => {
-            alert("📋 REPORTE COPIADO AL PORTAPAPELES\n\nPégalo en el campo 'Recuperación Inteligente' del Emisor.");
+        const report = ranges.join(',');
+        navigator.clipboard.writeText(report).then(() => {
+            alert("📋 Reporte copiado:\n" + report + "\n\n>> Pégalo en el Emisor.");
         });
     }
 
-    async function finalize() {
-        // 1. Reconstruir
-        try {
-            const b64 = sys.chunks.join('');
-            const binStr = atob(b64);
-            const len = binStr.length;
-            const bytes = new Uint8Array(len);
-            for (let i = 0; i < len; i++) bytes[i] = binStr.charCodeAt(i);
+    async function saveFile() {
+        if(sys.receivedChunks < sys.totalChunks) return;
 
-            // 2. Verificar Hash
-            const hashBuf = await crypto.subtle.digest('SHA-256', bytes);
-            const hashArr = Array.from(new Uint8Array(hashBuf));
-            const calcHash = hashArr.map(b => b.toString(16).padStart(2, '0')).join('');
+        // ENSAMBLAJE FINAL
+        // Como ya tenemos Uint8Arrays, el Blob se crea instantáneamente sin conversiones.
+        const blob = new Blob(sys.dataSlots, { type: "application/octet-stream" });
+        
+        // Verificación Hash (Opcional pero recomendada)
+        const buffer = await blob.arrayBuffer();
+        const hashBuf = await crypto.subtle.digest('SHA-256', buffer);
+        const hashHex = Array.from(new Uint8Array(hashBuf)).map(b=>b.toString(16).padStart(2,'0')).join('');
 
-            // Validamos contra los 16 chars que mandó el emisor
-            if(calcHash.startsWith(sys.meta.hash)) {
-                const blob = new Blob([bytes], {type: "application/octet-stream"});
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = sys.meta.name;
-                a.click();
-            } else {
-                alert("❌ ERROR CRÍTICO DE HASH\nEl archivo está corrupto. Intenta escanear de nuevo los bloques faltantes.");
-            }
-        } catch(e) {
-            alert("Error al reconstruir: " + e);
+        if(hashHex.startsWith(sys.meta.hash)) {
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = sys.meta.name;
+            link.click();
+        } else {
+            alert("❌ ERROR DE INTEGRIDAD\nEl hash final no coincide. El archivo podría estar corrupto.");
         }
     }
 </script>
