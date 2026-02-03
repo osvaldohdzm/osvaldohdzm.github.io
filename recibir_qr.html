@@ -2,213 +2,297 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RECEPTOR TITANIUM V13</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Receptor V14</title>
     <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
     <style>
-        body { background: #000; color: #fff; font-family: monospace; margin: 0; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+        :root { 
+            --primary: #00ff41; 
+            --bg: #000; 
+            --panel: #111; 
+            --err: #ff3333;
+            --warn: #ffcc00;
+        }
         
-        /* CÁMARA */
-        #reader { flex: 1; width: 100%; object-fit: cover; }
-        
-        /* HUD (HEAD UP DISPLAY) */
-        .hud { 
-            background: rgba(10, 10, 10, 0.95); border-top: 2px solid #333; 
-            padding: 15px; display: flex; flex-direction: column; gap: 10px; 
-            box-shadow: 0 -5px 20px rgba(0,0,0,0.5);
+        * { box-sizing: border-box; }
+
+        body { 
+            margin: 0; padding: 0; 
+            background: var(--bg); color: #fff; 
+            font-family: 'Courier New', Courier, monospace; 
+            height: 100dvh; /* Altura dinámica real del viewport */
+            width: 100vw;
+            display: flex; 
+            flex-direction: column; 
+            overflow: hidden; /* PROHIBIDO EL SCROLL */
         }
 
-        .meta-row { display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem; color: #aaa; }
-        .filename { color: #fff; font-weight: bold; max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        /* --- ZONA DE VIDEO (Flexible) --- */
+        #scan-area {
+            flex: 1; /* Ocupa todo el espacio disponible */
+            position: relative;
+            background: #000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            border-bottom: 1px solid #333;
+        }
 
-        /* BARRA DE PROGRESO "DIGITAL" */
-        .progress-track { height: 12px; background: #222; border-radius: 6px; overflow: hidden; position: relative; }
-        .progress-fill { height: 100%; width: 0%; background: #00f3ff; transition: width 0.2s ease-out; box-shadow: 0 0 10px #00f3ff; }
+        #reader { width: 100%; height: 100%; object-fit: cover; }
         
-        /* ALERTAS */
-        .status-box { 
-            padding: 10px; border-radius: 6px; text-align: center; font-weight: bold; font-size: 0.9rem; cursor: pointer; display: none; 
+        /* Overlay de Información (Sobre el video) */
+        .overlay-info {
+            position: absolute;
+            top: 10px; left: 10px; right: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 8px 12px;
+            border-radius: 8px;
+            border: 1px solid #444;
+            backdrop-filter: blur(4px);
+            z-index: 10;
+            pointer-events: none;
         }
-        .st-missing { background: #330000; border: 1px solid #ff0055; color: #ff0055; }
-        .st-success { background: #002200; border: 1px solid #00ff41; color: #00ff41; }
+        .file-name { font-weight: bold; color: #fff; font-size: 0.9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .file-hash { font-size: 0.7rem; color: #aaa; margin-top: 2px; }
 
-        button { 
-            width: 100%; padding: 15px; background: #222; color: #fff; border: 1px solid #444; 
-            border-radius: 8px; font-weight: bold; font-size: 1rem; cursor: pointer;
+        /* Guía de Escaneo */
+        .scan-guide {
+            position: absolute; top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            width: 250px; height: 250px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 12px;
+            box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5); /* Oscurece el resto */
+            z-index: 5;
+            pointer-events: none;
         }
-        button:disabled { opacity: 0.3; cursor: default; }
+        .scan-guide::after { content: "+"; color: var(--primary); font-size: 2rem; position: absolute; top:50%; left:50%; transform:translate(-50%,-50%); opacity:0.5; }
+
+        /* --- PANEL DE CONTROL (Fijo abajo) --- */
+        #controls {
+            flex-shrink: 0; /* No se encoge */
+            background: var(--panel);
+            padding: 15px 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            z-index: 20;
+            box-shadow: 0 -5px 20px rgba(0,0,0,0.8);
+        }
+
+        /* Barra de Progreso */
+        .progress-container {
+            display: flex; justify-content: space-between; align-items: end; margin-bottom: 5px;
+        }
+        .pct-big { font-size: 2.5rem; font-weight: bold; color: var(--primary); line-height: 1; }
+        .stats-small { text-align: right; font-size: 0.8rem; color: #888; }
+        
+        .track { width: 100%; height: 10px; background: #333; border-radius: 5px; overflow: hidden; position: relative; }
+        .fill { height: 100%; width: 0%; background: var(--primary); transition: width 0.1s linear; box-shadow: 0 0 10px var(--primary); }
+
+        /* Botones y Alertas */
+        .action-area { height: 50px; display: flex; align-items: center; justify-content: center; }
+        
+        button {
+            width: 100%; height: 100%;
+            background: #222; border: 1px solid #444; color: #888;
+            font-size: 1rem; font-weight: bold; text-transform: uppercase;
+            border-radius: 6px; cursor: pointer;
+        }
+        
+        .btn-success { background: var(--primary); color: #000; border-color: var(--primary); box-shadow: 0 0 15px rgba(0, 255, 65, 0.3); animation: pulse 2s infinite; }
+        .btn-error { background: #330000; color: var(--err); border-color: var(--err); }
+        .btn-waiting { background: transparent; border: none; color: #555; }
+
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.8; } 100% { opacity: 1; } }
+        
+        /* Efecto Flash al recibir paquete */
+        .flash-effect {
+            position: absolute; inset: 0; border: 4px solid var(--primary);
+            opacity: 0; pointer-events: none; z-index: 50;
+            transition: opacity 0.1s;
+        }
     </style>
 </head>
 <body>
 
-<div id="reader"></div>
-
-<div class="hud">
-    <div class="meta-row">
-        <div class="filename" id="lbl-name">ESPERANDO SEÑAL...</div>
-        <div id="lbl-pct">0%</div>
-    </div>
-    
-    <div class="progress-track">
-        <div class="progress-fill" id="bar"></div>
+    <div id="scan-area">
+        <div class="overlay-info">
+            <div class="file-name" id="lbl-name">Esperando Header...</div>
+            <div class="file-hash" id="lbl-hash">SHA: -</div>
+        </div>
+        <div class="scan-guide"></div>
+        <div id="reader"></div>
+        <div id="flash" class="flash-effect"></div>
     </div>
 
-    <div id="alert-missing" class="status-box st-missing" onclick="copyMissingReport()">
-        ⚠️ PAQUETES PERDIDOS (Click Copiar)
-    </div>
+    <div id="controls">
+        <div class="progress-container">
+            <div class="pct-big" id="lbl-pct">0%</div>
+            <div class="stats-small">
+                <div id="lbl-count">0 / 0</div>
+                <div id="lbl-status">ESPERANDO</div>
+            </div>
+        </div>
+        
+        <div class="track">
+            <div class="fill" id="prog-bar"></div>
+        </div>
 
-    <button id="btn-save" disabled onclick="saveFile()">💾 GUARDAR ARCHIVO</button>
-</div>
+        <div class="action-area" id="action-box">
+            <button class="btn-waiting" disabled>... ESCANEANDO ...</button>
+        </div>
+    </div>
 
 <script>
+    // --- LÓGICA ROBUSTA (Titanium Core) ---
     const sys = {
-        active: false,
-        totalChunks: 0,
-        receivedChunks: 0,
-        dataSlots: [], // Array de Uint8Array (NO Strings)
-        meta: { name: "", hash: "" }
+        active: false, total: 0, received: 0,
+        chunks: [], meta: { n: "", h: "" },
+        lastPacketTime: 0
     };
 
     const scanner = new Html5Qrcode("reader");
-    
-    // Configuración optimizada para velocidad
-    const config = { fps: 30, qrbox: { width: 250, height: 250 }, aspectRatio: 1.0 };
-    
-    scanner.start({ facingMode: "environment" }, config, onData, onError);
 
-    function onData(decodedText) {
+    function init() {
+        // Configuración para usar la cámara trasera y llenar el div
+        const config = { 
+            fps: 30, 
+            qrbox: { width: 250, height: 250 }, 
+            aspectRatio: window.innerHeight / window.innerWidth // Adaptación a pantalla
+        };
+        
+        scanner.start({ facingMode: "environment" }, config, onData, onError)
+               .catch(err => console.log("Error camara", err));
+    }
+
+    function onData(txt) {
         try {
-            const packet = JSON.parse(decodedText);
+            const d = JSON.parse(txt);
+            flashScreen(); // Feedback visual inmediato
 
-            // TIPO 1: HEADER
-            if(packet.t === "H" && !sys.active) {
-                initSession(packet);
+            // Header
+            if(d.t === "H" && !sys.active) {
+                startSession(d);
                 return;
             }
 
-            // TIPO 2: DATA BLOQUE [index, base64]
-            if(sys.active && Array.isArray(packet)) {
-                processBlock(packet[0], packet[1]);
+            // Datos
+            if(sys.active && Array.isArray(d)) {
+                saveBlock(d[0], d[1]);
             }
-
-        } catch(e) {
-            // Ignorar JSON malformado (Ruido)
-        }
+        } catch(e) {}
     }
 
-    function onError(err) { /* Ignorar cuadros vacíos */ }
+    function onError(e) {} // Ignorar cuadros vacíos
 
-    function initSession(header) {
+    function startSession(h) {
         sys.active = true;
-        sys.totalChunks = header.c;
-        sys.meta.name = header.n;
-        sys.meta.hash = header.h;
-        // Pre-reservar memoria
-        sys.dataSlots = new Array(header.c).fill(null);
-        sys.receivedChunks = 0;
-
-        document.getElementById('lbl-name').innerText = header.n;
+        sys.total = h.c;
+        sys.meta = h;
+        sys.chunks = new Array(h.c).fill(null);
+        sys.received = 0;
+        
+        document.getElementById('lbl-name').innerText = h.n;
+        document.getElementById('lbl-hash').innerText = "SHA: " + h.h;
+        document.getElementById('lbl-status').innerText = "RECIBIENDO";
         updateUI();
     }
 
-    function processBlock(index, base64Data) {
-        // 1. Verificaciones rápidas
-        if(index >= sys.totalChunks || sys.dataSlots[index] !== null) return;
+    function saveBlock(idx, b64) {
+        if(idx >= sys.total || sys.chunks[idx] !== null) return;
 
-        // 2. DECODIFICACIÓN SEGURA (EL CORAZÓN DEL SISTEMA)
         try {
-            // Convertimos Base64 -> String Binario -> Uint8Array INMEDIATAMENTE
-            // Si el Base64 está roto, 'atob' falla aquí y NO guardamos nada.
-            const binaryString = atob(base64Data);
-            const len = binaryString.length;
-            const bytes = new Uint8Array(len);
+            // Decodificación Atómica (La protección contra errores)
+            const bin = atob(b64);
+            const bytes = new Uint8Array(bin.length);
+            for(let i=0; i<bin.length; i++) bytes[i] = bin.charCodeAt(i);
             
-            for (let i = 0; i < len; i++) {
-                bytes[i] = binaryString.charCodeAt(i);
-            }
-
-            // 3. Guardar SOLO si fue exitoso
-            sys.dataSlots[index] = bytes;
-            sys.receivedChunks++;
+            sys.chunks[idx] = bytes;
+            sys.received++;
             updateUI();
 
-        } catch (error) {
-            console.warn("Bloque corrupto detectado y rechazado:", index);
-            // No hacemos nada más, el bloque queda como null y se pedirá luego.
-        }
+        } catch(e) { /* Bloque corrupto ignorado */ }
     }
 
     function updateUI() {
-        const pct = Math.floor((sys.receivedChunks / sys.totalChunks) * 100);
-        document.getElementById('bar').style.width = pct + "%";
+        const pct = Math.floor((sys.received / sys.total) * 100);
+        
+        // Elementos DOM
         document.getElementById('lbl-pct').innerText = pct + "%";
+        document.getElementById('lbl-count').innerText = `${sys.received}/${sys.total}`;
+        document.getElementById('prog-bar').style.width = pct + "%";
+        
+        const actionBox = document.getElementById('action-box');
 
-        const missingDiv = document.getElementById('alert-missing');
-        const saveBtn = document.getElementById('btn-save');
-
-        if(sys.receivedChunks === sys.totalChunks) {
-            missingDiv.style.display = 'none';
-            saveBtn.disabled = false;
-            saveBtn.style.background = "#00ff41";
-            saveBtn.style.color = "#000";
-            saveBtn.innerText = "✅ DESCARGAR AHORA";
-            // Detener cámara para ahorrar recursos
-            scanner.stop().catch(()=>{});
-        } else if (sys.receivedChunks > 0 && pct < 100) {
-            missingDiv.style.display = 'block';
-            missingDiv.innerText = `⚠️ FALTA ${(sys.totalChunks - sys.receivedChunks)} BLOQUES (Click para Reporte)`;
-        }
-    }
-
-    function copyMissingReport() {
-        // Generar lista comprimida (ej: "1-5, 8, 10-12")
-        let missing = [];
-        for(let i=0; i<sys.totalChunks; i++) {
-            if(sys.dataSlots[i] === null) missing.push(i);
-        }
-
-        if(missing.length === 0) return;
-
-        let ranges = [];
-        let start = missing[0], prev = missing[0];
-
-        for(let i=1; i<=missing.length; i++) {
-            if(missing[i] === prev + 1) {
-                prev = missing[i];
-            } else {
-                ranges.push(start === prev ? start : `${start}-${prev}`);
-                start = missing[i];
-                prev = missing[i];
+        // Lógica de Botones
+        if(sys.received === sys.total) {
+            actionBox.innerHTML = `<button class="btn-success" onclick="download()">✅ DESCARGAR</button>`;
+            document.getElementById('lbl-status').innerText = "COMPLETO";
+            document.getElementById('lbl-status').style.color = "var(--primary)";
+        } 
+        else if (sys.received > 0 && pct < 100) {
+            // Calcular si hay huecos (missing)
+            const missingCount = sys.total - sys.received;
+            // Solo mostramos botón de error si llevamos un buen rato o porcentaje
+            if(missingCount > 0) {
+                actionBox.innerHTML = `<button class="btn-error" onclick="copyReport()">⚠️ FALTAN ${missingCount} (COPIAR)</button>`;
             }
         }
-        
-        const report = ranges.join(',');
-        navigator.clipboard.writeText(report).then(() => {
-            alert("📋 Reporte copiado:\n" + report + "\n\n>> Pégalo en el Emisor.");
-        });
     }
 
-    async function saveFile() {
-        if(sys.receivedChunks < sys.totalChunks) return;
+    // Feedback visual (parpadeo verde en bordes)
+    function flashScreen() {
+        const f = document.getElementById('flash');
+        f.style.opacity = '1';
+        setTimeout(() => f.style.opacity = '0', 100);
+    }
 
-        // ENSAMBLAJE FINAL
-        // Como ya tenemos Uint8Arrays, el Blob se crea instantáneamente sin conversiones.
-        const blob = new Blob(sys.dataSlots, { type: "application/octet-stream" });
+    function copyReport() {
+        // Generar lista 1-5, 8, 10...
+        let missing = [];
+        for(let i=0; i<sys.total; i++) if(sys.chunks[i]===null) missing.push(i);
         
-        // Verificación Hash (Opcional pero recomendada)
-        const buffer = await blob.arrayBuffer();
-        const hashBuf = await crypto.subtle.digest('SHA-256', buffer);
+        let ranges = [], start = missing[0], prev = missing[0];
+        for(let i=1; i<=missing.length; i++) {
+            if(missing[i] === prev+1) prev = missing[i];
+            else {
+                ranges.push(start===prev ? start : `${start}-${prev}`);
+                start = missing[i]; prev = missing[i];
+            }
+        }
+        const str = ranges.join(',');
+        navigator.clipboard.writeText(str);
+        alert("📋 REPORTE COPIADO:\n" + str + "\n\nPégalo en el Emisor.");
+    }
+
+    async function download() {
+        // Ensamblaje Directo (Sin conversiones extrañas)
+        const blob = new Blob(sys.chunks, { type: "application/octet-stream" });
+        
+        // Verificar Hash (Seguridad)
+        const buf = await blob.arrayBuffer();
+        const hashBuf = await crypto.subtle.digest('SHA-256', buf);
         const hashHex = Array.from(new Uint8Array(hashBuf)).map(b=>b.toString(16).padStart(2,'0')).join('');
 
-        if(hashHex.startsWith(sys.meta.hash)) {
-            const link = document.createElement('a');
-            link.href = URL.createObjectURL(blob);
-            link.download = sys.meta.name;
-            link.click();
+        if(hashHex.startsWith(sys.meta.h)) {
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = sys.meta.n;
+            a.click();
         } else {
-            alert("❌ ERROR DE INTEGRIDAD\nEl hash final no coincide. El archivo podría estar corrupto.");
+            if(confirm("El Hash no coincide perfectamente. ¿Guardar igual?")) {
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(blob);
+                a.download = "CORRUPT_" + sys.meta.n;
+                a.click();
+            }
         }
     }
+
+    // Iniciar al cargar
+    window.onload = init;
 </script>
 </body>
 </html>
