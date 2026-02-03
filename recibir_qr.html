@@ -2,207 +2,209 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Receptor V10 - Validador</title>
+    <title>Receptor V11 - Diagnóstico</title>
     <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
     <style>
-        :root { --bg: #050505; --panel: #111; --main: #00ff41; --err: #ff3333; }
-        body { background: var(--bg); color: #fff; font-family: monospace; margin: 0; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+        :root { --bg: #000; --panel: #111; --main: #00ff41; --err: #ff3333; --warn: #ffcc00; }
+        body { background: var(--bg); color: #fff; font-family: 'Consolas', monospace; margin: 0; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
         
-        #stage { flex: 1; background: #000; display: flex; justify-content: center; align-items: center; overflow: hidden; position: relative; }
-        #vid { position: absolute; opacity: 0; }
-        #canvas { width: 100%; height: 100%; object-fit: contain; }
-        .scope { position: absolute; width: 300px; height: 300px; border: 2px solid var(--err); z-index: 10; pointer-events: none; }
-        .scope::after { content: "🎯 SCAN"; color: var(--err); font-weight: bold; position: absolute; bottom: -20px; width: 100%; text-align: center; }
+        #stage { flex: 1; background: #050505; display: flex; justify-content: center; align-items: center; position: relative; }
+        #reader { width: 100%; height: 100%; object-fit: cover; }
+        
+        .hud { 
+            background: var(--panel); border-top: 2px solid #333; padding: 10px; 
+            display: flex; flex-direction: column; gap: 8px; z-index: 100;
+        }
 
-        .dash { background: var(--panel); border-top: 1px solid #333; padding: 10px; z-index: 20; }
-        .meta { display: grid; grid-template-columns: 1fr auto; background: #222; padding: 5px; font-size: 0.8rem; margin-bottom: 5px; }
-        .hash { grid-column: span 2; color: #aaa; font-size: 0.7rem; }
+        .bar-container { height: 15px; background: #222; width: 100%; position: relative; border-radius: 3px; overflow: hidden; }
+        .bar-fill { height: 100%; width: 0%; background: var(--main); transition: width 0.2s; }
         
-        .prog { height: 10px; background: #333; width: 100%; margin: 5px 0; }
-        .fill { height: 100%; width: 0%; background: var(--main); }
+        .info-row { display: flex; justify-content: space-between; font-size: 0.8rem; color: #aaa; }
+        .big-text { font-size: 1.2rem; font-weight: bold; color: #fff; }
         
-        .strat { background: #330000; color: #fff; padding: 5px; text-align: center; font-size: 0.9rem; display: none; border: 1px solid var(--err); }
-        
-        button { width: 100%; padding: 12px; background: #333; color: #fff; border: 1px solid #555; cursor: pointer; font-weight: bold; margin-top: 5px; }
-        button.dl { background: var(--main); color: #000; display: none; }
+        /* Caja de Errores */
+        .error-box { 
+            background: #220000; border: 1px solid var(--err); color: var(--err); 
+            padding: 8px; font-size: 0.8rem; display: none; flex-direction: column; gap: 5px;
+        }
+        .copy-btn { 
+            background: var(--warn); color: #000; border: none; padding: 5px; 
+            cursor: pointer; font-weight: bold; text-transform: uppercase; font-size: 0.75rem;
+        }
+
+        button.action-btn { width: 100%; padding: 12px; background: #333; color: #fff; border: 1px solid #555; font-weight: bold; cursor: pointer; }
+        button.success { background: var(--main); color: #000; border-color: var(--main); }
     </style>
 </head>
 <body onload="init()">
 
 <div id="stage">
-    <div id="reader" style="display:none; width:100%; height:100%;"></div>
-    <video id="vid" autoplay playsinline muted></video>
-    <canvas id="canvas" style="display:none;"></canvas>
-    <div class="scope" id="scope"></div>
+    <div id="reader"></div>
+    <div style="position:absolute; color:var(--main); font-size:2rem; opacity:0.5; pointer-events:none;">[ ]</div>
 </div>
 
-<div class="dash">
-    <div class="meta">
-        <div id="lbl-name">Esperando Header...</div>
-        <div id="lbl-cnt">0/0</div>
-        <div class="hash" id="lbl-hash">SHA256: -</div>
+<div class="hud">
+    <div class="info-row">
+        <span id="lbl-name">Esperando Header...</span>
+        <span id="lbl-hash">SHA: -</span>
     </div>
     
-    <div class="prog"><div class="fill" id="bar"></div></div>
-    <div id="lbl-spd" style="font-size:0.7rem; color:#888; text-align:right;">0 pq/s</div>
-
-    <div class="strat" id="strat-box">
-        ⚠️ FALTAN PAQUETES: <span id="strat-txt">-</span>
+    <div class="bar-container">
+        <div class="bar-fill" id="prog-bar"></div>
+    </div>
+    
+    <div class="info-row">
+        <span class="big-text" id="lbl-perc">0%</span>
+        <span id="lbl-count">0 / 0 Paquetes</span>
     </div>
 
-    <div style="display:flex; gap:5px;">
-        <button onclick="setMode('cam')">📷 CAM</button>
-        <button onclick="setMode('screen')">💻 PANTALLA</button>
+    <div id="missing-panel" class="error-box">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+            <span>⚠️ BLOQUES FALTANTES DETECTADOS</span>
+            <button class="copy-btn" onclick="copyMissing()">📋 COPIAR REPORTE</button>
+        </div>
+        <div id="missing-list" style="word-break: break-all; opacity: 0.8; max-height: 40px; overflow-y: auto;">-</div>
     </div>
-    <button id="btn-dl" class="dl" onclick="verifyAndDownload()">VALIDANDO INTEGRIDAD...</button>
+
+    <button id="btn-action" class="action-btn" onclick="finalize()" disabled>ESPERANDO DATOS...</button>
 </div>
 
 <script>
-    let sys = { mode: 'cam', session: { active: false, chunks: [], count: 0, total: 0, hash: null } };
-    let detector, stream, loop, qr;
+    let sys = { 
+        active: false, chunks: [], total: 0, receivedCount: 0, 
+        meta: { name: "", hash: "" },
+        missingStr: ""
+    };
+    let html5QrCode;
 
-    function init() { setMode('cam'); }
-
-    async function setMode(m) {
-        stop();
-        sys.mode = m;
-        document.getElementById('scope').style.display = m === 'screen' ? 'block' : 'none';
-        document.getElementById('canvas').style.display = m === 'screen' ? 'block' : 'none';
-        
-        if(m === 'cam') {
-            document.getElementById('reader').style.display = 'block';
-            qr = new Html5Qrcode("reader");
-            qr.start({ facingMode: "environment" }, { fps: 30, qrbox: 250 }, onData, ()=>{});
-        } else {
-            if(!('BarcodeDetector' in window)) return alert("Usa Chrome/Edge");
-            detector = new BarcodeDetector({ formats: ['qr_code'] });
-            try {
-                stream = await navigator.mediaDevices.getDisplayMedia({ video: { cursor: "never" }, audio: false });
-                document.getElementById('vid').srcObject = stream;
-                loopScreen();
-            } catch(e) { setMode('cam'); }
-        }
+    function init() {
+        html5QrCode = new Html5Qrcode("reader");
+        html5QrCode.start(
+            { facingMode: "environment" }, 
+            { fps: 30, qrbox: 250, aspectRatio: 1.0 },
+            onScan, 
+            (err) => {} // Ignorar errores de frame vacío
+        );
     }
 
-    function stop() {
-        if(qr?.isScanning) qr.stop().catch(()=>{});
-        if(stream) stream.getTracks().forEach(t => t.stop());
-        cancelAnimationFrame(loop);
-        document.getElementById('reader').style.display = 'none';
-    }
-
-    async function loopScreen() {
-        const v = document.getElementById('vid');
-        const c = document.getElementById('canvas');
-        const ctx = c.getContext('2d', {willReadFrequently: true});
-        
-        if(v.readyState === 4 && stream.active) {
-            // Sniper Zoom
-            const s = 3200;
-            c.width = s; c.height = s;
-            ctx.drawImage(v, (v.videoWidth/2)-(s/2), (v.videoHeight/2)-(s/2), s, s, 0, 0, s, s);
-            try {
-                const b = await detector.detect(c);
-                b.forEach(x => onData(x.rawValue));
-            } catch(e){}
-        }
-        loop = requestAnimationFrame(loopScreen);
-    }
-
-    function onData(txt) {
+    function onScan(decodedText) {
         try {
-            const d = JSON.parse(txt);
-            if(d.t === "H" && !sys.session.active) {
-                sys.session = { active: true, total: d.c, name: d.n, hash: d.h, chunks: new Array(d.c).fill(null), count: 0 };
-                document.getElementById('lbl-name').innerText = d.n;
-                document.getElementById('lbl-hash').innerText = "ESPERADO: " + (d.h || "SIN FIRMA");
+            const data = JSON.parse(decodedText);
+            
+            // Caso 1: Header
+            if(data.t === "H" && !sys.active) {
+                startSession(data);
                 return;
             }
-            if(sys.session.active && Array.isArray(d)) {
-                if(sys.session.chunks[d[0]] === null) {
-                    sys.session.chunks[d[0]] = d[1];
-                    sys.session.count++;
+
+            // Caso 2: Bloque de datos
+            if(sys.active && Array.isArray(data)) {
+                const idx = data[0];
+                const content = data[1];
+                
+                if(idx < sys.total && sys.chunks[idx] === null) {
+                    sys.chunks[idx] = content;
+                    sys.receivedCount++;
                     updateUI();
                 }
             }
-        } catch(e){}
+        } catch(e) {
+            // Ignorar basura
+        }
+    }
+
+    function startSession(header) {
+        sys.active = true;
+        sys.total = header.c;
+        sys.meta.name = header.n;
+        sys.meta.hash = header.h;
+        sys.chunks = new Array(sys.total).fill(null);
+        sys.receivedCount = 0;
+        
+        document.getElementById('lbl-name').innerText = header.n.substring(0, 20);
+        document.getElementById('lbl-hash').innerText = `SHA: ${header.h}...`;
+        updateUI();
     }
 
     function updateUI() {
-        const s = sys.session;
-        const pct = Math.floor((s.count/s.total)*100);
-        document.getElementById('bar').style.width = pct + "%";
-        document.getElementById('lbl-cnt').innerText = `${s.count}/${s.total}`;
-        
-        if(s.count === s.total) {
-            document.getElementById('strat-box').style.display = 'none';
-            const btn = document.getElementById('btn-dl');
-            btn.style.display = 'block';
-            btn.innerText = "VERIFICAR Y GUARDAR 💾";
-            stop();
-        } else if (pct > 80 && s.count % 10 === 0) {
-            calcStrategy();
+        const pct = Math.floor((sys.receivedCount / sys.total) * 100);
+        document.getElementById('prog-bar').style.width = pct + "%";
+        document.getElementById('lbl-perc').innerText = pct + "%";
+        document.getElementById('lbl-count').innerText = `${sys.receivedCount} / ${sys.total}`;
+
+        // Lógica de bloques faltantes (Se activa si hay gaps y tenemos >10% de datos)
+        if(sys.receivedCount < sys.total && sys.receivedCount > 1) {
+            calculateMissing();
+        } else if (sys.receivedCount === sys.total) {
+            document.getElementById('missing-panel').style.display = 'none';
+            const btn = document.getElementById('btn-action');
+            btn.disabled = false;
+            btn.classList.add('success');
+            btn.innerText = "✅ DESCARGAR ARCHIVO";
         }
     }
 
-    function calcStrategy() {
-        const s = sys.session;
-        let missing = [];
-        for(let i=0; i<s.total; i++) if(s.chunks[i] === null) missing.push(i);
-        if(missing.length > 0) {
-            // Algoritmo simple de clustering
-            let range = 200;
-            let bestStart = 0;
-            let maxMiss = 0;
-            for(let i=0; i<s.total; i+=range) {
-                let cnt = 0;
-                for(let j=i; j<Math.min(i+range, s.total); j++) if(s.chunks[j] === null) cnt++;
-                if(cnt > maxMiss) { maxMiss = cnt; bestStart = i; }
+    function calculateMissing() {
+        let ranges = [];
+        let start = -1;
+        
+        // Algoritmo para agrupar indices consecutivos: 1,2,3 -> "1-3"
+        for(let i=0; i<sys.total; i++) {
+            if(sys.chunks[i] === null) {
+                if(start === -1) start = i;
+            } else {
+                if(start !== -1) {
+                    ranges.push(start === i-1 ? `${start}` : `${start}-${i-1}`);
+                    start = -1;
+                }
             }
-            document.getElementById('strat-box').style.display = 'block';
-            document.getElementById('strat-txt').innerHTML = `RANGO: ${bestStart} - ${bestStart+range}`;
         }
+        if(start !== -1) ranges.push(start === sys.total-1 ? `${start}` : `${start}-${sys.total-1}`);
+
+        sys.missingStr = ranges.join(',');
+        
+        // Mostrar panel
+        const pnl = document.getElementById('missing-panel');
+        pnl.style.display = 'flex';
+        // Mostrar solo un resumen visual corto
+        const displayTxt = sys.missingStr.length > 50 ? sys.missingStr.substring(0,50)+"..." : sys.missingStr;
+        document.getElementById('missing-list').innerText = displayTxt || "Analizando...";
     }
 
-    async function verifyAndDownload() {
-        const s = sys.session;
-        const btn = document.getElementById('btn-dl');
-        btn.innerText = "⏳ CALCULANDO HASH...";
-        
-        try {
-            // 1. Reconstruir
-            const b64 = s.chunks.join('');
-            const bin = atob(b64);
-            const len = bin.length;
-            const arr = new Uint8Array(len);
-            for(let i=0; i<len; i++) arr[i] = bin.charCodeAt(i);
+    function copyMissing() {
+        if(!sys.missingStr) return;
+        navigator.clipboard.writeText(sys.missingStr).then(() => {
+            alert("📋 REPORTE COPIADO AL PORTAPAPELES\n\nPégalo en el campo 'Recuperación Inteligente' del Emisor.");
+        });
+    }
 
-            // 2. Calcular Hash del resultado
-            const hashBuf = await crypto.subtle.digest('SHA-256', arr);
+    async function finalize() {
+        // 1. Reconstruir
+        try {
+            const b64 = sys.chunks.join('');
+            const binStr = atob(b64);
+            const len = binStr.length;
+            const bytes = new Uint8Array(len);
+            for (let i = 0; i < len; i++) bytes[i] = binStr.charCodeAt(i);
+
+            // 2. Verificar Hash
+            const hashBuf = await crypto.subtle.digest('SHA-256', bytes);
             const hashArr = Array.from(new Uint8Array(hashBuf));
             const calcHash = hashArr.map(b => b.toString(16).padStart(2, '0')).join('');
-            
-            // 3. Comparar (Primeros 16 chars si el header vino truncado, o full si coincide)
-            // El emisor V5 envía 16 chars. 
-            const expected = s.hash; 
-            const calculatedPartial = calcHash.substring(0, expected.length);
 
-            if(calculatedPartial === expected) {
-                btn.style.background = "#00ff41";
-                btn.innerText = "✅ VALIDADO - DESCARGANDO";
-                const blob = new Blob([arr], {type: "application/octet-stream"});
+            // Validamos contra los 16 chars que mandó el emisor
+            if(calcHash.startsWith(sys.meta.hash)) {
+                const blob = new Blob([bytes], {type: "application/octet-stream"});
+                const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
-                a.href = URL.createObjectURL(blob);
-                a.download = s.name;
+                a.href = url;
+                a.download = sys.meta.name;
                 a.click();
             } else {
-                btn.style.background = "red";
-                btn.innerText = "❌ ERROR DE HASH (CORRUPTO)";
-                alert(`Error de Integridad!\nEsperado: ${expected}\nCalculado: ${calculatedPartial}`);
+                alert("❌ ERROR CRÍTICO DE HASH\nEl archivo está corrupto. Intenta escanear de nuevo los bloques faltantes.");
             }
-
         } catch(e) {
-            alert("Error fatal: " + e);
+            alert("Error al reconstruir: " + e);
         }
     }
 </script>
