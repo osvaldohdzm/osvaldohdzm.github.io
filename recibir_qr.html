@@ -2,258 +2,266 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Receptor V14</title>
+    <title>Receptor V15 - Dashboard Pro</title>
     <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
     <style>
-        :root { 
-            --primary: #00ff41; 
-            --bg: #000; 
-            --panel: #111; 
-            --err: #ff3333;
-            --warn: #ffcc00;
-        }
+        :root { --bg: #0d1117; --panel: #161b22; --border: #30363d; --accent: #2f81f7; --success: #2ea043; --err: #da3633; --text: #c9d1d9; }
         
-        * { box-sizing: border-box; }
-
         body { 
-            margin: 0; padding: 0; 
-            background: var(--bg); color: #fff; 
-            font-family: 'Courier New', Courier, monospace; 
-            height: 100dvh; /* Altura dinámica real del viewport */
-            width: 100vw;
-            display: flex; 
-            flex-direction: column; 
-            overflow: hidden; /* PROHIBIDO EL SCROLL */
+            background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+            margin: 0; display: flex; flex-direction: column; align-items: center; min-height: 100vh;
         }
 
-        /* --- ZONA DE VIDEO (Flexible) --- */
-        #scan-area {
-            flex: 1; /* Ocupa todo el espacio disponible */
-            position: relative;
-            background: #000;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            overflow: hidden;
-            border-bottom: 1px solid #333;
+        /* --- HEADER --- */
+        .header {
+            width: 100%; max-width: 800px; padding: 15px;
+            display: flex; justify-content: space-between; align-items: center;
+            border-bottom: 1px solid var(--border); margin-bottom: 20px;
         }
+        .brand { font-weight: bold; font-size: 1.1rem; color: #fff; display: flex; align-items: center; gap: 10px; }
+        .badge { background: var(--panel); border: 1px solid var(--border); padding: 2px 8px; border-radius: 12px; font-size: 0.7rem; color: var(--accent); }
 
-        #reader { width: 100%; height: 100%; object-fit: cover; }
+        /* --- SELECTOR DE MODO --- */
+        .mode-switch {
+            display: flex; gap: 10px; background: var(--panel); padding: 5px; border-radius: 6px; border: 1px solid var(--border);
+        }
+        .mode-btn {
+            background: transparent; border: none; color: #8b949e; padding: 8px 15px; cursor: pointer; font-weight: 600; border-radius: 4px; transition: all 0.2s;
+        }
+        .mode-btn.active { background: var(--accent); color: #fff; }
+        .mode-btn:hover:not(.active) { color: #fff; }
+
+        /* --- ZONA DE ESCANEO (CONTENIDA) --- */
+        .viewport-container {
+            width: 95%; max-width: 600px; aspect-ratio: 4/3;
+            background: #000; border: 2px solid var(--border); border-radius: 8px;
+            position: relative; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
         
-        /* Overlay de Información (Sobre el video) */
-        .overlay-info {
-            position: absolute;
-            top: 10px; left: 10px; right: 10px;
-            background: rgba(0, 0, 0, 0.7);
-            padding: 8px 12px;
-            border-radius: 8px;
-            border: 1px solid #444;
-            backdrop-filter: blur(4px);
-            z-index: 10;
+        #reader { width: 100%; height: 100%; object-fit: cover; } /* Para HTML5Qrcode */
+        #screen-video { width: 100%; height: 100%; object-fit: contain; display: none; } /* Para Pantalla */
+        
+        /* Overlay de guía */
+        .scan-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             pointer-events: none;
-        }
-        .file-name { font-weight: bold; color: #fff; font-size: 0.9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .file-hash { font-size: 0.7rem; color: #aaa; margin-top: 2px; }
-
-        /* Guía de Escaneo */
-        .scan-guide {
-            position: absolute; top: 50%; left: 50%;
-            transform: translate(-50%, -50%);
-            width: 250px; height: 250px;
-            border: 2px solid rgba(255, 255, 255, 0.3);
-            border-radius: 12px;
-            box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5); /* Oscurece el resto */
-            z-index: 5;
-            pointer-events: none;
-        }
-        .scan-guide::after { content: "+"; color: var(--primary); font-size: 2rem; position: absolute; top:50%; left:50%; transform:translate(-50%,-50%); opacity:0.5; }
-
-        /* --- PANEL DE CONTROL (Fijo abajo) --- */
-        #controls {
-            flex-shrink: 0; /* No se encoge */
-            background: var(--panel);
-            padding: 15px 20px;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            z-index: 20;
-            box-shadow: 0 -5px 20px rgba(0,0,0,0.8);
+            background: linear-gradient(to bottom, rgba(0,0,0,0) 40%, rgba(47, 129, 247, 0.1) 50%, rgba(0,0,0,0) 60%);
+            border: 1px solid rgba(255,255,255,0.1);
         }
 
-        /* Barra de Progreso */
-        .progress-container {
-            display: flex; justify-content: space-between; align-items: end; margin-bottom: 5px;
-        }
-        .pct-big { font-size: 2.5rem; font-weight: bold; color: var(--primary); line-height: 1; }
-        .stats-small { text-align: right; font-size: 0.8rem; color: #888; }
+        /* --- DASHBOARD DE DATOS --- */
+        .dashboard { width: 95%; max-width: 600px; margin-top: 15px; display: flex; flex-direction: column; gap: 10px; }
         
-        .track { width: 100%; height: 10px; background: #333; border-radius: 5px; overflow: hidden; position: relative; }
-        .fill { height: 100%; width: 0%; background: var(--primary); transition: width 0.1s linear; box-shadow: 0 0 10px var(--primary); }
+        .card { background: var(--panel); border: 1px solid var(--border); border-radius: 6px; padding: 15px; }
+        
+        .info-row { display: flex; justify-content: space-between; font-size: 0.9rem; margin-bottom: 5px; }
+        .file-name { color: #fff; font-weight: bold; }
+        
+        .progress-track { height: 8px; background: #21262d; border-radius: 4px; overflow: hidden; margin-top: 10px; }
+        .progress-fill { height: 100%; width: 0%; background: var(--accent); transition: width 0.1s; }
 
-        /* Botones y Alertas */
-        .action-area { height: 50px; display: flex; align-items: center; justify-content: center; }
+        /* --- BOTONES DE ACCIÓN --- */
+        .actions { display: grid; grid-template-columns: 1fr; gap: 10px; }
         
-        button {
-            width: 100%; height: 100%;
-            background: #222; border: 1px solid #444; color: #888;
-            font-size: 1rem; font-weight: bold; text-transform: uppercase;
-            border-radius: 6px; cursor: pointer;
+        button.main-action {
+            width: 100%; padding: 12px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.1);
+            font-weight: bold; cursor: pointer; font-size: 0.9rem;
         }
-        
-        .btn-success { background: var(--primary); color: #000; border-color: var(--primary); box-shadow: 0 0 15px rgba(0, 255, 65, 0.3); animation: pulse 2s infinite; }
-        .btn-error { background: #330000; color: var(--err); border-color: var(--err); }
-        .btn-waiting { background: transparent; border: none; color: #555; }
+        .btn-waiting { background: var(--panel); color: #484f58; cursor: not-allowed; }
+        .btn-download { background: var(--success); color: #fff; border: 1px solid rgba(255,255,255,0.2); }
+        .btn-missing { background: var(--err); color: #fff; display: none; }
 
-        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.8; } 100% { opacity: 1; } }
-        
-        /* Efecto Flash al recibir paquete */
-        .flash-effect {
-            position: absolute; inset: 0; border: 4px solid var(--primary);
-            opacity: 0; pointer-events: none; z-index: 50;
-            transition: opacity 0.1s;
-        }
+        /* Canvas oculto para procesar pantalla */
+        #worker-canvas { display: none; }
     </style>
 </head>
 <body>
 
-    <div id="scan-area">
-        <div class="overlay-info">
-            <div class="file-name" id="lbl-name">Esperando Header...</div>
-            <div class="file-hash" id="lbl-hash">SHA: -</div>
+    <div class="header">
+        <div class="brand">📡 RECEPTOR V15 <span class="badge">TITANIUM CORE</span></div>
+        <div class="mode-switch">
+            <button class="mode-btn active" onclick="setMode('cam')" id="btn-mode-cam">📷 CÁMARA</button>
+            <button class="mode-btn" onclick="setMode('screen')" id="btn-mode-screen">🖥️ PANTALLA</button>
         </div>
-        <div class="scan-guide"></div>
-        <div id="reader"></div>
-        <div id="flash" class="flash-effect"></div>
     </div>
 
-    <div id="controls">
-        <div class="progress-container">
-            <div class="pct-big" id="lbl-pct">0%</div>
-            <div class="stats-small">
-                <div id="lbl-count">0 / 0</div>
-                <div id="lbl-status">ESPERANDO</div>
+    <div class="viewport-container">
+        <div id="reader"></div> <video id="screen-video" autoplay playsinline muted></video> <div class="scan-overlay"></div>
+    </div>
+
+    <div class="dashboard">
+        <div class="card">
+            <div class="info-row">
+                <span class="file-name" id="lbl-name">Esperando señal...</span>
+                <span id="lbl-pct">0%</span>
+            </div>
+            <div class="info-row" style="font-size: 0.75rem; color: #8b949e;">
+                <span id="lbl-hash">SHA: -</span>
+                <span id="lbl-count">0/0 Paquetes</span>
+            </div>
+            <div class="progress-track">
+                <div class="progress-fill" id="bar"></div>
             </div>
         </div>
-        
-        <div class="track">
-            <div class="fill" id="prog-bar"></div>
-        </div>
 
-        <div class="action-area" id="action-box">
-            <button class="btn-waiting" disabled>... ESCANEANDO ...</button>
+        <div class="actions">
+            <button id="btn-missing" class="main-action btn-missing" onclick="copyReport()">⚠️ COPIAR REPORTE DE ERRORES</button>
+            <button id="btn-save" class="main-action btn-waiting" disabled onclick="downloadFile()">ESPERANDO FINALIZACIÓN...</button>
         </div>
     </div>
 
+    <canvas id="worker-canvas"></canvas>
+
 <script>
-    // --- LÓGICA ROBUSTA (Titanium Core) ---
+    // --- ESTADO DEL SISTEMA ---
     const sys = {
-        active: false, total: 0, received: 0,
-        chunks: [], meta: { n: "", h: "" },
-        lastPacketTime: 0
+        mode: 'cam', // 'cam' o 'screen'
+        active: false, chunks: [], received: 0, total: 0,
+        meta: { n: "", h: "" },
+        loopId: null
     };
 
-    const scanner = new Html5Qrcode("reader");
+    // --- VARIABLES DE ESCANEO ---
+    const html5QrCode = new Html5Qrcode("reader");
+    let screenStream = null;
+    let barcodeDetector = null;
 
-    function init() {
-        // Configuración para usar la cámara trasera y llenar el div
-        const config = { 
-            fps: 30, 
-            qrbox: { width: 250, height: 250 }, 
-            aspectRatio: window.innerHeight / window.innerWidth // Adaptación a pantalla
-        };
+    // Inicializar
+    window.onload = () => {
+        // Verificar soporte nativo para escanear pantalla (Chrome/Edge/Android)
+        if ('BarcodeDetector' in window) {
+            barcodeDetector = new BarcodeDetector({ formats: ['qr_code'] });
+        }
+        setMode('cam');
+    };
+
+    // --- CAMBIO DE MODOS ---
+    async function setMode(mode) {
+        stopAll();
+        sys.mode = mode;
         
-        scanner.start({ facingMode: "environment" }, config, onData, onError)
-               .catch(err => console.log("Error camara", err));
+        // UI Toggle
+        document.getElementById('btn-mode-cam').className = mode === 'cam' ? 'mode-btn active' : 'mode-btn';
+        document.getElementById('btn-mode-screen').className = mode === 'screen' ? 'mode-btn active' : 'mode-btn';
+
+        const readerDiv = document.getElementById('reader');
+        const videoTag = document.getElementById('screen-video');
+
+        if (mode === 'cam') {
+            readerDiv.style.display = 'block';
+            videoTag.style.display = 'none';
+            // Iniciar HTML5Qrcode
+            html5QrCode.start({ facingMode: "environment" }, { fps: 30, qrbox: 250 }, onData, () => {});
+        } 
+        else {
+            readerDiv.style.display = 'none';
+            videoTag.style.display = 'block';
+            try {
+                // Solicitar Pantalla
+                screenStream = await navigator.mediaDevices.getDisplayMedia({ 
+                    video: { cursor: "never" }, audio: false 
+                });
+                videoTag.srcObject = screenStream;
+                // Iniciar Loop de detección de pantalla
+                requestAnimationFrame(scanScreenLoop);
+            } catch (err) {
+                alert("Cancelaste compartir pantalla o no tienes permisos.");
+                setMode('cam');
+            }
+        }
     }
 
+    function stopAll() {
+        if(html5QrCode.isScanning) html5QrCode.stop().catch(()=>{});
+        if(screenStream) screenStream.getTracks().forEach(track => track.stop());
+        cancelAnimationFrame(sys.loopId);
+    }
+
+    // --- LOOP DE ESCANEO DE PANTALLA ---
+    async function scanScreenLoop() {
+        if(sys.mode !== 'screen') return;
+        
+        const video = document.getElementById('screen-video');
+        
+        if (video.readyState === video.HAVE_ENOUGH_DATA && barcodeDetector) {
+            try {
+                // Usamos la API nativa del navegador (Súper rápida)
+                const barcodes = await barcodeDetector.detect(video);
+                barcodes.forEach(code => onData(code.rawValue));
+            } catch (e) {
+                // Fallback si falla la API nativa (raro en Chrome)
+            }
+        }
+        sys.loopId = requestAnimationFrame(scanScreenLoop);
+    }
+
+    // --- LÓGICA DE DATOS (EL NÚCLEO ROBUSTO) ---
     function onData(txt) {
         try {
             const d = JSON.parse(txt);
-            flashScreen(); // Feedback visual inmediato
 
-            // Header
-            if(d.t === "H" && !sys.active) {
-                startSession(d);
-                return;
+            // HEADER
+            if (d.t === "H" && !sys.active) {
+                sys.active = true;
+                sys.total = d.c;
+                sys.meta = d;
+                sys.chunks = new Array(d.c).fill(null); // Memoria para bytes
+                
+                document.getElementById('lbl-name').innerText = d.n;
+                document.getElementById('lbl-hash').innerText = "SHA: " + d.h.substring(0,8) + "...";
+                updateUI();
             }
 
-            // Datos
-            if(sys.active && Array.isArray(d)) {
-                saveBlock(d[0], d[1]);
+            // DATA BLOCK
+            if (sys.active && Array.isArray(d)) {
+                const idx = d[0];
+                const b64 = d[1];
+                
+                if (idx < sys.total && sys.chunks[idx] === null) {
+                    // DECODIFICACIÓN SEGURA (Uint8Array)
+                    const bin = atob(b64);
+                    const bytes = new Uint8Array(bin.length);
+                    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+                    
+                    sys.chunks[idx] = bytes;
+                    sys.received++;
+                    updateUI();
+                }
             }
-        } catch(e) {}
-    }
-
-    function onError(e) {} // Ignorar cuadros vacíos
-
-    function startSession(h) {
-        sys.active = true;
-        sys.total = h.c;
-        sys.meta = h;
-        sys.chunks = new Array(h.c).fill(null);
-        sys.received = 0;
-        
-        document.getElementById('lbl-name').innerText = h.n;
-        document.getElementById('lbl-hash').innerText = "SHA: " + h.h;
-        document.getElementById('lbl-status').innerText = "RECIBIENDO";
-        updateUI();
-    }
-
-    function saveBlock(idx, b64) {
-        if(idx >= sys.total || sys.chunks[idx] !== null) return;
-
-        try {
-            // Decodificación Atómica (La protección contra errores)
-            const bin = atob(b64);
-            const bytes = new Uint8Array(bin.length);
-            for(let i=0; i<bin.length; i++) bytes[i] = bin.charCodeAt(i);
-            
-            sys.chunks[idx] = bytes;
-            sys.received++;
-            updateUI();
-
-        } catch(e) { /* Bloque corrupto ignorado */ }
+        } catch (e) {}
     }
 
     function updateUI() {
         const pct = Math.floor((sys.received / sys.total) * 100);
         
-        // Elementos DOM
+        document.getElementById('bar').style.width = pct + "%";
         document.getElementById('lbl-pct').innerText = pct + "%";
-        document.getElementById('lbl-count').innerText = `${sys.received}/${sys.total}`;
-        document.getElementById('prog-bar').style.width = pct + "%";
-        
-        const actionBox = document.getElementById('action-box');
+        document.getElementById('lbl-count').innerText = `${sys.received}/${sys.total} Paquetes`;
 
-        // Lógica de Botones
-        if(sys.received === sys.total) {
-            actionBox.innerHTML = `<button class="btn-success" onclick="download()">✅ DESCARGAR</button>`;
-            document.getElementById('lbl-status').innerText = "COMPLETO";
-            document.getElementById('lbl-status').style.color = "var(--primary)";
+        const btnSave = document.getElementById('btn-save');
+        const btnMiss = document.getElementById('btn-missing');
+
+        if (sys.received === sys.total) {
+            btnMiss.style.display = 'none';
+            btnSave.disabled = false;
+            btnSave.className = "main-action btn-download";
+            btnSave.innerText = "✅ DESCARGAR ARCHIVO";
+            // Auto-stop para ahorrar CPU
+            if(sys.mode === 'cam') stopAll();
         } 
         else if (sys.received > 0 && pct < 100) {
-            // Calcular si hay huecos (missing)
-            const missingCount = sys.total - sys.received;
-            // Solo mostramos botón de error si llevamos un buen rato o porcentaje
-            if(missingCount > 0) {
-                actionBox.innerHTML = `<button class="btn-error" onclick="copyReport()">⚠️ FALTAN ${missingCount} (COPIAR)</button>`;
-            }
+            // Mostrar botón de error si hay actividad
+            btnMiss.style.display = 'block';
         }
     }
 
-    // Feedback visual (parpadeo verde en bordes)
-    function flashScreen() {
-        const f = document.getElementById('flash');
-        f.style.opacity = '1';
-        setTimeout(() => f.style.opacity = '0', 100);
-    }
-
     function copyReport() {
-        // Generar lista 1-5, 8, 10...
         let missing = [];
-        for(let i=0; i<sys.total; i++) if(sys.chunks[i]===null) missing.push(i);
+        for(let i=0; i<sys.total; i++) if(sys.chunks[i] === null) missing.push(i);
         
+        if(missing.length === 0) return;
+
+        // Comprimir rangos (1,2,3 -> 1-3)
         let ranges = [], start = missing[0], prev = missing[0];
         for(let i=1; i<=missing.length; i++) {
             if(missing[i] === prev+1) prev = missing[i];
@@ -262,37 +270,30 @@
                 start = missing[i]; prev = missing[i];
             }
         }
-        const str = ranges.join(',');
-        navigator.clipboard.writeText(str);
-        alert("📋 REPORTE COPIADO:\n" + str + "\n\nPégalo en el Emisor.");
+        
+        const report = ranges.join(',');
+        navigator.clipboard.writeText(report);
+        alert("📋 REPORTE COPIADO:\n" + report + "\n\n>> Pegar en Emisor");
     }
 
-    async function download() {
-        // Ensamblaje Directo (Sin conversiones extrañas)
+    async function downloadFile() {
         const blob = new Blob(sys.chunks, { type: "application/octet-stream" });
         
-        // Verificar Hash (Seguridad)
+        // Hash check
         const buf = await blob.arrayBuffer();
         const hashBuf = await crypto.subtle.digest('SHA-256', buf);
         const hashHex = Array.from(new Uint8Array(hashBuf)).map(b=>b.toString(16).padStart(2,'0')).join('');
-
-        if(hashHex.startsWith(sys.meta.h)) {
+        
+        // Validación laxa (primeros 16 chars) o estricta
+        if (hashHex.startsWith(sys.meta.h)) {
             const a = document.createElement('a');
             a.href = URL.createObjectURL(blob);
             a.download = sys.meta.n;
             a.click();
         } else {
-            if(confirm("El Hash no coincide perfectamente. ¿Guardar igual?")) {
-                const a = document.createElement('a');
-                a.href = URL.createObjectURL(blob);
-                a.download = "CORRUPT_" + sys.meta.n;
-                a.click();
-            }
+            alert("⚠️ Error de integridad. El hash no coincide.");
         }
     }
-
-    // Iniciar al cargar
-    window.onload = init;
 </script>
 </body>
 </html>
