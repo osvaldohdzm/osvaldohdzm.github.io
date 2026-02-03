@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Receptor Android</title>
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+    
+    <style>
+        :root { --bg: #000000; --text: #e6e6e6; --accent: #00ff41; --panel: #1a1a1a; }
+        body { 
+            font-family: sans-serif; 
+            background: var(--bg); 
+            color: var(--text); 
+            margin: 0; 
+            padding: 10px; 
+            display: flex; 
+            flex-direction: column; 
+            height: 100vh;
+        }
+        
+        /* Panel principal que ocupa casi toda la pantalla */
+        .main-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        h2 { margin: 5px 0; font-size: 1.2rem; color: var(--accent); text-align: center; border-bottom: 1px solid #333; padding-bottom: 5px; }
+
+        /* Contenedor de la cámara responsivo */
+        #reader { 
+            width: 100%; 
+            background: #000;
+            border: 2px solid #333;
+            border-radius: 8px;
+            overflow: hidden;
+            /* En móviles, dejamos que la librería calcule la altura */
+        }
+        
+        /* Barra de Progreso Grande para verla fácil */
+        .progress-container { 
+            height: 30px; 
+            background: #333; 
+            border-radius: 15px; 
+            overflow: hidden; 
+            position: relative;
+            box-shadow: inset 0 2px 5px rgba(0,0,0,0.5);
+        }
+        .progress-bar { height: 100%; background: var(--accent); width: 0%; transition: width 0.1s linear; }
+        .progress-text { 
+            position: absolute; width: 100%; text-align: center; top: 5px; 
+            font-size: 0.9rem; font-weight: bold; color: white; text-shadow: 0 1px 2px black; 
+        }
+
+        /* Datos técnicos compactos */
+        .info-grid { 
+            display: grid; grid-template-columns: 1fr 1fr; gap: 8px; 
+            font-size: 0.8rem; background: var(--panel); padding: 10px; border-radius: 8px;
+        }
+        .info-item { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+
+        /* Consola mini */
+        .console {
+            height: 80px;
+            background: #111;
+            border: 1px solid #333;
+            border-radius: 4px;
+            padding: 5px;
+            font-family: monospace;
+            font-size: 0.7rem;
+            overflow-y: auto;
+            color: #aaa;
+        }
+        .log-success { color: var(--accent); }
+        .log-err { color: #ff4444; }
+
+        button {
+            padding: 15px;
+            background: #333;
+            color: white;
+            border: 1px solid #555;
+            border-radius: 8px;
+            font-size: 1rem;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="main-panel">
+    <h2>Receptor Air-Gap (Android)</h2>
+
+    <div id="reader"></div>
+
+    <div class="progress-container">
+        <div id="progress-bar" class="progress-bar"></div>
+        <div id="progress-text" class="progress-text">ESPERANDO QR...</div>
+    </div>
+
+    <div class="info-grid">
+        <div class="info-item" id="filename">File: -</div>
+        <div class="info-item" id="speed">Vel: 0 pq/s</div>
+        <div class="info-item" id="parts">Partes: 0/0</div>
+        <div class="info-item" id="status" style="color:yellow">Cámara: Iniciando...</div>
+    </div>
+
+    <div class="console" id="log-box"></div>
+    
+    <button id="btn-download" style="display:none; background: var(--accent); color:black; font-weight:bold;" onclick="downloadFile()">DESCARGAR ARCHIVO</button>
+</div>
+
+<script>
+    const html5QrCode = new Html5Qrcode("reader");
+    let state = {
+        active: false,
+        chunks: [],
+        total: 0,
+        received: 0,
+        filename: "unknown",
+        fileHash: null,
+        sessionId: null,
+        lastPacketTime: Date.now(),
+        packetsSec: 0,
+        finalBlob: null
+    };
+
+    function log(msg, type="") {
+        const box = document.getElementById('log-box');
+        const d = document.createElement('div');
+        d.innerText = "> " + msg;
+        if(type==='s') d.className = "log-success";
+        if(type==='e') d.className = "log-err";
+        box.prepend(d);
+    }
+
+    function startCamera() {
+        // CONFIGURACIÓN CLAVE PARA ANDROID
+        const config = { 
+            fps: 30, // Alta velocidad de escaneo
+            qrbox: { width: 250, height: 250 }, // Caja de escaneo
+            aspectRatio: 1.0 
+        };
+
+        // Preferir cámara trasera ("environment")
+        html5QrCode.start(
+            { facingMode: "environment" }, 
+            config,
+            onScanSuccess,
+            (err) => { /* Ignorar fallos de frame vacío */ }
+        ).then(() => {
+            document.getElementById('status').innerText = "Cámara: ACTIVA";
+            document.getElementById('status').style.color = "#00ff41";
+            log("Cámara trasera iniciada.");
+        }).catch(err => {
+            document.getElementById('status').innerText = "ERROR CÁMARA";
+            document.getElementById('status').style.color = "red";
+            log("Error: " + err, 'e');
+            alert("Error: Asegúrate de estar en HTTPS o localhost. Android bloquea la cámara en archivos locales (file://).");
+        });
+    }
+
+    function onScanSuccess(decodedText, decodedResult) {
+        try {
+            const p = JSON.parse(decodedText);
+            // Validar firma del protocolo {s, i, t, d...}
+            if(!p.s || !p.d) return;
+
+            handleData(p);
+        } catch(e) { 
+            // Ruido, no es JSON
+        }
+    }
+
+    function handleData(p) {
+        // 1. Inicio de sesión
+        if(!state.active) {
+            state.active = true;
+            state.sessionId = p.s;
+            state.total = p.t;
+            state.filename = p.n;
+            state.fileHash = p.h;
+            state.chunks = new Array(p.t).fill(null);
+            
+            document.getElementById('filename').innerText = p.n.substring(0,15);
+            log(`Recibiendo: ${p.n} (${p.t} bloques)`, 's');
+        }
+
+        // 2. Filtrar sesión
+        if(p.s !== state.sessionId) return;
+
+        // 3. Guardar bloque nuevo
+        if(state.chunks[p.i] === null) {
+            state.chunks[p.i] = p.d;
+            state.received++;
+            state.packetsSec++;
+            updateUI();
+
+            // 4. Completado
+            if(state.received === state.total) {
+                finish();
+            }
+        }
+    }
+
+    function updateUI() {
+        const pct = Math.floor((state.received / state.total) * 100);
+        document.getElementById('progress-bar').style.width = pct + "%";
+        document.getElementById('progress-text').innerText = `${pct}%`;
+        document.getElementById('parts').innerText = `${state.received}/${state.total}`;
+    }
+
+    // Calcular velocidad real
+    setInterval(() => {
+        if(state.active && state.received < state.total) {
+            document.getElementById('speed').innerText = `Vel: ${state.packetsSec} pq/s`;
+            state.packetsSec = 0;
+        }
+    }, 1000);
+
+    async function finish() {
+        log("¡Completo! Procesando...", 's');
+        html5QrCode.stop(); // Apagar cámara para ahorrar batería/CPU
+        
+        // Unir Base64
+        const fullB64 = state.chunks.join('');
+        
+        // Convertir a Blob
+        const byteCharacters = atob(fullB64);
+        const byteNumbers = new Array(byteCharacters.length);
+        for (let i = 0; i < byteCharacters.length; i++) {
+            byteNumbers[i] = byteCharacters.charCodeAt(i);
+        }
+        const byteArray = new Uint8Array(byteNumbers);
+        state.finalBlob = new Blob([byteArray], {type: "application/octet-stream"});
+
+        // Validar Hash
+        log("Validando Hash SHA-256...");
+        const hashBuffer = await crypto.subtle.digest('SHA-256', byteArray);
+        const hashArray = Array.from(new Uint8Array(hashBuffer));
+        const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+
+        if(hashHex === state.fileHash) {
+            log("HASH VÁLIDO ✔", 's');
+            document.getElementById('progress-text').innerText = "LISTO PARA DESCARGAR";
+            document.getElementById('progress-bar').style.background = "#00ff41";
+            
+            const btn = document.getElementById('btn-download');
+            btn.style.display = "block";
+            btn.innerText = `DESCARGAR ${state.filename}`;
+            
+            // Auto-descarga (a veces bloqueada por popup blocker en android)
+            downloadFile();
+        } else {
+            log("ERROR DE HASH ❌", 'e');
+            alert("El archivo se recibió corrupto.");
+        }
+    }
+
+    function downloadFile() {
+        if(!state.finalBlob) return;
+        const url = window.URL.createObjectURL(state.finalBlob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = state.filename;
+        document.body.appendChild(a);
+        a.click();
+        log("Descarga iniciada.");
+        // window.URL.revokeObjectURL(url); // Mantener por si acaso el usuario hace click de nuevo
+    }
+
+    // Iniciar al cargar
+    window.onload = startCamera;
+
+</script>
+</body>
+</html>
