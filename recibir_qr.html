@@ -3,69 +3,97 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Receptor V6.2 - Stable Fix</title>
+    <title>Receptor V7 - Pro Dashboard</title>
     <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
     <style>
-        :root { --bg: #050505; --main: #00ff41; --panel: #111; --warn: #ffcc00; }
+        :root { 
+            --bg: #0a0a0a; 
+            --panel: #141414; 
+            --border: #333; 
+            --primary: #00ff41; 
+            --accent: #0088ff;
+            --text-main: #e0e0e0;
+            --text-dim: #888;
+        }
         * { box-sizing: border-box; }
         
         body { 
-            background: var(--bg); color: #fff; font-family: 'Segoe UI', sans-serif; 
+            background: var(--bg); color: var(--text-main); 
+            font-family: 'Consolas', 'Monaco', monospace; /* Fuente estilo Hacker */
             margin: 0; display: flex; flex-direction: column; height: 100vh; overflow: hidden;
         }
 
+        /* --- VISOR SUPERIOR --- */
         #media-stage {
-            flex: 1; position: relative; background: #000; 
+            flex: 1; position: relative; background: #000; border-bottom: 1px solid var(--primary);
             display: flex; justify-content: center; align-items: center; overflow: hidden;
         }
+        #reader, #screen-video { width: 100%; height: 100%; object-fit: contain; }
+        #reader { display: none; }
+        #screen-video { display: none; }
+
+        .overlay-status {
+            position: absolute; top: 10px; left: 10px; 
+            background: rgba(0,0,0,0.8); padding: 5px 10px; border: 1px solid var(--primary);
+            color: var(--primary); font-size: 0.8rem; pointer-events: none;
+        }
+
+        /* --- PANEL DE CONTROL INFERIOR --- */
+        .dashboard { 
+            height: 50vh; background: var(--panel); display: flex; flex-direction: column; padding: 15px; gap: 15px;
+            overflow-y: auto;
+        }
+
+        /* Tabs de Fuente */
+        .tabs { display: flex; border-bottom: 1px solid var(--border); margin-bottom: 10px; }
+        .tab { 
+            flex: 1; padding: 10px; cursor: pointer; text-align: center; color: var(--text-dim); 
+            border: 1px solid transparent; transition: 0.2s;
+        }
+        .tab:hover { color: #fff; background: #222; }
+        .tab.active { 
+            color: var(--primary); border-bottom: 2px solid var(--primary); background: #0f1f0f; font-weight: bold; 
+        }
+
+        /* Tarjeta de Información del Archivo (METADATOS) */
+        .meta-card {
+            display: grid; grid-template-columns: 80px 1fr; gap: 10px;
+            background: #1a1a1a; border: 1px solid var(--border); padding: 10px; border-radius: 4px;
+        }
+        .file-icon { 
+            background: #222; display: flex; align-items: center; justify-content: center; 
+            font-size: 2rem; color: var(--accent); border: 1px solid #333;
+        }
+        .file-details { display: flex; flex-direction: column; justify-content: center; gap: 4px; }
+        .detail-row { font-size: 0.8rem; color: var(--text-dim); display: flex; justify-content: space-between; }
+        .detail-val { color: #fff; font-weight: bold; }
+        .hash-txt { font-family: monospace; font-size: 0.7rem; color: var(--accent); word-break: break-all; }
+
+        /* Barras y Estadísticas */
+        .progress-section { display: flex; flex-direction: column; gap: 5px; }
+        .progress-track { height: 8px; background: #222; width: 100%; border-radius: 2px; overflow: hidden; }
+        .progress-fill { height: 100%; width: 0%; background: var(--primary); transition: width 0.1s; }
         
-        #reader { width: 100%; height: 100%; display: none; }
-        #screen-video { width: 100%; height: 100%; object-fit: contain; display: none; }
-        
-        .overlay-guide {
-            position: absolute; pointer-events: none; z-index: 10;
-            bottom: 20px; background: rgba(0,0,0,0.7); padding: 5px 15px; border-radius: 20px;
-            color: var(--main); font-weight: bold; font-size: 0.9rem; border: 1px solid var(--main);
+        .stats-row { display: flex; justify-content: space-between; font-size: 0.8rem; color: var(--text-dim); }
+
+        /* Consola de Diagnóstico */
+        .console-log {
+            flex: 1; background: #000; border: 1px solid #333; padding: 5px; 
+            font-size: 0.7rem; color: #aaa; overflow-y: auto; font-family: monospace;
+            min-height: 60px;
         }
+        .log-success { color: var(--primary); }
+        .log-warn { color: #ffcc00; }
+        .log-err { color: #ff3333; }
 
-        .controls { 
-            background: var(--panel); border-top: 2px solid #333; 
-            padding: 15px; display: flex; flex-direction: column; gap: 10px; z-index: 20;
-            max-height: 40vh; overflow-y: auto;
+        /* Botón Acción */
+        .action-btn {
+            width: 100%; padding: 15px; background: #222; color: #555; border: 1px solid #333;
+            font-weight: bold; cursor: not-allowed; text-transform: uppercase; letter-spacing: 1px;
+            transition: 0.3s;
         }
+        .action-btn.ready { background: var(--primary); color: #000; cursor: pointer; border: none; box-shadow: 0 0 15px rgba(0, 255, 65, 0.3); }
 
-        .btn-group { display: flex; gap: 10px; }
-        button {
-            flex: 1; padding: 12px; border: none; border-radius: 6px; 
-            font-weight: bold; cursor: pointer; color: #fff; background: #333;
-            transition: 0.2s;
-        }
-        button:hover { background: #444; }
-        .btn-active { background: #003300; border: 1px solid var(--main); color: var(--main); }
-
-        .progress-container { height: 15px; background: #222; border-radius: 8px; overflow: hidden; position: relative; }
-        .bar { height: 100%; width: 0%; background: var(--main); transition: width 0.3s; }
-        
-        .info { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; font-size: 0.8rem; color: #aaa; }
-        .info span { color: #fff; font-weight: bold; }
-
-        #diag-panel {
-            background: #2a2200; border: 1px dashed var(--warn); padding: 10px; border-radius: 6px;
-            display: none; animation: popIn 0.3s;
-        }
-        .diag-title { color: var(--warn); font-weight: bold; font-size: 0.9rem; margin-bottom: 5px; display: block; }
-        .diag-data { font-family: monospace; font-size: 1.1rem; color: #fff; background: #000; padding: 5px; display: block; text-align: center; }
-        .diag-note { font-size: 0.75rem; color: #ccc; margin-top: 5px; display: block; }
-
-        #mac-help {
-            background: #222; border: 1px solid #555; padding: 10px; border-radius: 6px;
-            display: none; color: #ccc; font-size: 0.8rem;
-        }
-        #mac-help strong { color: #fff; }
-
-        #btn-dl { background: var(--main); color: #000; display: none; margin-top: 5px; }
-
-        @keyframes popIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
 <body onload="setMode('cam')">
@@ -73,273 +101,281 @@
 <div id="media-stage">
     <div id="reader"></div>
     <video id="screen-video" autoplay playsinline muted></video>
-    <div class="overlay-guide" id="guide-text">Selecciona una fuente</div>
+    <div class="overlay-status" id="status-overlay">ESPERANDO FUENTE...</div>
 </div>
 
-<div class="controls">
-    <div class="btn-group">
-        <button id="btn-cam" onclick="setMode('cam')">📷 CÁMARA</button>
-        <button id="btn-screen" onclick="setMode('screen')">💻 VENTANA / PANTALLA</button>
+<div class="dashboard">
+    
+    <div class="tabs">
+        <div class="tab" id="tab-cam" onclick="setMode('cam')">[ CÁMARA ]</div>
+        <div class="tab" id="tab-screen" onclick="setMode('screen')">[ PANTALLA / VENTANA ]</div>
     </div>
 
-    <div id="mac-help">
-        <strong>¿Solo ves Chrome?</strong><br>
-        En macOS: <em>Ajustes > Privacidad > Grabación de Pantalla > Activa Chrome</em> y reinicia.
+    <div class="meta-card">
+        <div class="file-icon">📄</div>
+        <div class="file-details">
+            <div class="detail-row">ARCHIVO: <span class="detail-val" id="meta-name">---</span></div>
+            <div class="detail-row">TAMAÑO: <span class="detail-val" id="meta-size">---</span></div>
+            <div class="detail-row" style="margin-top:2px;">HASH (SHA-256):</div>
+            <div class="hash-txt" id="meta-hash">Esperando Header...</div>
+        </div>
     </div>
 
-    <div class="progress-container">
-        <div id="bar" class="bar"></div>
+    <div class="progress-section">
+        <div class="stats-row">
+            <span id="stat-blocks">Bloques: 0 / 0</span>
+            <span id="stat-speed">0 pq/s</span>
+        </div>
+        <div class="progress-track">
+            <div id="prog-bar" class="progress-fill"></div>
+        </div>
+        <div class="stats-row">
+            <span id="stat-pct">0%</span>
+            <span id="stat-status">Inactivo</span>
+        </div>
     </div>
 
-    <div class="info">
-        <div>Bloques: <span id="lbl-parts">0/0</span></div>
-        <div>Velocidad: <span id="lbl-speed">0</span> pq/s</div>
+    <div class="console-log" id="sys-log">
+        > Sistema iniciado v7.0<br>
+        > Selecciona una fuente de video...
     </div>
 
-    <div id="diag-panel">
-        <span class="diag-title">⚠️ FALTAN PAQUETES</span>
-        <span class="diag-note">Pon esto en el Emisor:</span>
-        <span class="diag-data" id="diag-msg">Calculando...</span>
-        <button onclick="runDiagnosis()" style="margin-top:5px; background: #443300; border:1px solid #665500;">🔄 RE-ESCANEAR FALTANTES</button>
+    <button id="btn-action" class="action-btn" onclick="downloadFile()">ESPERANDO DATOS...</button>
+
+    <div id="mac-hint" style="display:none; color:#ffcc00; font-size:0.7rem; text-align:center;">
+        ⚠️ Mac detectado: Si la pantalla está negra, activa permisos en Ajustes > Privacidad.
     </div>
 
-    <button id="btn-dl" onclick="downloadFile()">GUARDAR ARCHIVO 💾</button>
 </div>
 
 <script>
-    let html5QrCode = null;
-    let screenStream = null;
-    let barcodeDetector = null;
-    let loopId = null;
-
-    let session = {
-        active: false, total: 0, chunks: [], count: 0, filename: "archivo.bin", 
-        packetsSec: 0, missingMode: false
+    // --- SISTEMA CENTRAL ---
+    let sys = {
+        qr: null,           // Instancia Html5Qrcode
+        stream: null,       // MediaStream de Pantalla
+        detector: null,     // BarcodeDetector Nativo
+        loop: null,         // AnimationFrame ID
+        session: {
+            active: false,
+            name: "unknown.bin",
+            total: 0,
+            chunks: [],
+            count: 0,
+            hash: null,
+            startTime: 0,
+            packetsSec: 0
+        }
     };
 
-    async function setMode(mode) {
-        await stopAll(); // Detener todo antes de cambiar
-        
-        document.getElementById('btn-cam').className = mode === 'cam' ? 'btn-active' : '';
-        document.getElementById('btn-screen').className = mode === 'screen' ? 'btn-active' : '';
-        document.getElementById('mac-help').style.display = 'none';
+    // --- LOGGING ---
+    function log(msg, type="") {
+        const c = document.getElementById('sys-log');
+        const time = new Date().toLocaleTimeString().split(' ')[0];
+        c.innerHTML += `<span class="log-${type}">[${time}] ${msg}</span><br>`;
+        c.scrollTop = c.scrollHeight;
+    }
 
-        if (mode === 'cam') {
+    // --- MODOS DE ENTRADA ---
+    async function setMode(mode) {
+        await stopAll();
+        
+        // UI Tabs
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.getElementById(`tab-${mode}`).classList.add('active');
+        document.getElementById('mac-hint').style.display = 'none';
+
+        if(mode === 'cam') {
             document.getElementById('reader').style.display = 'block';
-            document.getElementById('guide-text').innerText = "Apunta al código QR";
-            initCamera();
+            document.getElementById('status-overlay').innerText = "CÁMARA ACTIVA";
+            initCam();
         } else {
             document.getElementById('screen-video').style.display = 'block';
-            document.getElementById('guide-text').innerText = "Elige 'Ventana' en el popup";
+            document.getElementById('status-overlay').innerText = "SELECCIONA VENTANA";
             initScreen();
         }
     }
 
-    // --- CORRECCIÓN 1: stopAll robusto (Evita error 'Scanner not running') ---
     async function stopAll() {
-        if(html5QrCode) {
-            try {
-                // Solo detenemos si está escaneando activamente
-                if (html5QrCode.isScanning) {
-                    await html5QrCode.stop();
-                }
-                html5QrCode.clear();
-            } catch(e) {
-                console.warn("Scanner stop warning ignored:", e);
-            }
-        }
-        
-        if(screenStream) { 
-            try {
-                screenStream.getTracks().forEach(t => t.stop());
-            } catch(e) {}
-            screenStream = null; 
-        }
-        
-        if(loopId) cancelAnimationFrame(loopId);
+        if(sys.qr && sys.qr.isScanning) await sys.qr.stop().catch(()=>{});
+        if(sys.stream) sys.stream.getTracks().forEach(t => t.stop());
+        if(sys.loop) cancelAnimationFrame(sys.loop);
         
         document.getElementById('reader').style.display = 'none';
         document.getElementById('screen-video').style.display = 'none';
     }
 
-    async function initCamera() {
-        html5QrCode = new Html5Qrcode("reader");
+    // --- INICIALIZACIÓN CÁMARA ---
+    async function initCam() {
+        sys.qr = new Html5Qrcode("reader");
         try {
-            await html5QrCode.start(
+            await sys.qr.start(
                 { facingMode: "environment" }, 
                 { fps: 30, qrbox: (w,h)=>({width: w*0.8, height: w*0.8}) },
-                processData, ()=>{}
+                onData, 
+                ()=>{}
             );
-        } catch(e) { console.error(e); }
+            log("Cámara iniciada correctamente", "success");
+        } catch(e) { 
+            log("Error Cámara: " + e, "err"); 
+        }
     }
 
+    // --- INICIALIZACIÓN PANTALLA ---
     async function initScreen() {
         if ('BarcodeDetector' in window) {
-            barcodeDetector = new BarcodeDetector({ formats: ['qr_code'] });
+            sys.detector = new BarcodeDetector({ formats: ['qr_code'] });
         } else {
-            alert("Navegador sin aceleración. Se usará CPU (lento).");
+            log("⚠️ Sin aceleración GPU (BarcodeDetector). Modo CPU lento.", "warn");
         }
 
         try {
-            screenStream = await navigator.mediaDevices.getDisplayMedia({
-                video: { cursor: "always" },
-                audio: false
+            sys.stream = await navigator.mediaDevices.getDisplayMedia({
+                video: { cursor: "always" }, audio: false
             });
             
-            const video = document.getElementById('screen-video');
-            video.srcObject = screenStream;
+            const vid = document.getElementById('screen-video');
+            vid.srcObject = sys.stream;
 
-            // Ayuda Mac si se cancela
-            screenStream.getVideoTracks()[0].onended = () => {
-                if(navigator.platform.toUpperCase().indexOf('MAC') >= 0) {
-                    document.getElementById('mac-help').style.display = 'block';
-                }
+            // Detección Mac
+            sys.stream.getVideoTracks()[0].onended = () => {
+                 if(navigator.platform.toUpperCase().includes('MAC')) 
+                    document.getElementById('mac-hint').style.display = 'block';
             };
 
-            const scan = async () => {
-                if(!screenStream || !screenStream.active) return;
-                if (video.readyState === video.HAVE_ENOUGH_DATA && barcodeDetector) {
+            const loop = async () => {
+                if(!sys.stream.active) return;
+                if(vid.readyState === 4 && sys.detector) {
                     try {
-                        const bitmaps = await barcodeDetector.detect(video);
-                        bitmaps.forEach(bmp => processData(bmp.rawValue));
-                    } catch(e) {}
+                        const bitmaps = await sys.detector.detect(vid);
+                        bitmaps.forEach(b => onData(b.rawValue));
+                    } catch(e){}
                 }
-                loopId = requestAnimationFrame(scan);
+                sys.loop = requestAnimationFrame(loop);
             };
-            scan();
+            loop();
+            log("Captura de pantalla iniciada", "success");
 
-        } catch(e) { 
-            console.log("Error pantalla", e);
-            if(navigator.platform.toUpperCase().indexOf('MAC') >= 0) {
-                document.getElementById('mac-help').style.display = 'block';
-            }
-            setMode('cam'); 
+        } catch(e) {
+            log("Captura cancelada o error", "warn");
+            setMode('cam');
         }
     }
 
-    function processData(text) {
+    // --- PROCESAMIENTO DE DATOS ---
+    function onData(text) {
         try {
             const data = JSON.parse(text);
-            
-            // Header
-            if (data.t === "H" && !session.active) {
-                session.active = true;
-                session.total = data.c;
-                session.filename = data.n;
-                // Creamos el array y lo llenamos de null explícitamente
-                session.chunks = new Array(data.c).fill(null);
-                document.getElementById('guide-text').innerText = "RECIBIENDO DATOS...";
-                updateUI();
+
+            // 1. HEADER RECIBIDO
+            if (data.t === "H" && !sys.session.active) {
+                sys.session.active = true;
+                sys.session.total = data.c;
+                sys.session.name = data.n;
+                sys.session.hash = data.h || "No incluido en header";
+                sys.session.chunks = new Array(data.c).fill(null);
+                
+                // Actualizar UI Header
+                document.getElementById('meta-name').innerText = data.n;
+                document.getElementById('meta-hash').innerText = sys.session.hash;
+                document.getElementById('meta-size').innerText = `${data.c} BLOQUES`;
+                
+                log(`HEADER: ${data.n} (${data.c} partes)`, "success");
+                updateStats();
                 return;
             }
-            
-            // Payload
-            if (session.active && Array.isArray(data)) {
-                const idx = data[0];
-                const content = data[1];
+
+            // 2. BLOQUE DE DATOS
+            if (sys.session.active && Array.isArray(data)) {
+                const [idx, content] = data;
                 
-                // Validación de integridad básica
-                if(idx < session.total && session.chunks[idx] === null) {
-                    session.chunks[idx] = content;
-                    session.count++;
-                    session.packetsSec++;
-                    updateUI();
+                if (idx < sys.session.total && sys.session.chunks[idx] === null) {
+                    sys.session.chunks[idx] = content;
+                    sys.session.count++;
+                    sys.session.packetsSec++;
+                    updateStats();
                 }
             }
-        } catch(e) {}
+        } catch(e) {} // Ignorar ruido
     }
 
-    function updateUI() {
-        const pct = Math.floor((session.count / session.total) * 100);
-        document.getElementById('bar').style.width = pct + "%";
-        document.getElementById('lbl-parts').innerText = `${session.count} / ${session.total}`;
-
-        if (session.count === session.total && session.total > 0) {
-            document.getElementById('btn-dl').style.display = "block";
-            document.getElementById('diag-panel').style.display = "none";
-            document.getElementById('guide-text').innerText = "✅ COMPLETADO";
-            // No detenemos automáticamente para evitar conflictos si llegan paquetes tardíos
-        }
+    // --- ACTUALIZACIÓN UI ---
+    function updateStats() {
+        const s = sys.session;
+        const pct = Math.floor((s.count / s.total) * 100);
         
-        if (pct > 90 && !session.missingMode && session.count < session.total) {
-            document.getElementById('diag-panel').style.display = "block";
-            session.missingMode = true;
-            runDiagnosis();
-        }
-    }
+        // Barras
+        document.getElementById('prog-bar').style.width = pct + "%";
+        document.getElementById('stat-pct').innerText = pct + "%";
+        document.getElementById('stat-blocks').innerText = `Bloques: ${s.count} / ${s.total}`;
+        document.getElementById('stat-status').innerText = pct === 100 ? "COMPLETADO" : "RECIBIENDO...";
 
-    window.runDiagnosis = function() {
-        if (!session.active) return;
-        let firstMissing = -1, lastMissing = -1;
-        // Buscar huecos
-        for (let i = 0; i < session.total; i++) {
-            if (session.chunks[i] === null) {
-                if (firstMissing === -1) firstMissing = i;
-                lastMissing = i;
+        // Completado
+        if (s.count === s.total) {
+            const btn = document.getElementById('btn-action');
+            if (!btn.classList.contains('ready')) {
+                btn.classList.add('ready');
+                btn.innerText = "💾 GUARDAR ARCHIVO";
+                log("Transferencia finalizada al 100%", "success");
+                document.getElementById('status-overlay').innerText = "LISTO PARA GUARDAR";
+                stopAll();
             }
-        }
-        const msgEl = document.getElementById('diag-msg');
-        if (firstMissing === -1) {
-            msgEl.innerText = "¡Completo!";
-            document.getElementById('btn-dl').style.display = "block";
-        } else {
-            msgEl.innerHTML = `DESDE: <b style="color:#f00">${firstMissing}</b> | HASTA: <b style="color:#f00">${lastMissing}</b>`;
-            if(navigator.vibrate) navigator.vibrate(200);
+        } 
+        // Diagnóstico (Si se estanca)
+        else if (pct > 95 && s.packetsSec === 0) {
+            checkMissing();
         }
     }
 
-    // --- CORRECCIÓN 2: Descarga Segura (Evita error 'atob') ---
+    function checkMissing() {
+        let first = -1, last = -1;
+        sys.session.chunks.forEach((c, i) => {
+            if(c === null) {
+                if(first === -1) first = i;
+                last = i;
+            }
+        });
+        if(first !== -1) {
+            document.getElementById('status-overlay').innerText = `FALTAN: ${first} - ${last}`;
+        }
+    }
+
+    // --- DESCARGA SEGURA ---
     window.downloadFile = function() {
-        // 1. Verificación final de integridad
-        if(session.count !== session.total) {
-            alert("Error: Aún faltan paquetes. Revisa el diagnóstico.");
-            runDiagnosis();
+        const s = sys.session;
+        if(s.count !== s.total) {
+            log("⚠️ Incompleto. Revisa faltantes.", "warn");
+            checkMissing();
             return;
         }
 
         try {
-            // 2. Reconstrucción con manejo de errores
-            const b64Data = session.chunks.join('');
+            log("Reconstruyendo binario...", "");
+            const b64 = s.chunks.join('');
+            const bin = atob(b64);
+            const arr = new Uint8Array(bin.length);
+            for(let i=0; i<bin.length; i++) arr[i] = bin.charCodeAt(i);
             
-            // Limpieza preventiva (quitar espacios si los hubiera)
-            const cleanB64 = b64Data.trim();
-            
-            const byteCharacters = atob(cleanB64);
-            const byteNumbers = new Array(byteCharacters.length);
-            for (let i = 0; i < byteCharacters.length; i++) {
-                byteNumbers[i] = byteCharacters.charCodeAt(i);
-            }
-            const byteArray = new Uint8Array(byteNumbers);
-            
-            const blob = new Blob([byteArray], {type: "application/octet-stream"});
+            const blob = new Blob([arr], {type: "application/octet-stream"});
             const url = URL.createObjectURL(blob);
-            
             const a = document.createElement('a');
             a.href = url;
-            a.download = session.filename;
-            document.body.appendChild(a);
+            a.download = s.name;
             a.click();
-            document.body.removeChild(a);
+            log("Archivo guardado.", "success");
             
-            // Detener cámara después de descarga exitosa
-            setTimeout(() => stopAll(), 500);
-
-        } catch (e) {
-            console.error(e);
-            alert("ERROR CRÍTICO: El archivo reconstruido está corrupto (Error Base64). Intenta re-escanear las partes faltantes.");
-            // Forzar diagnóstico
-            runDiagnosis();
+        } catch(e) {
+            log("Error fatal en reconstrucción: " + e, "err");
         }
     }
 
+    // Velocímetro
     setInterval(() => {
-        document.getElementById('lbl-speed').innerText = session.packetsSec;
-        if (session.active && session.packetsSec === 0 && session.count > 0 && session.count < session.total) {
-            document.getElementById('diag-panel').style.display = "block";
-            runDiagnosis();
+        if(sys.session.active) {
+            document.getElementById('stat-speed').innerText = sys.session.packetsSec + " pq/s";
+            sys.session.packetsSec = 0;
         }
-        session.packetsSec = 0;
     }, 1000);
+
 </script>
 </body>
 </html>
