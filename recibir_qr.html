@@ -2,179 +2,274 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Receptor V2</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Receptor V3 - Enfoque Mejorado</title>
     <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
     <style>
-        body { background: #000; color: #eee; font-family: sans-serif; display: flex; flex-direction: column; height: 100vh; margin: 0; }
-        #reader { width: 100%; flex: 1; background: #111; border-bottom: 2px solid #333; }
-        .controls { padding: 15px; background: #222; border-top: 1px solid #444; }
-        
-        .progress-wrap { height: 25px; background: #444; border-radius: 12px; overflow: hidden; margin-bottom: 10px; position: relative; }
-        .bar { height: 100%; background: #00ff41; width: 0%; transition: width 0.1s; }
-        .pct { position: absolute; width: 100%; text-align: center; top: 3px; font-weight: bold; text-shadow: 1px 1px 2px black; font-size: 0.9rem; }
+        :root { --main: #00ff41; --bg: #000; }
+        * { box-sizing: border-box; }
+        body { 
+            background: var(--bg); color: #fff; font-family: 'Segoe UI', sans-serif; 
+            display: flex; flex-direction: column; height: 100vh; margin: 0; overflow: hidden;
+        }
 
-        .status-box { display: grid; grid-template-columns: 1fr 1fr; font-size: 0.8rem; gap: 5px; color: #aaa; }
-        .highlight { color: #fff; font-weight: bold; }
+        /* Área de Cámara */
+        #camera-wrapper {
+            position: relative;
+            flex: 1;
+            background: #111;
+            overflow: hidden;
+            display: flex; flex-direction: column; justify-content: center;
+        }
+        #reader { width: 100%; height: 100%; object-fit: cover; }
         
-        .log { font-family: monospace; font-size: 0.7rem; color: #00ff41; max-height: 60px; overflow-y: hidden; margin-top: 5px; }
-        
-        #btn-dl { width: 100%; padding: 15px; background: #00ff41; color: black; font-weight: bold; border: none; border-radius: 8px; display: none; font-size: 1rem; margin-top: 10px;}
+        /* Retícula de ayuda visual para apuntar */
+        .overlay-guide {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            width: 280px; height: 280px;
+            border: 2px solid rgba(0, 255, 65, 0.3);
+            box-shadow: 0 0 0 9999px rgba(0,0,0,0.5); /* Oscurece el resto */
+            pointer-events: none;
+            z-index: 10;
+        }
+        .overlay-guide::after {
+            content: "ENCUADRA EL QR AQUÍ";
+            position: absolute; bottom: -25px; width: 100%; text-align: center;
+            font-size: 0.8rem; color: var(--main); font-weight: bold;
+        }
+
+        /* Panel de Control Inferior */
+        .controls { 
+            height: auto; min-height: 180px; 
+            background: #1a1a1a; border-top: 2px solid #333; 
+            padding: 15px; display: flex; flex-direction: column; gap: 10px;
+            z-index: 20;
+        }
+
+        /* Barra Progreso */
+        .progress-container {
+            height: 20px; background: #333; border-radius: 10px; overflow: hidden; position: relative;
+        }
+        .progress-bar { height: 100%; width: 0%; background: var(--main); transition: width 0.1s; }
+        .progress-text { 
+            position: absolute; width: 100%; text-align: center; top: 1px; 
+            font-size: 0.75rem; color: #fff; text-shadow: 0 1px 2px #000; font-weight: bold;
+        }
+
+        /* Info Grid */
+        .info { display: grid; grid-template-columns: 1fr 1fr; font-size: 0.8rem; color: #ccc; gap: 5px; }
+        .status-txt { color: yellow; grid-column: span 2; text-align: center; font-weight: bold; margin-bottom: 5px; }
+
+        /* Botones */
+        .btn-group { display: flex; gap: 10px; margin-top: 5px; }
+        button {
+            flex: 1; padding: 12px; border: none; border-radius: 6px; 
+            font-weight: bold; cursor: pointer;
+        }
+        .btn-retry { background: #333; color: white; border: 1px solid #555; }
+        .btn-dl { background: var(--main); color: black; display: none; }
+
     </style>
 </head>
 <body>
 
-<div id="reader"></div>
+<div id="camera-wrapper">
+    <div id="reader"></div>
+    <div class="overlay-guide"></div>
+</div>
 
 <div class="controls">
-    <div class="progress-wrap">
-        <div id="bar" class="bar"></div>
-        <div id="pct" class="pct">ESPERANDO HEADER...</div>
+    <div id="status" class="status-txt">INICIANDO CÁMARA...</div>
+
+    <div class="progress-container">
+        <div id="bar" class="progress-bar"></div>
+        <div id="pct" class="progress-text">0%</div>
     </div>
-    
-    <div class="status-box">
-        <div>Archivo: <span id="fname" class="highlight">-</span></div>
-        <div>Partes: <span id="parts" class="highlight">0/0</span></div>
-        <div>Estado: <span id="status" style="color:yellow">Cámara Iniciando</span></div>
-        <div>Vel: <span id="speed">0</span> pq/s</div>
+
+    <div class="info">
+        <div>Archivo: <span id="lbl-name">-</span></div>
+        <div>Bloques: <span id="lbl-parts">0/0</span></div>
+        <div>Velocidad: <span id="lbl-speed">0</span> pq/s</div>
+        <div>Hash: <span id="lbl-hash">-</span></div>
     </div>
-    <div id="log" class="log">> Sistema listo.</div>
-    <button id="btn-dl" onclick="saveFile()">DESCARGAR</button>
+
+    <div class="btn-group">
+        <button class="btn-retry" onclick="restartCamera()">RE-ENFOCAR 🔄</button>
+        <button id="btn-dl" class="btn-dl" onclick="downloadFile()">DESCARGAR 💾</button>
+    </div>
 </div>
 
 <script>
+    let html5QrCode;
     let session = {
         active: false,
         total: 0,
         chunks: [],
-        receivedCount: 0,
-        name: "",
-        hash: "",
-        lastTime: Date.now(),
-        packets: 0
+        count: 0,
+        filename: "archivo.bin",
+        packetsSec: 0
     };
 
-    function log(m) { document.getElementById('log').innerText = "> " + m; }
-
-    // Configuración de escáner agresiva
-    const html5QrCode = new Html5Qrcode("reader");
-    html5QrCode.start(
-        { facingMode: "environment" }, 
-        { fps: 40, qrbox: { width: 250, height: 250 }, aspectRatio: 1.0 },
-        (decodedText) => {
-            handleScan(decodedText);
+    // CONFIGURACIÓN DE CÁMARA AGRESIVA
+    // Pedimos alta resolución para que el QR denso del Header se vea nítido
+    const cameraConfig = { 
+        fps: 30, // 30 es suficiente, más puede calentar y laguear el enfoque
+        qrbox: function(viewfinderWidth, viewfinderHeight) {
+            // Hacemos la caja de escaneo grande (80% del ancho)
+            let minEdge = Math.min(viewfinderWidth, viewfinderHeight);
+            return {
+                width: Math.floor(minEdge * 0.80),
+                height: Math.floor(minEdge * 0.80)
+            };
         },
-        (errorMessage) => { /* ignorar errores de frame */ }
-    ).then(() => {
-        document.getElementById('status').innerText = "BUSCANDO QR...";
-        document.getElementById('status').style.color = "#00ff41";
-    });
+        aspectRatio: 1.0 
+    };
 
-    function handleScan(text) {
+    function startCamera() {
+        html5QrCode = new Html5Qrcode("reader");
+        
+        // Intentamos forzar la cámara trasera con configuraciones avanzadas
+        const constraints = { 
+            facingMode: "environment",
+            focusMode: "continuous", // Importante para Android
+            width: { min: 1280, ideal: 1920 }, // Pedir HD ayuda a leer QRs densos
+            height: { min: 720, ideal: 1080 } 
+        };
+
+        html5QrCode.start(
+            constraints, 
+            cameraConfig,
+            onScanSuccess,
+            onScanError
+        ).then(() => {
+            updateStatus("CÁMARA LISTA - ESCANEA HEADER", "#fff");
+        }).catch(err => {
+            updateStatus("ERROR DE CÁMARA: " + err, "red");
+        });
+    }
+
+    function restartCamera() {
+        if(html5QrCode) {
+            html5QrCode.stop().then(() => {
+                console.log("Reiniciando...");
+                startCamera();
+            }).catch(() => startCamera());
+        } else {
+            startCamera();
+        }
+    }
+
+    function onScanSuccess(decodedText, decodedResult) {
         try {
-            const data = JSON.parse(text);
-
-            // TIPO 1: HEADER (Objeto con propiedad 't'="H")
+            const data = JSON.parse(decodedText);
+            
+            // --- DETECCIÓN DE HEADER (Objeto {t:'H'...}) ---
             if (data.t === "H" && !session.active) {
-                initSession(data);
+                // Validación básica para asegurar que es nuestro header
+                if(!data.c || !data.n) return;
+
+                session.active = true;
+                session.total = data.c;
+                session.filename = data.n;
+                session.chunks = new Array(data.c).fill(null);
+                
+                // Feedback UI
+                document.getElementById('lbl-name').innerText = data.n.length > 15 ? data.n.substring(0,12)+"..." : data.n;
+                document.getElementById('lbl-parts').innerText = `0 / ${data.c}`;
+                document.getElementById('lbl-hash').innerText = data.h ? data.h.substring(0,6)+"..." : "N/A";
+                
+                updateStatus("✅ HEADER OK. INICIA EL LOOP", "#00ff41");
+                navigator.vibrate(200); // Vibración larga confirmación
                 return;
             }
 
-            // TIPO 2: DATA (Array [indice, base64])
-            if (Array.isArray(data) && session.active) {
-                const idx = data[0];
+            // --- DETECCIÓN DE DATOS (Array [index, data]) ---
+            if (session.active && Array.isArray(data)) {
+                const index = data[0];
                 const content = data[1];
 
-                if (session.chunks[idx] === null) {
-                    session.chunks[idx] = content;
-                    session.receivedCount++;
-                    session.packets++;
-                    updateProgress();
+                if (session.chunks[index] === null) {
+                    session.chunks[index] = content;
+                    session.count++;
+                    session.packetsSec++;
                     
-                    if(session.receivedCount === session.total) {
-                        finishSession();
+                    updateProgress();
+
+                    if (session.count === session.total) {
+                        finishDownload();
                     }
                 }
             }
+
         } catch (e) {
-            // No es JSON válido, ignorar
+            // Ignorar ruido
         }
     }
 
-    function initSession(header) {
-        session.active = true;
-        session.total = header.c;
-        session.name = header.n;
-        session.hash = header.h;
-        session.chunks = new Array(header.c).fill(null);
-        session.receivedCount = 0;
-        
-        document.getElementById('fname').innerText = header.n.substring(0,15);
-        document.getElementById('parts').innerText = `0/${header.c}`;
-        document.getElementById('pct').innerText = "RECIBIENDO DATOS...";
-        document.getElementById('status').innerText = "SINCRONIZADO";
-        log(`Header recibido. Esperando ${header.c} bloques.`);
-        
-        // Feedback vibración
-        if(navigator.vibrate) navigator.vibrate(200);
+    function onScanError(errorMessage) {
+        // No hacer nada, es normal que falle frames borrosos
+    }
+
+    function updateStatus(msg, color) {
+        const el = document.getElementById('status');
+        el.innerText = msg;
+        el.style.color = color || "#fff";
     }
 
     function updateProgress() {
-        const p = Math.floor((session.receivedCount / session.total) * 100);
-        document.getElementById('bar').style.width = p + "%";
-        document.getElementById('pct').innerText = `${p}%`;
-        document.getElementById('parts').innerText = `${session.receivedCount}/${session.total}`;
+        const pct = Math.floor((session.count / session.total) * 100);
+        document.getElementById('bar').style.width = pct + "%";
+        document.getElementById('pct').innerText = pct + "%";
+        document.getElementById('lbl-parts').innerText = `${session.count} / ${session.total}`;
     }
 
-    // Calculador de velocidad
-    setInterval(() => {
-        if(session.active && session.receivedCount < session.total) {
-            document.getElementById('speed').innerText = session.packets;
-            session.packets = 0;
-        }
-    }, 1000);
-
-    async function finishSession() {
-        log("Descarga completada. Verificando...");
+    function finishDownload() {
         html5QrCode.stop();
-        document.getElementById('status').innerText = "PROCESANDO...";
-        
-        const blob = b64toBlob(session.chunks.join(''));
-        
-        // Verificar Hash simple (opcional, primeros 10 chars)
-        // En prod usarías todo el SHA256, aquí simplificamos para velocidad UI
+        updateStatus("COMPLETADO 100%", "#00ff41");
         document.getElementById('btn-dl').style.display = "block";
-        document.getElementById('pct').innerText = "COMPLETADO";
-        document.getElementById('bar').style.background = "#fff";
-        
-        if(navigator.vibrate) navigator.vibrate([100, 50, 100]);
-        log("Listo para guardar.");
+        navigator.vibrate([100,50,100]);
     }
 
-    function b64toBlob(b64Data) {
-        const sliceSize = 512;
+    window.downloadFile = function() {
+        // Reconstrucción del Blob
+        const b64Data = session.chunks.join('');
         const byteCharacters = atob(b64Data);
         const byteArrays = [];
+        const sliceSize = 1024;
+
         for (let offset = 0; offset < byteCharacters.length; offset += sliceSize) {
             const slice = byteCharacters.slice(offset, offset + sliceSize);
             const byteNumbers = new Array(slice.length);
-            for (let i = 0; i < slice.length; i++) byteNumbers[i] = slice.charCodeAt(i);
+            for (let i = 0; i < slice.length; i++) {
+                byteNumbers[i] = slice.charCodeAt(i);
+            }
             const byteArray = new Uint8Array(byteNumbers);
             byteArrays.push(byteArray);
         }
-        return new Blob(byteArrays, {type: "application/octet-stream"});
-    }
 
-    window.saveFile = function() {
-        const blob = b64toBlob(session.chunks.join(''));
+        const blob = new Blob(byteArrays, {type: "application/octet-stream"});
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = session.name;
+        a.download = session.filename;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
     }
+
+    // Medidor de velocidad
+    setInterval(() => {
+        if(session.active && session.count < session.total) {
+            document.getElementById('lbl-speed').innerText = session.packetsSec;
+            session.packetsSec = 0;
+        }
+    }, 1000);
+
+    // Iniciar al cargar
+    window.onload = startCamera;
+
 </script>
 </body>
 </html>
