@@ -1,1 +1,342 @@
-IyEvYmluL2Jhc2gKCiMgPT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09CiMgSFNCQyBTcGx1bmsgTVggLSBBdXRvbWF0ZWQgUmV0ZXN0IFNjcmlwdCB2MS4wCiMgQmFzYWRvIGVuIGVsIHJlcG9ydGU6IEVJTSBJRDogODUxNTYxNyB8IENPTUVUIElEOiAxNDk1MzkKIyBTaXN0ZW1hIE9iamV0aXZvOiBVYnVudHUgLyBMaW51eCBFbnZpcm9ubWVudAojIEhlcnJhbWllbnRhcyByZXF1ZXJpZGFzOiBjdXJsLCBubWFwLCBvcGVuc3NsCiMgPT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09CgojIENvbG9yZXMgcGFyYSBzYWxpZGEgcHJvZmVzaW9uYWwKUkVEPSdcMDMzWzA7MzFtJwpHUkVFTj0nXDAzM1swOzMybScKWUVMTE9XPSdcMDMzWzE7MzNtJwpCTFVFPSdcMDMzWzA7MzRtJwpOQz0nXDAzM1swbScgIyBObyBDb2xvcgoKIyBWYXJpYWJsZXMgZGVsIE9iamV0aXZvIChFeHRyYcOtZGFzIGRlbCByZXBvcnRlIFtjaXRlOiA1NiwgNjBdKQpUQVJHRVRfSVA9IjE2NC42LjMzLjE0OCIKVEFSR0VUX1VSTD0iaHR0cHM6Ly9zcGx1bmtzZWFyY2hvbXguaGxhaHRlc3QuYWRyb290dGVzdC5oc2JjOjgwMDAiClJFUE9SVF9GSUxFPSJIU0JDX1NwbHVua19SZXRlc3RfUmVwb3J0XyQoZGF0ZSArJVklbSVkKS50eHQiCgplY2hvIC1lICIke0JMVUV9PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PSR7TkN9IgplY2hvIC1lICIke0JMVUV9ICAgICAgSFNCQyBTUExVTksgTVggLSBJTklDSU8gREUgUkVURVNUIEFVVE9NQVRJWkFETyAgICAgICAgICAgJHtOQ30iCmVjaG8gLWUgIiR7QkxVRX09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09JHtOQ30iCmVjaG8gIkZlY2hhOiAkKGRhdGUpIiB8IHRlZSAtYSAiJFJFUE9SVF9GSUxFIgplY2hvICJPYmpldGl2byBJUDogJFRBUkdFVF9JUCIgfCB0ZWUgLWEgIiRSRVBPUlRfRklMRSIKZWNobyAiT2JqZXRpdm8gVVJMOiAkVEFSR0VUX1VSTCIgfCB0ZWUgLWEgIiRSRVBPUlRfRklMRSIKZWNobyAiLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLSIgfCB0ZWUgLWEgIiRSRVBPUlRfRklMRSIKCiMgRnVuY2nDs24gcGFyYSBpbXByaW1pciBlc3RhZG8KcHJpbnRfc3RhdHVzKCkgewogICAgaWYgWyAiJDEiID09ICJQQVNTIiBdOyB0aGVuCiAgICAgICAgZWNobyAtZSAiWyR7R1JFRU59UEFTUyR7TkN9XSAkMiIgfCB0ZWUgLWEgIiRSRVBPUlRfRklMRSIKICAgIGVsaWYgWyAiJDEiID09ICJGQUlMIiBdOyB0aGVuCiAgICAgICAgZWNobyAtZSAiWyR7UkVEfUZBSUwke05DfV0gJDIiIHwgdGVlIC1hICIkUkVQT1JUX0ZJTEUiCiAgICBlbHNlCiAgICAgICAgZWNobyAtZSAiWyR7WUVMTE9XfUlORk8ke05DfV0gJDIiIHwgdGVlIC1hICIkUkVQT1JUX0ZJTEUiCiAgICBmaQp9CgojIC0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLQojIDEuIFJFVEVTVDogTWlzc2luZyBTZWN1cml0eSBIZWFkZXJzIChSZWY6IDQuMiApCiMgLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tCmVjaG8gLWUgIlxuJHtZRUxMT1d9WypdIEVqZWN1dGFuZG8gUmV0ZXN0IDQuMjogQ2FiZWNlcmFzIGRlIFNlZ3VyaWRhZCBIVFRQLi4uJHtOQ30iIHwgdGVlIC1hICIkUkVQT1JUX0ZJTEUiCgpIRUFERVJTX0NIRUNLPSQoY3VybCAtcyAtSSAtayAiJFRBUkdFVF9VUkwiKQoKIyBMaXN0YSBkZSBjYWJlY2VyYXMgcmVxdWVyaWRhcyBzZWfDum4gZWwgcmVwb3J0ZQpSRVFVSVJFRF9IRUFERVJTPSgiWC1GcmFtZS1PcHRpb25zIiAiWC1YU1MtUHJvdGVjdGlvbiIgIkNvbnRlbnQtU2VjdXJpdHktUG9saWN5IiAiU3RyaWN0LVRyYW5zcG9ydC1TZWN1cml0eSIpCgpmb3IgaGVhZGVyIGluICIke1JFUVVJUkVEX0hFQURFUlNbQF19IjsgZG8KICAgIGlmIGVjaG8gIiRIRUFERVJTX0NIRUNLIiB8IGdyZXAgLXFpICIkaGVhZGVyIjsgdGhlbgogICAgICAgIHByaW50X3N0YXR1cyAiUEFTUyIgIkNhYmVjZXJhIGVuY29udHJhZGE6ICRoZWFkZXIiCiAgICBlbHNlCiAgICAgICAgcHJpbnRfc3RhdHVzICJGQUlMIiAiQ2FiZWNlcmEgZmFsdGFudGU6ICRoZWFkZXIgKFZ1bG5lcmFiaWxpZGFkIDQuMiBwZXJzaXN0ZSkiCiAgICBmaQpkb25lCgojIC0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLQojIDIuIFJFVEVTVDogSW5zZWN1cmUgQ29va2llIEF0dHJpYnV0ZSAoUmVmOiA0LjMgKQojIC0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLQplY2hvIC1lICJcbiR7WUVMTE9XfVsqXSBFamVjdXRhbmRvIFJldGVzdCA0LjM6IEF0cmlidXRvcyBkZSBDb29raWVzIChTZWN1cmUvU2FtZVNpdGUpLi4uJHtOQ30iIHwgdGVlIC1hICIkUkVQT1JUX0ZJTEUiCgpDT09LSUVfQ0hFQ0s9JChjdXJsIC1zIC1JIC1rICIkVEFSR0VUX1VSTCIgfCBncmVwIC1pICJTZXQtQ29va2llIikKCmlmIFtbIC16ICIkQ09PS0lFX0NIRUNLIiBdXTsgdGhlbgogICAgcHJpbnRfc3RhdHVzICJJTkZPIiAiTm8gc2UgZGV0ZWN0YXJvbiBjb29raWVzIGVuIGxhIHJlc3B1ZXN0YSBpbmljaWFsLiIKZWxzZQogICAgaWYgZWNobyAiJENPT0tJRV9DSEVDSyIgfCBncmVwIC1xaSAiU2VjdXJlIjsgdGhlbgogICAgICAgIHByaW50X3N0YXR1cyAiUEFTUyIgIkF0cmlidXRvICdTZWN1cmUnIGVuY29udHJhZG8gZW4gY29va2llcy4iCiAgICBlbHNlCiAgICAgICAgcHJpbnRfc3RhdHVzICJGQUlMIiAiQXRyaWJ1dG8gJ1NlY3VyZScgRkFMVEEgZW4gY29va2llcy4iCiAgICBmaQoKICAgIGlmIGVjaG8gIiRDT09LSUVfQ0hFQ0siIHwgZ3JlcCAtcWkgIlNhbWVTaXRlPVN0cmljdCI7IHRoZW4KICAgICAgICBwcmludF9zdGF0dXMgIlBBU1MiICJBdHJpYnV0byAnU2FtZVNpdGU9U3RyaWN0JyBlbmNvbnRyYWRvLiIKICAgIGVsc2UKICAgICAgICBwcmludF9zdGF0dXMgIkZBSUwiICJBdHJpYnV0byAnU2FtZVNpdGUnIG5vIGVzIFN0cmljdCBvIGZhbHRhLiIKICAgIGZpCmZpCgojIC0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLQojIDMuIFJFVEVTVDogSW5zZWN1cmUgSFRUUCBNZXRob2RzIChSZWY6IDQuNSApCiMgLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tCmVjaG8gLWUgIlxuJHtZRUxMT1d9WypdIEVqZWN1dGFuZG8gUmV0ZXN0IDQuNTogTcOpdG9kb3MgSFRUUCBJbnNlZ3Vyb3MuLi4ke05DfSIgfCB0ZWUgLWEgIiRSRVBPUlRfRklMRSIKCiMgUHJvYmFtb3MgZWwgbcOpdG9kbyBPUFRJT05TIHBhcmEgdmVyIHF1w6kgZXN0w6EgcGVybWl0aWRvCk9QVElPTlNfQ0hFQ0s9JChjdXJsIC1zIC1JIC1rIC1YIE9QVElPTlMgIiRUQVJHRVRfVVJMIiB8IGdyZXAgLWkgIkFsbG93IikKCmlmIFtbIC16ICIkT1BUSU9OU19DSEVDSyIgXV07IHRoZW4KICAgIHByaW50X3N0YXR1cyAiSU5GTyIgIkVsIHNlcnZpZG9yIG5vIHJldG9ybsOzIGNhYmVjZXJhICdBbGxvdycgYW50ZSBPUFRJT05TLiIKZWxzZQogICAgZWNobyAiTcOpdG9kb3MgcGVybWl0aWRvcyBkZXRlY3RhZG9zOiAkT1BUSU9OU19DSEVDSyIgfCB0ZWUgLWEgIiRSRVBPUlRfRklMRSIKICAgICMgVmVyaWZpY2FyIHNpIG3DqXRvZG9zIHBlbGlncm9zb3MgZXN0w6FuIHByZXNlbnRlcwogICAgaWYgZWNobyAiJE9QVElPTlNfQ0hFQ0siIHwgZ3JlcCAtRWlxICJERUxFVEV8UFVUfFRSQUNFIjsgdGhlbgogICAgICAgIHByaW50X3N0YXR1cyAiRkFJTCIgIk3DqXRvZG9zIGluc2VndXJvcyAoREVMRVRFL1BVVC9UUkFDRSkgZGV0ZWN0YWRvcy4iCiAgICBlbHNlCiAgICAgICAgcHJpbnRfc3RhdHVzICJQQVNTIiAiTcOpdG9kb3MgaW5zZWd1cm9zIG5vIGRldGVjdGFkb3MgZXhwbMOtY2l0YW1lbnRlIGVuIE9QVElPTlMuIgogICAgZmkKZmkKCiMgLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tCiMgNC4gUkVURVNUOiBXZWFrIFNTTCBDaXBoZXJzIChSZWY6IDUuMSApCiMgLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tCmVjaG8gLWUgIlxuJHtZRUxMT1d9WypdIEVqZWN1dGFuZG8gUmV0ZXN0IDUuMTogQ2lmcmFkb3MgU1NML1RMUyBEw6liaWxlcyAoUHVlcnRvIDgwMDApLi4uJHtOQ30iIHwgdGVlIC1hICIkUkVQT1JUX0ZJTEUiCgojIFVzYW1vcyBubWFwIHBhcmEgZW51bWVyYXIgY2lmcmFkb3MuIFNlIGJ1c2NhIGNhbGlmaWNhY2nDs24gJ0MnIG8gbWVub3IsIG8gQ0JDL1NIQTEKaWYgY29tbWFuZCAtdiBubWFwICY-IC9kZXYvbnVsbDsgdGhlbgogICAgTk1BUF9TU0w9JChubWFwIC0tc2NyaXB0IHNzbC1lbnVtLWNpcGhlcnMgLXAgODAwMCAiJFRBUkdFVF9JUCIgLVBuKQogICAgCiAgICAjIFZlcmlmaWNhbW9zIHNpIGhheSBhZHZlcnRlbmNpYXMgZGUgY2lmcmFkb3MgZMOpYmlsZXMgY29tdW5lcyAoQ0JDLCAzREVTLCBSQzQpCiAgICBpZiBlY2hvICIkTk1BUF9TU0wiIHwgZ3JlcCAtRWlxICJDQkN8M0RFU3xSQzR8YnJva2VuIjsgdGhlbgogICAgICAgICBwcmludF9zdGF0dXMgIkZBSUwiICJTZSBkZXRlY3Rhcm9uIGNpZnJhZG9zIGTDqWJpbGVzIChDQkMvM0RFUy9SQzQpIGVuIHB1ZXJ0byA4MDAwLiIKICAgICAgICAgZWNobyAiJE5NQVBfU1NMIiB8IGdyZXAgIlRMU18iIHwgZ3JlcCAtRSAiQ0JDfDNERVN8UkM0IiB8IGF3ayAne3ByaW50ICIgICAtPiAiICQwfScgfCB0ZWUgLWEgIiRSRVBPUlRfRklMRSIKICAgIGVsc2UKICAgICAgICAgcHJpbnRfc3RhdHVzICJQQVNTIiAiTm8gc2UgZGV0ZWN0YXJvbiBjaWZyYWRvcyBmbGFncmFudGVtZW50ZSBkw6liaWxlcyBjb24gTm1hcC4iCiAgICBmaQplbHNlCiAgICBwcmludF9zdGF0dXMgIklORk8iICJObWFwIG5vIGluc3RhbGFkby4gU2FsdGFuZG8gcHJ1ZWJhIFNTTCBwcm9mdW5kYS4iCmZpCgojIC0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLQojIDUuIFJFVEVTVDogV2VhayBTU0ggQ2lwaGVycyAoUmVmOiA1LjIgKQojIC0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLQplY2hvIC1lICJcbiR7WUVMTE9XfVsqXSBFamVjdXRhbmRvIFJldGVzdCA1LjI6IEFsZ29yaXRtb3MgU1NIIETDqWJpbGVzIChQdWVydG8gMjIpLi4uJHtOQ30iIHwgdGVlIC1hICIkUkVQT1JUX0ZJTEUiCgppZiBjb21tYW5kIC12IG5tYXAgJj4gL2Rldi9udWxsOyB0aGVuCiAgICBOTUFQX1NTSD0kKG5tYXAgLS1zY3JpcHQgc3NoMi1lbnVtLWFsZ29zIC1wIDIyICIkVEFSR0VUX0lQIiAtUG4pCiAgICAKICAgICMgQnVzY2Ftb3MgYWxnb3JpdG1vcyBjaXRhZG9zIGVuIGVsIHJlcG9ydGUgY29tbyBkw6liaWxlcyAoY2JjLCBzaGExLCBhcmNmb3VyKQogICAgaWYgZWNobyAiJE5NQVBfU1NIIiB8IGdyZXAgLUVpcSAiY2JjfHNoYTF8YXJjZm91cnwzZGVzIjsgdGhlbgogICAgICAgIHByaW50X3N0YXR1cyAiRkFJTCIgIlNlIGRldGVjdGFyb24gYWxnb3JpdG1vcyBTU0ggZMOpYmlsZXMgY29uZmlndXJhZG9zLiIKICAgICAgICBlY2hvICIkTk1BUF9TU0giIHwgZ3JlcCAtRSAiY2JjfHNoYTF8YXJjZm91cnwzZGVzIiB8IGF3ayAne3ByaW50ICIgICAtPiAiICQwfScgfCB0ZWUgLWEgIiRSRVBPUlRfRklMRSIKICAgIGVsc2UKICAgICAgICBwcmludF9zdGF0dXMgIlBBU1MiICJDb25maWd1cmFjacOzbiBTU0ggcGFyZWNlIHJvYnVzdGEgKHNpbiBDQkMvU0hBMSBvYnZpb3MpLiIKICAgIGZpCmVsc2UKICAgIHByaW50X3N0YXR1cyAiSU5GTyIgIk5tYXAgbm8gaW5zdGFsYWRvLiBTYWx0YW5kbyBwcnVlYmEgU1NILiIKZmkKCmVjaG8gLWUgIiR7QkxVRX09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09JHtOQ30iCmVjaG8gLWUgIiR7QkxVRX0gICAgICAgICAgICAgICAgICBSRVRFU1QgQ09NUExFVEFETyAgICAgICAgICAgICAgICAgICAgICAgICAgICAke05DfSIKZWNobyAtZSAiJHtCTFVFfT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT0ke05DfSIKZWNobyAiUmVwb3J0ZSBndWFyZGFkbyBlbjogJFJFUE9SVF9GSUxFIg
+asdfasdfdsf
+
+a
+sdfas
+df
+dsaf
+
+
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cifrador Local Seguro</title>
+    <style>
+        :root {
+            --bg-color: #1a1a1a;
+            --card-bg: #2d2d2d;
+            --text-color: #e0e0e0;
+            --accent: #4CAF50;
+            --accent-hover: #45a049;
+            --danger: #f44336;
+            --input-bg: #3d3d3d;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            justify-content: center;
+            padding: 20px;
+            margin: 0;
+            min-height: 100vh;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 800px;
+            background-color: var(--card-bg);
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+        }
+
+        h1 { text-align: center; margin-bottom: 20px; color: var(--accent); }
+        h2 { border-bottom: 1px solid #444; padding-bottom: 10px; margin-top: 0; }
+
+        .tabs {
+            display: flex;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #444;
+        }
+
+        .tab-btn {
+            background: none;
+            border: none;
+            color: #888;
+            padding: 15px 25px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: 0.3s;
+            outline: none;
+        }
+
+        .tab-btn.active {
+            color: var(--accent);
+            border-bottom: 2px solid var(--accent);
+        }
+
+        .tab-content { display: none; }
+        .tab-content.active { display: block; animation: fadeIn 0.3s; }
+
+        label { display: block; margin-top: 15px; margin-bottom: 5px; font-weight: bold; }
+
+        textarea, input[type="text"], input[type="password"] {
+            width: 100%;
+            padding: 12px;
+            background-color: var(--input-bg);
+            border: 1px solid #555;
+            color: white;
+            border-radius: 6px;
+            box-sizing: border-box;
+            font-family: monospace;
+            font-size: 14px;
+        }
+
+        textarea { height: 120px; resize: vertical; }
+
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            color: white;
+            transition: 0.2s;
+        }
+
+        .btn-primary { background-color: var(--accent); }
+        .btn-primary:hover { background-color: var(--accent-hover); }
+        
+        .btn-secondary { background-color: #555; }
+        .btn-secondary:hover { background-color: #666; }
+
+        .btn-download { background-color: #2196F3; }
+        .btn-download:hover { background-color: #1976D2; }
+
+        .status {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 4px;
+            font-size: 14px;
+            display: none;
+        }
+        .status.error { background-color: rgba(244, 67, 54, 0.2); color: #ff8a80; border: 1px solid var(--danger); }
+        .status.success { background-color: rgba(76, 175, 80, 0.2); color: #a5d6a7; border: 1px solid var(--accent); }
+
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>🔐 Caja Fuerte Local</h1>
+
+    <div class="tabs">
+        <button class="tab-btn active" onclick="openTab('base64')">Base64 Simple</button>
+        <button class="tab-btn" onclick="openTab('crypto')">Cifrado con Clave (Secreto)</button>
+    </div>
+
+    <div id="base64" class="tab-content active">
+        <h2>Codificador Base64</h2>
+        <p style="font-size: 0.9em; color: #aaa;">Convierte texto a formato Base64 estándar. Útil para datos legibles.</p>
+        
+        <label>Entrada:</label>
+        <textarea id="b64Input" placeholder="Escribe aquí tu texto o pega código Base64..."></textarea>
+
+        <div class="btn-group">
+            <button class="btn-primary" onclick="processBase64('encode')">Codificar</button>
+            <button class="btn-secondary" onclick="processBase64('decode')">Decodificar</button>
+            <button class="btn-secondary" onclick="clearFields('b64')">Limpiar</button>
+        </div>
+
+        <label>Resultado:</label>
+        <textarea id="b64Output" readonly></textarea>
+        
+        <div class="btn-group">
+            <button class="btn-download" onclick="downloadText('b64Output')">📥 Descargar .txt</button>
+            <button class="btn-secondary" onclick="copyToClipboard('b64Output')">📋 Copiar</button>
+        </div>
+        <div id="status-b64" class="status"></div>
+    </div>
+
+    <div id="crypto" class="tab-content">
+        <h2>Cifrado XOR + Base64</h2>
+        <p style="font-size: 0.9em; color: #aaa;">Usa una contraseña para encriptar tu mensaje. Sin la clave exacta, es ilegible.</p>
+
+        <label>Mensaje / Secreto Cifrado:</label>
+        <textarea id="cryptoInput" placeholder="Escribe tu secreto o pega el texto cifrado..."></textarea>
+
+        <label>Clave (Password):</label>
+        <input type="password" id="cryptoKey" placeholder="Introduce una clave segura">
+
+        <div class="btn-group">
+            <button class="btn-primary" onclick="processCrypto('encrypt')">🔒 Encriptar</button>
+            <button class="btn-secondary" onclick="processCrypto('decrypt')">🔓 Desencriptar</button>
+            <button class="btn-secondary" onclick="clearFields('crypto')">Limpiar</button>
+        </div>
+
+        <label>Resultado:</label>
+        <textarea id="cryptoOutput" readonly></textarea>
+
+        <div class="btn-group">
+            <button class="btn-download" onclick="downloadText('cryptoOutput')">📥 Descargar .txt</button>
+            <button class="btn-secondary" onclick="copyToClipboard('cryptoOutput')">📋 Copiar</button>
+        </div>
+        <div id="status-crypto" class="status"></div>
+    </div>
+</div>
+
+<script>
+    // --- Utilidades del Sistema ---
+    
+    function showStatus(id, msg, type) {
+        const el = document.getElementById(id);
+        el.className = 'status ' + type;
+        el.innerText = msg;
+        el.style.display = 'block';
+        setTimeout(() => el.style.display = 'none', 4000);
+    }
+
+    function openTab(tabName) {
+        document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById(tabName).classList.add('active');
+        event.currentTarget.classList.add('active');
+    }
+
+    function clearFields(prefix) {
+        if(prefix === 'b64') {
+            document.getElementById('b64Input').value = '';
+            document.getElementById('b64Output').value = '';
+        } else {
+            document.getElementById('cryptoInput').value = '';
+            document.getElementById('cryptoKey').value = '';
+            document.getElementById('cryptoOutput').value = '';
+        }
+    }
+
+    function downloadText(elementId) {
+        const text = document.getElementById(elementId).value;
+        if (!text) return showStatus(elementId === 'b64Output' ? 'status-b64' : 'status-crypto', 'Nada para descargar', 'error');
+
+        const blob = new Blob([text], { type: 'text/plain' });
+        const anchor = document.createElement('a');
+        anchor.download = 'resultado_' + new Date().getTime() + '.txt';
+        anchor.href = window.URL.createObjectURL(blob);
+        anchor.click();
+        window.URL.revokeObjectURL(anchor.href);
+    }
+
+    function copyToClipboard(elementId) {
+        const copyText = document.getElementById(elementId);
+        copyText.select();
+        document.execCommand("copy");
+        showStatus(elementId === 'b64Output' ? 'status-b64' : 'status-crypto', 'Copiado al portapapeles', 'success');
+    }
+
+    // --- Lógica Base64 (Soporte UTF-8) ---
+    // Usamos TextEncoder/Decoder para manejar correctamente emojis y acentos
+
+    function processBase64(action) {
+        const input = document.getElementById('b64Input').value;
+        const outputEl = document.getElementById('b64Output');
+        
+        if (!input) return;
+
+        try {
+            if (action === 'encode') {
+                const encoder = new TextEncoder();
+                const data = encoder.encode(input);
+                // Convertir Uint8Array a string binario para btoa
+                let binary = '';
+                data.forEach(b => binary += String.fromCharCode(b));
+                outputEl.value = btoa(binary);
+                showStatus('status-b64', 'Texto codificado correctamente', 'success');
+            } else {
+                const binary = atob(input);
+                // Convertir string binario a Uint8Array para decodificar
+                const bytes = new Uint8Array(binary.length);
+                for (let i = 0; i < binary.length; i++) {
+                    bytes[i] = binary.charCodeAt(i);
+                }
+                const decoder = new TextDecoder();
+                outputEl.value = decoder.decode(bytes);
+                showStatus('status-b64', 'Texto decodificado correctamente', 'success');
+            }
+        } catch (e) {
+            outputEl.value = '';
+            showStatus('status-b64', 'Error: Formato inválido', 'error');
+            console.error(e);
+        }
+    }
+
+    // --- Lógica de Cifrado (XOR + Base64) ---
+    
+    function xorProcess(text, key) {
+        if (!key) throw new Error("Se requiere una clave");
+        
+        let result = [];
+        // Expandir la clave para que coincida con la longitud
+        for (let i = 0; i < text.length; i++) {
+            const textCode = text[i];
+            const keyCode = key.charCodeAt(i % key.length);
+            // Operación XOR
+            result.push(textCode ^ keyCode);
+        }
+        return new Uint8Array(result);
+    }
+
+    function processCrypto(action) {
+        const input = document.getElementById('cryptoInput').value;
+        const key = document.getElementById('cryptoKey').value;
+        const outputEl = document.getElementById('cryptoOutput');
+
+        if (!input || !key) {
+            showStatus('status-crypto', 'Falta texto o clave', 'error');
+            return;
+        }
+
+        try {
+            if (action === 'encrypt') {
+                // 1. Texto a Bytes (UTF-8)
+                const encoder = new TextEncoder();
+                const textBytes = encoder.encode(input);
+                
+                // 2. Aplicar XOR
+                const xoredBytes = xorProcess(textBytes, key);
+                
+                // 3. Bytes a Base64 (para que sea legible/copiable)
+                let binary = '';
+                xoredBytes.forEach(b => binary += String.fromCharCode(b));
+                outputEl.value = btoa(binary);
+                
+                showStatus('status-crypto', '¡Encriptado con éxito!', 'success');
+
+            } else { // Decrypt
+                // 1. Base64 a Bytes
+                const binary = atob(input);
+                const bytes = new Uint8Array(binary.length);
+                for (let i = 0; i < binary.length; i++) {
+                    bytes[i] = binary.charCodeAt(i);
+                }
+
+                // 2. Aplicar XOR (XOR es reversible con la misma clave)
+                const decryptedBytes = xorProcess(bytes, key);
+
+                // 3. Bytes a Texto
+                const decoder = new TextDecoder();
+                outputEl.value = decoder.decode(decryptedBytes);
+                
+                showStatus('status-crypto', '¡Desencriptado con éxito!', 'success');
+            }
+        } catch (e) {
+            outputEl.value = '';
+            showStatus('status-crypto', 'Error: Clave incorrecta o datos corruptos', 'error');
+        }
+    }
+</script>
+
+</body>
+</html>
