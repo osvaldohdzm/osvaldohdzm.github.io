@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Receptor V16 - Turbo Pro</title>
+    <title>Receptor V17 - Turbo + Debug</title>
     <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
     <style>
         :root {
@@ -14,34 +14,32 @@
 
         body { background: var(--bg); color: var(--text); font-family: -apple-system, sans-serif; margin: 0; display: flex; flex-direction: column; align-items: center; min-height: 100vh; }
 
-        /* --- HEADER --- */
         .header { width: 100%; box-sizing: border-box; max-width: 800px; padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); margin-bottom: 20px; background: rgba(22, 27, 34, 0.8); position: sticky; top: 0; z-index: 100; }
         .brand { font-weight: 800; font-size: 1rem; color: #fff; display: flex; align-items: center; gap: 8px; }
         .badge { background: rgba(47, 129, 247, 0.15); border: 1px solid var(--accent); padding: 2px 10px; border-radius: 20px; font-size: 0.65rem; color: var(--accent); font-weight: bold; }
 
-        /* --- SELECTOR DE MODO --- */
         .mode-switch { display: flex; gap: 6px; background: #010409; padding: 4px; border-radius: 8px; border: 1px solid var(--border); }
         .mode-btn { background: transparent; border: none; color: #8b949e; padding: 8px 12px; cursor: pointer; font-size: 1.1rem; border-radius: 6px; transition: all 0.3s; display: flex; align-items: center; justify-content: center; }
         .mode-btn.active { background: var(--accent); color: #fff; box-shadow: 0 4px 12px rgba(47, 129, 247, 0.3); }
 
-        /* --- ZONA DE ESCANEO --- */
         .viewport-container { width: 95%; max-width: 600px; min-height: 300px; background: #000; border: 2px solid var(--border); border-radius: 12px; position: relative; overflow: hidden; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5); margin: 0 auto; }
         #reader { width: 100% !important; border: none !important; }
         #reader video { width: 100% !important; height: 100% !important; object-fit: cover !important; }
         #screen-video { width: 100%; height: 100%; object-fit: contain; display: none; }
         .scan-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; background: linear-gradient(to bottom, rgba(0, 0, 0, 0) 40%, rgba(47, 129, 247, 0.1) 50%, rgba(0, 0, 0, 0) 60%); border: 1px solid rgba(255, 255, 255, 0.1); }
 
-        /* --- DASHBOARD DE DATOS --- */
         .dashboard { width: 95%; max-width: 600px; margin-top: 15px; display: flex; flex-direction: column; gap: 12px; padding-bottom: 40px; }
-        .card { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 20px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2); transition: transform 0.1s; }
-        .card.flash { border-color: var(--accent); box-shadow: 0 0 20px rgba(47, 129, 247, 0.4); transform: scale(1.01); }
+        .card { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 20px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2); transition: border-color 0.1s; }
 
         .info-row { display: flex; justify-content: space-between; font-size: 0.95rem; margin-bottom: 8px; align-items: center; }
         .file-name { color: #fff; font-weight: bold; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 70%; }
         .progress-track { height: 14px; background: #21262d; border-radius: 7px; overflow: hidden; margin-top: 15px; border: 1px solid var(--border); }
         .progress-fill { height: 100%; width: 0%; background: var(--accent); transition: width 0.1s; }
 
-        /* --- BOTONES DE ACCIÓN --- */
+        /* Panel de Diagnóstico */
+        .debug-panel { display: flex; justify-content: space-between; font-size: 0.75rem; color: #58a6ff; background: #010409; padding: 8px 12px; border-radius: 6px; border: 1px solid #1f2937; margin-top: 12px; font-family: monospace; }
+        .debug-val { color: #fff; font-weight: bold; }
+
         .actions { display: grid; grid-template-columns: 1fr; gap: 10px; }
         button.main-action { width: 100%; padding: 16px; border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.1); font-weight: 800; cursor: pointer; font-size: 1rem; text-transform: uppercase; letter-spacing: 0.5px; transition: all 0.2s; }
         button.main-action:active { transform: scale(0.98); }
@@ -54,7 +52,7 @@
 <body>
 
     <div class="header">
-        <div class="brand">📡 RECEPTOR <span class="badge" style="background: rgba(46, 160, 67, 0.2); border-color: var(--success); color: var(--success);">V16 TURBO</span></div>
+        <div class="brand">📡 RECEPTOR <span class="badge" style="background: rgba(46, 160, 67, 0.2); border-color: var(--success); color: var(--success);">V17 DEBUG</span></div>
         <div class="mode-switch">
             <button class="mode-btn active" onclick="setMode('cam')" id="btn-mode-cam">📷</button>
             <button class="mode-btn" onclick="switchCamera()" id="btn-switch-cam" style="display:none;">🔄</button>
@@ -68,42 +66,47 @@
     </div>
 
     <div class="dashboard">
-        <div class="card">
+        <div class="card" id="main-card">
             <div class="info-row">
-                <span class="file-name" id="lbl-name">Esperando señal...</span>
+                <span class="file-name" id="lbl-name">Esperando Header...</span>
                 <span id="lbl-pct" style="color: var(--accent); font-weight: bold;">0%</span>
             </div>
             <div class="info-row" style="font-size: 0.75rem; color: #8b949e;">
                 <span id="lbl-hash">SHA: -</span>
                 <span id="lbl-count">0/0 Paquetes</span>
             </div>
+            
             <div class="progress-track">
                 <div class="progress-fill" id="bar"></div>
+            </div>
+
+            <div class="debug-panel">
+                <span>Total Scans: <span class="debug-val" id="lbl-raw">0</span></span>
+                <span>Último Index: <span class="debug-val" id="lbl-last">-</span></span>
             </div>
         </div>
 
         <div class="actions">
-            <button id="btn-missing" class="main-action btn-missing" onclick="copyReport()">⚠️ COPIAR REPORTE DE ERRORES</button>
-            <button id="btn-save" class="main-action btn-waiting" disabled onclick="downloadFile()">ESPERANDO FINALIZACIÓN...</button>
+            <button id="btn-missing" class="main-action btn-missing" onclick="copyReport()">⚠️ COPIAR REPORTE FALTANTES</button>
+            <button id="btn-save" class="main-action btn-waiting" disabled onclick="downloadFile()">ESPERANDO DATOS...</button>
         </div>
     </div>
 
     <script>
-        // --- ESTADO DEL SISTEMA ---
+        // --- ESTADO ---
         const sys = {
             mode: 'cam', active: false, chunks: [], received: 0, total: 0,
-            meta: { n: "", h: "" }, loopId: null, cameras: [], currentCamIdx: 0
+            meta: { n: "", h: "" }, loopId: null, cameras: [], currentCamIdx: 0,
+            rawScans: 0
         };
 
         const html5QrCode = new Html5Qrcode("reader");
         let screenStream = null;
         let barcodeDetector = null;
 
-        // Inicializar
+        // INICIALIZACIÓN
         window.onload = async () => {
-            if ('BarcodeDetector' in window) {
-                barcodeDetector = new BarcodeDetector({ formats: ['qr_code'] });
-            }
+            if ('BarcodeDetector' in window) barcodeDetector = new BarcodeDetector({ formats: ['qr_code'] });
             try {
                 const devices = await Html5Qrcode.getCameras();
                 if (devices && devices.length > 0) {
@@ -154,12 +157,8 @@
 
         function stopAll(force = false) {
             if (html5QrCode.isScanning) {
-                // Si no es forzado, espera un momento para no congelar la UI
-                if(!force) {
-                    setTimeout(() => { html5QrCode.stop().catch(() => {}); }, 300);
-                } else {
-                    html5QrCode.stop().catch(() => {});
-                }
+                if(!force) setTimeout(() => { html5QrCode.stop().catch(() => {}); }, 300);
+                else html5QrCode.stop().catch(() => {});
             }
             if (screenStream) screenStream.getTracks().forEach(track => track.stop());
             cancelAnimationFrame(sys.loopId);
@@ -177,39 +176,50 @@
             sys.loopId = requestAnimationFrame(scanScreenLoop);
         }
 
-        // --- LÓGICA DE DATOS OPTIMIZADA V16 ---
+        // --- NÚCLEO DE EXTRACCIÓN (A PRUEBA DE FALLOS) ---
         function onData(txt) {
+            // Actualizar panel de diagnóstico inmediatamente
+            sys.rawScans++;
+            document.getElementById('lbl-raw').innerText = sys.rawScans;
+
             try {
                 const d = JSON.parse(txt);
 
+                // ATRAPAR CABECERA
                 if (d.t === "H" && !sys.active) {
                     sys.active = true;
                     sys.total = d.c;
                     sys.meta = d;
-                    sys.chunks = new Array(d.c).fill(null); // Array de strings
+                    sys.chunks = new Array(d.c).fill(null);
 
                     document.getElementById('lbl-name').innerText = d.n;
                     document.getElementById('lbl-hash').innerText = "SHA: " + d.h.substring(0, 8) + "...";
                     updateUI();
                 }
 
+                // ATRAPAR PAQUETES DE DATOS [index, "base64"]
                 if (sys.active && Array.isArray(d)) {
                     const idx = d[0];
                     const b64 = d[1];
+                    
+                    document.getElementById('lbl-last').innerText = idx; // Mostrar el index en pantalla
 
-                    if (idx < sys.total && sys.chunks[idx] === null) {
-                        sys.chunks[idx] = b64; // Guarda Base64 sin procesar para evitar lag
+                    if (idx >= 0 && idx < sys.total && sys.chunks[idx] === null) {
+                        sys.chunks[idx] = b64;
                         sys.received++;
 
-                        if(sys.received % 15 === 0) { // Menos flashes visuales = más rendimiento
-                            const card = document.querySelector('.card');
-                            card.classList.add('flash');
-                            setTimeout(() => card.classList.remove('flash'), 50);
+                        // Feedback visual (parpadeo verde sutil del borde)
+                        if(sys.received % 5 === 0) { 
+                            const card = document.getElementById('main-card');
+                            card.style.borderColor = "var(--success)";
+                            setTimeout(() => card.style.borderColor = "var(--border)", 60);
                         }
                         updateUI();
                     }
                 }
-            } catch (e) { }
+            } catch (e) {
+                // Si el JSON falla, no rompemos el loop.
+            }
         }
 
         function updateUI() {
@@ -227,8 +237,6 @@
                 btnSave.disabled = false;
                 btnSave.className = "main-action btn-download";
                 btnSave.innerText = "✅ ENSAMBLAR Y DESCARGAR";
-                
-                // Apagado suave para evitar cuelgues
                 if (sys.mode === 'cam') stopAll(false);
             }
             else if (sys.received > 0 && pct < 100) {
@@ -249,26 +257,22 @@
                     start = missing[i]; prev = missing[i];
                 }
             }
-
             const report = ranges.join(',');
             navigator.clipboard.writeText(report);
-            alert("📋 REPORTE COPIADO:\n" + report + "\n\n>> Pegar en Emisor");
+            alert("📋 REPORTE COPIADO:\n" + report + "\n\n>> Pégalo en la casilla de Retransmisión del Emisor.");
         }
 
-        // --- SISTEMA ANTI-FREEZE PARA ARCHIVOS GRANDES ---
+        // --- ENSAMBLAJE ANTI-FREEZE ---
         async function downloadFile() {
             const btnSave = document.getElementById('btn-save');
             btnSave.innerText = "⏳ ENSAMBLANDO (NO CIERRES)...";
             btnSave.className = "main-action btn-waiting";
             btnSave.disabled = true;
 
-            // Damos 50ms al navegador para actualizar la UI antes de estresar la CPU
             await new Promise(r => setTimeout(r, 50));
 
             try {
                 const byteArrays = [];
-                
-                // Bucle Anti-Congelamiento: Procesa en partes pequeñas
                 for (let i = 0; i < sys.chunks.length; i++) {
                     const b64 = sys.chunks[i];
                     const binStr = atob(b64);
@@ -276,20 +280,16 @@
                     for (let j = 0; j < binStr.length; j++) bytes[j] = binStr.charCodeAt(j);
                     
                     byteArrays.push(bytes);
-
-                    // Cada 500 paquetes, hacer una micro-pausa para que el celular respire
                     if (i % 500 === 0) {
                         btnSave.innerText = `⏳ ENSAMBLANDO (${Math.floor((i/sys.chunks.length)*100)}%)...`;
                         await new Promise(r => setTimeout(r, 0)); 
                     }
                 }
 
-                btnSave.innerText = "⏳ VERIFICANDO SEGURIDAD...";
+                btnSave.innerText = "⏳ VERIFICANDO HASH...";
                 await new Promise(r => setTimeout(r, 50));
 
                 const blob = new Blob(byteArrays, { type: "application/octet-stream" });
-                
-                // Verificación de Hash
                 const buf = await blob.arrayBuffer();
                 const hashBuf = await crypto.subtle.digest('SHA-256', buf);
                 const hashHex = Array.from(new Uint8Array(hashBuf)).map(b => b.toString(16).padStart(2, '0')).join('');
@@ -307,8 +307,7 @@
                     btnSave.innerText = "❌ ERROR DE HASH";
                 }
             } catch(err) {
-                console.error(err);
-                alert("Error de memoria: Tu celular se quedó sin RAM para procesar el archivo.");
+                alert("Error crítico: Memoria RAM insuficiente para ensamblar este archivo.");
                 btnSave.innerText = "❌ ERROR DE MEMORIA";
             }
             btnSave.disabled = false;
