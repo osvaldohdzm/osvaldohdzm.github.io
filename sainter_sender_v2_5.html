@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>SAINTER V2.5 - REVOLUTION (SENDER)</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <style>
+        :root {
+            --bg: #000;
+            --panel: #050505;
+            --border: #111;
+            --accent: #00ff41;
+            --success: #008f11;
+            --text: #fff;
+            --dim: #444;
+        }
+        body {
+            background: var(--bg); color: var(--text);
+            font-family: 'Courier New', Courier, monospace;
+            margin: 0; display: flex; flex-direction: column;
+            align-items: center; min-height: 100vh; overflow-x: hidden;
+        }
+        .header {
+            width: 100%; max-width: 800px; padding: 20px;
+            border-bottom: 2px solid var(--border);
+            display: flex; justify-content: space-between; align-items: center;
+            box-sizing: border-box;
+        }
+        .brand { font-weight: 900; letter-spacing: 5px; color: var(--accent); }
+        .dashboard {
+            width: 95%; max-width: 800px; padding: 20px 0;
+            display: flex; flex-direction: column; gap: 20px;
+        }
+        .card {
+            background: var(--panel); border: 1px solid var(--border);
+            padding: 25px; border-radius: 2px; position: relative;
+        }
+        .btn, .sel-btn {
+            background: transparent; border: 1px solid var(--accent); color: var(--accent);
+            padding: 10px 15px; cursor: pointer; font-family: inherit; font-weight: bold;
+            transition: all 0.2s;
+        }
+        .btn:hover, .sel-btn.active { background: var(--accent); color: #000; }
+        .selector { display: flex; gap: 10px; margin-bottom: 20px; }
+        .input-box { border: 1px dashed var(--dim); padding: 20px; text-align: center; cursor: pointer; min-height: 100px; display: flex; align-items: center; justify-content: center; flex-direction: column;}
+        #area-text-wrap { display: none; flex-direction: column; gap: 10px; width: 100%;}
+        textarea { background: #000; color: var(--accent); border: 1px solid var(--border); padding: 10px; font-family: inherit; resize: vertical; min-height: 100px; }
+        .metrics { margin-top: 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 0.9em; }
+        .metrics div { background: #111; padding: 10px; border: 1px solid #222; }
+        .metrics b { color: var(--accent); word-break: break-all; }
+
+        /* ZEN MODE / PLAYER */
+        .floating-bar {
+            display: none; position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+            gap: 25px; z-index: 9999; background: rgba(0, 0, 0, 0.95);
+            padding: 15px 35px; border-radius: 50px; border: 1px solid var(--border);
+        }
+        body.zen-mode .floating-bar { display: flex; }
+        body.zen-mode .header, body.zen-mode .dashboard { display: none; }
+        #qr-view { display: none; margin-top: 50px; background: #fff; padding: 20px; border: 4px solid var(--success); }
+        body.zen-mode #qr-view { display: block; margin: auto; }
+        #sys-status { font-size: 0.8rem; color: var(--success); }
+    </style>
+</head>
+<body>
+    <div class="floating-bar">
+        <button class="btn" onclick="togglePlay()" id="zen-play" style="border-radius:50%; width:60px; height:60px; background:var(--success); color:#000; font-size:1.5rem;">⏸</button>
+        <button class="btn" onclick="exitZen()" style="border-radius:50%; width:60px; height:60px; color:red; border-color:red; font-size:1.2rem;">X</button>
+    </div>
+
+    <div class="header">
+        <div class="brand">SAINTER//V2.5 (SENDER)</div>
+        <div id="sys-status">SYSTEM_ONLINE</div>
+    </div>
+
+    <div class="dashboard">
+        <div class="card">
+            <div class="selector">
+                <button id="btn-mode-f" class="sel-btn active" onclick="changeInput('file')">FILE_UPLOAD</button>
+                <button id="btn-mode-t" class="sel-btn" onclick="changeInput('text')">RAW_TEXT_INJECT</button>
+            </div>
+
+            <div class="input-box" id="area-file" onclick="document.getElementById('file-input').click()">
+                <span style="font-size: 1.5rem; margin-bottom: 10px;">📁</span>
+                <span>DROP_FILE_OR_CLICK</span>
+            </div>
+
+            <div id="area-text-wrap">
+                <textarea id="area-text" placeholder="PASTE_YOUR_DATA_HERE..."></textarea>
+                <button id="btn-inject" class="btn" onclick="injectText()">INJECT_TEXT_DATA</button>
+            </div>
+
+            <input type="file" id="file-input" style="display: none">
+
+            <div class="metrics">
+                <div>SOURCE: <b id="mt-name">STANDBY</b></div>
+                <div>SIZE: <b id="mt-size">0 KB</b></div>
+                <div>BLOCKS: <b id="mt-chunks">0</b></div>
+                <div>HASH: <b id="mt-hash">NONE</b></div>
+            </div>
+
+            <button class="btn" id="btn-start" onclick="enterZen()" style="margin-top: 20px; width: 100%; display: none; font-size: 1.2rem; padding: 15px; border-color: var(--success); color: var(--success);">START_TRANSMISSION</button>
+        </div>
+    </div>
+
+    <div id="qr-view">
+        <div id="qrcode"></div>
+        <div id="qr-counter" style="color: #000; text-align: center; font-weight: bold; margin-top: 10px; font-family: sans-serif;"></div>
+    </div>
+
+    <script>
+        // CORE LOGIC V2.5 REVOLUTION
+        let sys = {
+            payloads: [], qr: null,
+            running: false, mode: 'file',
+            idx: 0, fps: 12, chunkSize: 200, // 200 bytes per QR para asegurar lectura perfecta
+            lastFrameTime: 0, reqAnimId: null
+        };
+
+        window.onload = () => {
+            // Inicializar QR con Nivel de Error Bajo (L) para maximizar tamaño de "píxeles" visuales
+            sys.qr = new QRCode(document.getElementById("qrcode"), {
+                width: 450, height: 450,
+                colorDark : "#000000", colorLight : "#ffffff",
+                correctLevel : QRCode.CorrectLevel.L
+            });
+        };
+
+        function changeInput(m) {
+            sys.mode = m;
+            document.getElementById('btn-mode-f').classList.toggle('active', m === 'file');
+            document.getElementById('btn-mode-t').classList.toggle('active', m === 'text');
+            document.getElementById('area-file').style.display = m === 'file' ? 'flex' : 'none';
+            document.getElementById('area-text-wrap').style.display = m === 'text' ? 'flex' : 'none';
+        }
+
+        document.getElementById('file-input').addEventListener('change', (e) => {
+            if (e.target.files.length) handleBuffer(e.target.files[0], e.target.files[0].name);
+        });
+
+        function injectText() {
+            const val = document.getElementById('area-text').value;
+            if (val.trim().length > 0) {
+                handleBuffer(new Blob([val], { type: 'text/plain' }), "VIRTUAL_DATA.txt");
+            } else {
+                alert("Por favor ingresa texto primero.");
+            }
+        }
+
+        // Generar un hash SHA-256 criptográfico para asegurar la integridad al recibir
+        async function generateHash(buffer) {
+            const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            return hashArray.map(b => b.toString(16).padStart(2, '0')).join('').substring(0, 16); // Hash truncado para eficiencia
+        }
+
+        async function handleBuffer(blob, filename) {
+            sys.payloads = []; 
+            const arrayBuffer = await blob.arrayBuffer();
+            const hash = await generateHash(arrayBuffer);
+
+            // Convertir archivo a Base64 puro para empaquetado seguro en el QR
+            const base64Data = btoa(
+                new Uint8Array(arrayBuffer).reduce((data, byte) => data + String.fromCharCode(byte), '')
+            );
+
+            const totalChunks = Math.ceil(base64Data.length / sys.chunkSize);
+
+            // 1. CREACIÓN DEL HEADER FRAME (Metadatos)
+            // Protocolo: H|nombre|tamaño|total_bloques|hash
+            const header = \`H|\${filename}|\${blob.size}|\${totalChunks}|\${hash}\`;
+            sys.payloads.push(header);
+
+            // 2. CREACIÓN DE DATA FRAMES
+            // Protocolo: D|indice|total_bloques|datos_base64
+            for (let i = 0; i < totalChunks; i++) {
+                const chunk = base64Data.substring(i * sys.chunkSize, (i + 1) * sys.chunkSize);
+                sys.payloads.push(\`D|\${i}|\${totalChunks}|\${chunk}\`);
+            }
+
+            // Actualizar Interfaz
+            document.getElementById('mt-name').innerText = filename;
+            document.getElementById('mt-size').innerText = (blob.size / 1024).toFixed(2) + " KB";
+            document.getElementById('mt-chunks').innerText = totalChunks + " (+1 Header)";
+            document.getElementById('mt-hash').innerText = hash;
+            document.getElementById('btn-start').style.display = 'block';
+
+            document.getElementById('sys-status').innerText = "DATA_LOADED_READY";
+            document.getElementById('sys-status').style.color = "var(--accent)";
+        }
+
+        // --- MOTOR DE ANIMACIÓN OPTIMIZADO ---
+        function enterZen() {
+            const el = document.documentElement;
+            if (el.requestFullscreen) el.requestFullscreen();
+            document.body.classList.add('zen-mode');
+            sys.idx = 0;
+            sys.running = true;
+            sys.lastFrameTime = performance.now();
+            document.getElementById('zen-play').innerText = "⏸";
+            sys.reqAnimId = requestAnimationFrame(renderLoop);
+        }
+
+        function exitZen() {
+            if (document.exitFullscreen && document.fullscreenElement) {
+                document.exitFullscreen();
+            }
+            document.body.classList.remove('zen-mode');
+            sys.running = false;
+            if(sys.reqAnimId) cancelAnimationFrame(sys.reqAnimId);
+        }
+
+        function togglePlay() {
+            sys.running = !sys.running;
+            document.getElementById('zen-play').innerText = sys.running ? "⏸" : "▶";
+            if (sys.running) {
+                sys.lastFrameTime = performance.now();
+                sys.reqAnimId = requestAnimationFrame(renderLoop);
+            } else {
+                cancelAnimationFrame(sys.reqAnimId);
+            }
+        }
+
+        // Reemplazo del "Timer/setInterval" por Sincronía de Hardware (No Screen Tearing)
+        function renderLoop(timestamp) {
+            if (!sys.running) return;
+
+            const frameInterval = 1000 / sys.fps; // Control de velocidad exacto
+
+            if (timestamp - sys.lastFrameTime >= frameInterval) {
+                sys.lastFrameTime = timestamp;
+
+                const payload = sys.payloads[sys.idx];
+                sys.qr.clear();
+                sys.qr.makeCode(payload);
+
+                // Indicador visual en pantalla
+                let isHeader = payload.startsWith("H|");
+                document.getElementById('qr-counter').innerText = isHeader 
+                    ? "HEADER FRAME [METADATA]" 
+                    : \`FRAME \${sys.idx} / \${sys.payloads.length - 1}\`;
+
+                sys.idx = (sys.idx + 1) % sys.payloads.length;
+            }
+
+            sys.reqAnimId = requestAnimationFrame(renderLoop);
+        }
+    </script>
+</body>
+</html>
