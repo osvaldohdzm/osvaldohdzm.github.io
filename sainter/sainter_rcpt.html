@@ -876,19 +876,26 @@
                 <span id="missing-badge-lbl" style="color: var(--warn); font-weight: bold;">0 pendientes</span>
             </div>
 
-            <div class="dichotomy-grid">
-                <!-- RUTA 1: RETORNO ÓPTICO EXCLUSIVO (BITMAP PLANO COMPACTO) -->
+            <div class="dichotomy-grid" style="grid-template-columns: repeat(3, 1fr);">
+                <!-- RUTA 1: RETORNO ÓPTICO -->
                 <button class="route-card-btn optical" id="btn-route-optical" onclick="openReverseAckModal()">
                     <span class="route-icon">📷</span>
-                    <span class="route-title">Retorno Óptico (Cámara QR)</span>
-                    <span class="route-desc">Proyecta un único QR con el Bitmap Plano exacto de todos los bloques pendientes</span>
+                    <span class="route-title">1. Retorno Óptico</span>
+                    <span class="route-desc">Código QR en pantalla con Bitmap Plano</span>
                 </button>
 
-                <!-- RUTA 2: RETORNO ACÚSTICO EXCLUSIVO (BISECCIÓN POR MACRO-SECTORES) -->
+                <!-- RUTA 2: RETORNO ACÚSTICO -->
                 <button class="route-card-btn acoustic" id="btn-route-acoustic" onclick="startAcousticReturnSession()">
                     <span class="route-icon">🔊</span>
-                    <span class="route-title">Retorno Acústico (Sonido)</span>
-                    <span class="route-desc">Envía por sonido los 3 macro-sectores con mayor densidad de huecos</span>
+                    <span class="route-title">2. Retorno Acústico</span>
+                    <span class="route-desc">Ráfaga de audio FSK por altavoz</span>
+                </button>
+
+                <!-- RUTA 3: LISTADO SEPARADO / COPIA AL PORTAPAPELES -->
+                <button class="route-card-btn" id="btn-route-copy" onclick="openCopyListModal()" style="border-color: #2ea043; background: rgba(46, 160, 67, 0.08);">
+                    <span class="route-icon">📋</span>
+                    <span class="route-title" style="color: #2ea043;">3. Copiar Lista</span>
+                    <span class="route-desc">Lista separada por comas o rangos</span>
                 </button>
             </div>
 
@@ -959,6 +966,34 @@
             <div style="display: flex; gap: 8px; width: 100%;">
                 <button class="btn-optic" style="flex: 1;" onclick="copyMissingRangesFallback()">📋 Copiar Bitmap/Rangos</button>
                 <button class="btn-optic active" style="flex: 1;" onclick="closeReverseAckModal()">Cerrar Ventana</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL DE LISTADO Y COPIA DE BLOQUES PENDIENTES -->
+    <div class="modal-backdrop" id="copy-modal">
+        <div class="modal-card" style="max-width: 480px;">
+            <div style="display: flex; justify-content: space-between; width: 100%; align-items: center;">
+                <b style="color: #2ea043; font-size: 0.9rem;">📋 Listado de Bloques Pendientes</b>
+                <button class="btn-optic" onclick="closeCopyListModal()" style="color: var(--err); border-color: var(--err);">✖ CERRAR</button>
+            </div>
+            <div style="font-size: 0.72rem; color: var(--dim); text-align: left; width: 100%;">
+                Selecciona el formato para copiar al portapapeles y pegarlo en el emisor:
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; width: 100%;">
+                <button class="btn-optic" id="btn-fmt-csv" onclick="setCopyFormat('csv')">Comas (0, 1, 2)</button>
+                <button class="btn-optic active" id="btn-fmt-range" onclick="setCopyFormat('range')">Rangos (0-5, 8)</button>
+                <button class="btn-optic" id="btn-fmt-sectors" onclick="setCopyFormat('sectors')">Macro (S01,04)</button>
+            </div>
+
+            <textarea id="txt-missing-preview" readonly style="width: 100%; height: 90px; background: #05080e; border: 1px solid var(--border); color: var(--neon); font-family: monospace; font-size: 0.72rem; padding: 8px; border-radius: 6px; resize: none;"></textarea>
+
+            <div style="display: flex; gap: 8px; width: 100%;">
+                <button class="btn-optic active" style="flex: 2; border-color: #2ea043; color: #2ea043;" onclick="executeCopyList()">
+                    📋 Copiar al Portapapeles
+                </button>
+                <button class="btn-optic" style="flex: 1;" onclick="closeCopyListModal()">Listo</button>
             </div>
         </div>
     </div>
@@ -1671,6 +1706,11 @@
                     const helloTxTime = performance.now();
                     await playSingleTone(ACOUSTIC_PROTOCOL.HELLO, 240);
 
+                    if (!hasMic) {
+                        setTimeout(() => resolve(!acousticModem.aborted), 320);
+                        return;
+                    }
+
                     const listenStart = performance.now();
                     const checkLoop = () => {
                         if (acousticModem.aborted) {
@@ -1691,7 +1731,7 @@
                             readyHits = 0;
                         }
 
-                        if (performance.now() - listenStart < 650) {
+                        if (performance.now() - listenStart < 600) {
                             acousticModem.rxLoopId = requestAnimationFrame(checkLoop);
                         } else if (attempts < 2) {
                             if (typeof aiTelemetryLogger !== 'undefined') aiTelemetryLogger.acousticFskErrors++;
@@ -2562,6 +2602,64 @@
             if (!report) return;
             navigator.clipboard.writeText(report);
             alert("📋 Datos de faltantes copiados al portapapeles.");
+        }
+
+        // =========================================================================
+        // 7.1 LISTADO SEPARADO Y COPIA AL PORTAPAPELES (COMAS / RANGOS / MACRO-SECTORES)
+        // =========================================================================
+        let currentCopyFormat = 'range';
+
+        function openCopyListModal() {
+            if (!sys.active || sys.received === sys.total) return;
+            updateCopyPreview();
+            document.getElementById('copy-modal').classList.add('open');
+        }
+
+        function closeCopyListModal() {
+            document.getElementById('copy-modal').classList.remove('open');
+        }
+
+        function setCopyFormat(fmt) {
+            currentCopyFormat = fmt;
+            document.getElementById('btn-fmt-csv').classList.toggle('active', fmt === 'csv');
+            document.getElementById('btn-fmt-range').classList.toggle('active', fmt === 'range');
+            document.getElementById('btn-fmt-sectors').classList.toggle('active', fmt === 'sectors');
+            updateCopyPreview();
+        }
+
+        function getMissingBlocksCsv() {
+            const missing = [];
+            for (let i = 0; i < sys.total; i++) {
+                if (sys.chunks[i] === null) missing.push(i);
+            }
+            return missing.join(', ');
+        }
+
+        function updateCopyPreview() {
+            const area = document.getElementById('txt-missing-preview');
+            if (!area) return;
+            if (currentCopyFormat === 'csv') {
+                area.value = getMissingBlocksCsv();
+            } else if (currentCopyFormat === 'range') {
+                area.value = buildMissingRangesString();
+            } else if (currentCopyFormat === 'sectors') {
+                area.value = buildAcousticPayloadString();
+            }
+        }
+
+        async function executeCopyList() {
+            const text = document.getElementById('txt-missing-preview').value;
+            if (!text) return;
+            try {
+                await navigator.clipboard.writeText(text);
+                alert(`✅ Copiado al portapapeles (${sys.total - sys.received} bloques en formato ${currentCopyFormat.toUpperCase()}).`);
+                closeCopyListModal();
+            } catch (err) {
+                document.getElementById('txt-missing-preview').select();
+                document.execCommand('copy');
+                alert("✅ Copiado al portapapeles.");
+                closeCopyListModal();
+            }
         }
 
         // =========================================================================

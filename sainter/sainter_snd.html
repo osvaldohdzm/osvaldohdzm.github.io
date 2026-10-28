@@ -1104,9 +1104,12 @@
             </div>
 
             <div style="display: flex; gap: 8px; align-items: center;">
-                <input type="text" id="custom-frames" placeholder="Macro-sectores (ej. S04,09,12) o rangos (0, 4-12)"
+                <input type="text" id="custom-frames" placeholder="Macro-sectores (ej. S04,09,12), rangos (0, 4-12) o lista (0, 1, 2, 5)"
                     style="flex: 1; padding: 8px; background: #010409; border: 1px solid var(--border); color: var(--text); border-radius: 4px; font-family: inherit; font-size: 0.72rem;">
                 <button class="btn" onclick="applyCustomFrames()">APLICAR</button>
+                <button class="btn btn-reverse" onclick="pasteFromClipboardAndApply()" title="Lee automáticamente del portapapeles y aplica los bloques faltantes">
+                    📋 Pegar & Reintentar
+                </button>
             </div>
         </div>
 
@@ -2950,13 +2953,15 @@
             return applyMissingBitmapBytes(bytes, total);
         }
 
-        // Interpreta identificadores de Macro-Sectores (ej. "S04,09,12" sobre 32 sectores) o rangos RLE ("4-12,18")
+        // Interpreta identificadores de Macro-Sectores (ej. "S04,09,12" sobre 32 sectores), rangos RLE ("4-12,18") o listas separadas por comas/espacios/saltos de línea
         function parseMacroSectorsOrRanges(str, total) {
             const trimmed = str.trim().toUpperCase();
+
+            // 1. Manejo de Macro-Sectores (S00..S31)
             if (trimmed.startsWith('S')) {
                 const numSectors = Math.min(32, Math.max(4, total));
                 const sectorSize = Math.ceil(total / numSectors);
-                const sectorIds = trimmed.substring(1).split(',').map(s => parseInt(s.replace(/[^0-9]/g, ''), 10)).filter(n => !isNaN(n));
+                const sectorIds = trimmed.substring(1).split(/[\s,]+/).map(s => parseInt(s.replace(/[^0-9]/g, ''), 10)).filter(n => !isNaN(n));
                 const indices = new Set();
                 for (const sId of sectorIds) {
                     if (sId >= 0 && sId < numSectors) {
@@ -2968,20 +2973,22 @@
                 return Array.from(indices).sort((a, b) => a - b);
             }
 
+            // 2. Manejo de Listas separadas por comas, espacios, punto y coma o rangos (0, 1, 4-8, 12...)
             const indices = new Set();
-            const parts = trimmed.split(',');
-            for (let part of parts) {
-                part = part.trim();
-                if (!part) continue;
-                if (part.includes('-')) {
-                    const [start, end] = part.split('-').map(Number);
+            const tokens = trimmed.split(/[\s,;\n\r]+/);
+            for (const token of tokens) {
+                if (!token) continue;
+                if (token.includes('-')) {
+                    const parts = token.split('-');
+                    const start = parseInt(parts[0], 10);
+                    const end = parseInt(parts[1], 10);
                     if (!isNaN(start) && !isNaN(end)) {
                         for (let i = Math.max(0, start); i <= Math.min(total - 1, end); i++) {
                             indices.add(i);
                         }
                     }
                 } else {
-                    const num = Number(part);
+                    const num = parseInt(token, 10);
                     if (!isNaN(num) && num >= 0 && num < total) {
                         indices.add(num);
                     }
@@ -3008,7 +3015,7 @@
                             missing = parseMacroSectorsOrRanges(obj.r, sys.totalChunks);
                         }
                     }
-                } else if (/^[S0-9,\-\s]+$/i.test(trimmed)) {
+                } else if (/^[S0-9,;\-\s]+$/i.test(trimmed)) {
                     missing = parseMacroSectorsOrRanges(trimmed, sys.totalChunks);
                 } else {
                     missing = applyMissingBitmapBase64(trimmed, sys.totalChunks);
@@ -3044,8 +3051,32 @@
             }
             if (processReverseAckPayload(input)) {
                 document.getElementById('status').innerText = `● PRIORITY LOOP (${sys.activeIndices.length} FALTANTES)`;
+                if (!sys.running) togglePlay();
             } else {
                 alert("Formato de macro-sector, rango o bitmap inválido.");
+            }
+        }
+
+        // Lectura de 1 solo toque desde el portapapeles
+        async function pasteFromClipboardAndApply() {
+            if (!sys.totalChunks) {
+                alert("Primero carga un archivo en el emisor.");
+                return;
+            }
+            try {
+                const text = await navigator.clipboard.readText();
+                if (!text || !text.trim()) {
+                    alert("El portapapeles está vacío.");
+                    return;
+                }
+                document.getElementById('custom-frames').value = text.trim();
+                applyCustomFrames();
+            } catch (err) {
+                const fallback = prompt("Pega aquí la lista de bloques o macro-sectores copiados:");
+                if (fallback) {
+                    document.getElementById('custom-frames').value = fallback.trim();
+                    applyCustomFrames();
+                }
             }
         }
 
