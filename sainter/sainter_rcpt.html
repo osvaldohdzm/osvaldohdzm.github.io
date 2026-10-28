@@ -926,6 +926,23 @@
                 ESPERANDO DATOS...
             </button>
         </div>
+
+        <!-- EXPORTADOR DE DIAGNÓSTICO Y MATRIZ DE TELEMETRÍA PARA IA (HASTA ABAJO DEL RECEPTOR) -->
+        <div class="card" style="border-color: rgba(0, 255, 65, 0.35);">
+            <div class="card-header">
+                <span>Diagnóstico & Telemetría Estructurada para IA</span>
+                <span id="ai-log-samples-lbl" style="color: var(--neon);">LISTO</span>
+            </div>
+            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                <button class="btn-optic" onclick="aiTelemetryLogger.exportJson(sys)" style="flex: 2; color: var(--neon); border-color: var(--neon); padding: 11px 12px; font-size: 0.80rem;">
+                    📊 Copiar Telemetría IA
+                </button>
+                <button class="btn-optic" onclick="aiTelemetryLogger.togglePreview(sys)" style="flex: 1; padding: 11px 10px; font-size: 0.74rem;">
+                    👁️ Ver Log JSON
+                </button>
+            </div>
+            <pre id="ai-telemetry-preview" style="display: none; margin: 6px 0 0 0; padding: 10px; background: #04070d; border: 1px solid var(--border); border-radius: 6px; color: #79c0ff; font-size: 0.66rem; max-height: 240px; overflow: auto; white-space: pre-wrap; word-break: break-all;"></pre>
+        </div>
     </div>
 
     <!-- MODAL EXCLUSIVO DE RETORNO ÓPTICO (FONDO OSCURO + BITMAP PLANO + CIERRE MANUAL) -->
@@ -1322,6 +1339,10 @@
                 newlySolved++;
                 if (item.isXor) sys.fountainSolved++;
 
+                if (typeof aiTelemetryLogger !== 'undefined') {
+                    aiTelemetryLogger.logReceivedChunk(item.idx);
+                }
+
                 if (chunkMap) chunkMap.markCellDirty(item.idx);
                 sys.uniqueHistory.push({ t: performance.now(), bytes: finalBytes.byteLength });
 
@@ -1347,6 +1368,10 @@
                 }
             }
 
+            if (newlySolved > 1 && typeof aiTelemetryLogger !== 'undefined') {
+                aiTelemetryLogger.logPeelingCascade(newlySolved - 1);
+            }
+
             return newlySolved > 0;
         }
 
@@ -1354,6 +1379,10 @@
         function ingestFountainDroplet(dropletId, xorPayloadBytes) {
             if (!sys.active || sys.received === sys.total) return false;
             if (xorPayloadBytes.length > sys.mtu) sys.mtu = xorPayloadBytes.length;
+
+            if (typeof aiTelemetryLogger !== 'undefined') {
+                aiTelemetryLogger.fountainParitiesReceived++;
+            }
 
             const recipe = getFountainRecipe(dropletId, sys.total);
             const unknown = [];
@@ -1371,6 +1400,7 @@
 
             if (unknown.length === 0) {
                 sys.duplicateScans++;
+                if (typeof aiTelemetryLogger !== 'undefined') aiTelemetryLogger.logDuplicate();
                 return false;
             }
 
@@ -1413,9 +1443,9 @@
             EOF: 3220,     // Fin de ráfaga FSK
             ACK_OK: 3320,  // Confirmación desde la laptop
             FIN_100: 3420, // Confirmación de cierre tras validación SHA-256
-            TOLERANCE_HZ: 38,
-            SYMBOL_MS: 82,
-            GAP_MS: 24
+            TOLERANCE_HZ: 44,
+            SYMBOL_MS: 135,
+            GAP_MS: 52
         };
 
         const acousticModem = {
@@ -1439,7 +1469,7 @@
             return acousticModem.ctx;
         }
 
-        function playSingleTone(freq, durationMs, gainLevel = 0.42) {
+        function playSingleTone(freq, durationMs, gainLevel = 0.85) {
             return new Promise((resolve) => {
                 const ctx = getAudioCtx();
                 const now = ctx.currentTime + 0.015;
@@ -1555,12 +1585,20 @@
             const avgNoise = sumVal / Math.max(1, maxBin - minBin + 1);
             const domFreq = peakBin * binHz;
 
-            return (peakVal > 135 && peakVal > avgNoise * 2.1 && Math.abs(domFreq - targetFreq) <= ACOUSTIC_PROTOCOL.TOLERANCE_HZ);
+            const isHit = (peakVal >= 48 && (peakVal - avgNoise) >= 18 && Math.abs(domFreq - targetFreq) <= ACOUSTIC_PROTOCOL.TOLERANCE_HZ);
+            if (isHit && typeof aiTelemetryLogger !== 'undefined') {
+                const snrDb = 20 * Math.log10(Math.max(1, peakVal) / Math.max(1, avgNoise));
+                aiTelemetryLogger.logAcousticSnr(snrDb);
+            }
+            return isHit;
         }
 
         // Construye el payload acústico óptimo: si el RLE es corto (<=12 chars), envía índices exactos;
         // si hay muchos huecos dispersos, aplica Bisección en 32 Macro-Sectores y envía los 3 sectores más densos (ej. "S04,09,12")
         function buildAcousticPayloadString() {
+            if (!sys.active || !sys.total) {
+                return "S00,01,02";
+            }
             const exactRle = buildMissingRangesString();
             if (exactRle.length <= 12) {
                 return exactRle;
@@ -1606,7 +1644,7 @@
         }
 
         async function startAcousticReturnSession() {
-            if (!sys.active || sys.received === sys.total) return;
+            if (sys.active && sys.received === sys.total) return;
             if (acousticModem.sessionActive) return;
 
             if (document.getElementById('ack-modal').classList.contains('open')) {
@@ -1615,6 +1653,9 @@
 
             acousticModem.sessionActive = true;
             acousticModem.aborted = false;
+            if (typeof aiTelemetryLogger !== 'undefined') {
+                aiTelemetryLogger.acousticSessionsStarted++;
+            }
 
             setAcousticPhaseUI(1);
             const hasMic = await ensurePhoneMicListening();
@@ -1627,6 +1668,7 @@
                 const emitHelloCycle = async () => {
                     if (acousticModem.aborted || readyReceived) return;
                     attempts++;
+                    const helloTxTime = performance.now();
                     await playSingleTone(ACOUSTIC_PROTOCOL.HELLO, 240);
 
                     const listenStart = performance.now();
@@ -1639,6 +1681,9 @@
                             readyHits++;
                             if (readyHits >= 2) {
                                 readyReceived = true;
+                                if (typeof aiTelemetryLogger !== 'undefined') {
+                                    aiTelemetryLogger.logAcousticRtt(performance.now() - helloTxTime);
+                                }
                                 resolve(true);
                                 return;
                             }
@@ -1649,6 +1694,7 @@
                         if (performance.now() - listenStart < 650) {
                             acousticModem.rxLoopId = requestAnimationFrame(checkLoop);
                         } else if (attempts < 2) {
+                            if (typeof aiTelemetryLogger !== 'undefined') aiTelemetryLogger.acousticFskErrors++;
                             emitHelloCycle();
                         } else {
                             resolve(true);
@@ -2013,11 +2059,17 @@
 
                 const avgLuma = totalLuma / pixelCount;
                 const satRatio = saturatedPixels / pixelCount;
+                const isLowLight = avgLuma < 32;
+                const isOverexp = satRatio > 0.42 && (performance.now() - sys.lastLockTime) > 1200;
 
-                if (avgLuma < 32) {
+                if (typeof aiTelemetryLogger !== 'undefined') {
+                    aiTelemetryLogger.logLightingSample(avgLuma, satRatio, isOverexp, isLowLight);
+                }
+
+                if (isLowLight) {
                     alertTxt.innerText = "Baja luz en sensor: suba el brillo de pantalla emisora";
                     alertBox.classList.add('visible');
-                } else if (satRatio > 0.42 && (performance.now() - sys.lastLockTime) > 1200) {
+                } else if (isOverexp) {
                     alertTxt.innerText = "Reflejos o sobreexposición: reduzca EV o incline la pantalla";
                     alertBox.classList.add('visible');
                 } else {
@@ -2260,6 +2312,7 @@
                             onNewBlockDecoded(now);
                         } else {
                             sys.duplicateScans++;
+                            if (typeof aiTelemetryLogger !== 'undefined') aiTelemetryLogger.logDuplicate();
                         }
                     }
                     return;
@@ -2290,6 +2343,7 @@
                         sys.rawScans = 1;
                         sys.duplicateScans = 0;
                         sys.uniqueHistory = [];
+                        if (typeof aiTelemetryLogger !== 'undefined') aiTelemetryLogger.resetSession();
 
                         if (navigator.vibrate) {
                             try { navigator.vibrate([30]); } catch (e) { }
@@ -2313,6 +2367,7 @@
                         onNewBlockDecoded(now);
                     } else {
                         sys.duplicateScans++;
+                        if (typeof aiTelemetryLogger !== 'undefined') aiTelemetryLogger.logDuplicate();
                     }
                 }
             } catch (e) { }
@@ -2361,6 +2416,7 @@
             const uniquePerSec = sys.uniqueHistory.length / 5;
             const bytesLast5s = sys.uniqueHistory.reduce((acc, item) => acc + item.bytes, 0);
             const bytesPerSec = bytesLast5s / 5;
+            sys.lastSpeedKbps = parseFloat((bytesPerSec / 1024).toFixed(1));
 
             if (bytesPerSec >= 1048576) {
                 document.getElementById('tele-speed').innerText = `${(bytesPerSec / 1048576).toFixed(2)} MB/s`;
@@ -2467,6 +2523,9 @@
 
             // Bitmap plano (ceil(total / 8) bytes; ej. 664 bytes para 5,307 bloques)
             const rawBitmap = exportMissingBitmapBytes(sys.chunks, sys.total);
+            if (typeof aiTelemetryLogger !== 'undefined') {
+                aiTelemetryLogger.logOpticalAck(rawBitmap.length);
+            }
             const z85Bitmap = encodeBytesToZ85(rawBitmap);
             const rleRanges = buildMissingRangesString();
 
@@ -2609,6 +2668,281 @@
             }
             btnSave.disabled = false;
         }
+
+        // =========================================================================
+        // 9. EXPORTADOR DE DIAGNÓSTICO Y MATRIZ DE TELEMETRÍA PARA IA (JSON LLM)
+        // =========================================================================
+        const aiTelemetryLogger = {
+            lossBursts: [],
+            interArrivals: [],
+            timeSeries: [],
+            currentGap: 0,
+            lastFrameTime: performance.now(),
+            acousticRtts: [],
+            acousticSnrSamples: [],
+            acousticSessionsStarted: 0,
+            acousticFskErrors: 0,
+            opticalAckEvents: 0,
+            opticalAckBitmapBytes: 0,
+            fountainParitiesReceived: 0,
+            fountainPeelingCascades: 0,
+            fountainMaxPeelingDepth: 0,
+            lumaSamples: [],
+            satSamples: [],
+            overexposureEvents: 0,
+            lowLightEvents: 0,
+
+            resetSession() {
+                this.lossBursts = [];
+                this.interArrivals = [];
+                this.timeSeries = [];
+                this.currentGap = 0;
+                this.lastFrameTime = performance.now();
+                this.acousticRtts = [];
+                this.acousticSnrSamples = [];
+                this.acousticSessionsStarted = 0;
+                this.acousticFskErrors = 0;
+                this.opticalAckEvents = 0;
+                this.opticalAckBitmapBytes = 0;
+                this.fountainParitiesReceived = 0;
+                this.fountainPeelingCascades = 0;
+                this.fountainMaxPeelingDepth = 0;
+                this.lumaSamples = [];
+                this.satSamples = [];
+                this.overexposureEvents = 0;
+                this.lowLightEvents = 0;
+            },
+
+            logReceivedChunk(idx) {
+                const now = performance.now();
+                const delta = now - this.lastFrameTime;
+                this.interArrivals.push(Math.round(delta));
+                if (this.interArrivals.length > 300) this.interArrivals.shift();
+                this.lastFrameTime = now;
+
+                if (this.currentGap > 0) {
+                    this.lossBursts.push(this.currentGap);
+                    this.currentGap = 0;
+                }
+            },
+
+            logDuplicate() {
+                this.currentGap++;
+            },
+
+            logAcousticRtt(rttMs) {
+                this.acousticRtts.push(Math.round(rttMs));
+            },
+
+            logAcousticSnr(snrDb) {
+                if (isFinite(snrDb)) {
+                    this.acousticSnrSamples.push(parseFloat(snrDb.toFixed(1)));
+                }
+            },
+
+            logPeelingCascade(depth) {
+                this.fountainPeelingCascades++;
+                if (depth > this.fountainMaxPeelingDepth) {
+                    this.fountainMaxPeelingDepth = depth;
+                }
+            },
+
+            logLightingSample(luma, satRatio, isOverexp, isLowLight) {
+                this.lumaSamples.push(luma);
+                this.satSamples.push(satRatio);
+                if (this.lumaSamples.length > 60) {
+                    this.lumaSamples.shift();
+                    this.satSamples.shift();
+                }
+                if (isOverexp) this.overexposureEvents++;
+                if (isLowLight) this.lowLightEvents++;
+            },
+
+            logOpticalAck(bitmapBytes) {
+                this.opticalAckEvents++;
+                this.opticalAckBitmapBytes = bitmapBytes;
+            },
+
+            snapshotInterval(elapsedSec, uniqueCount, decFps, speedKbps, dupPct) {
+                if (this.timeSeries.length > 120) return; // Máximo 20 min muestreados cada 10s
+                this.timeSeries.push({
+                    sec: Math.round(elapsedSec),
+                    unique: uniqueCount,
+                    fps: decFps,
+                    kbps: parseFloat(speedKbps),
+                    dup_pct: parseFloat(dupPct)
+                });
+                const lbl = document.getElementById('ai-log-samples-lbl');
+                if (lbl) lbl.innerText = `${this.timeSeries.length} MUESTRAS (10s)`;
+            },
+
+            buildPayload(sys) {
+                const total = sys.total || 1;
+                const qSize = Math.ceil(total / 4);
+                const sectorLoss = { Q1: 0, Q2: 0, Q3: 0, Q4: 0 };
+                if (sys.active && sys.chunks.length === sys.total) {
+                    for (let i = 0; i < total; i++) {
+                        if (sys.chunks[i] === null) {
+                            const q = Math.min(3, Math.floor(i / qSize));
+                            sectorLoss[`Q${q + 1}`]++;
+                        }
+                    }
+                }
+
+                // Calcular también rachas reales de bloques faltantes actuales (Burst Loss Run-Length en el mapa)
+                const mapMissingRuns = [];
+                if (sys.active && sys.chunks.length === sys.total) {
+                    let run = 0;
+                    for (let i = 0; i < sys.total; i++) {
+                        if (sys.chunks[i] === null) {
+                            run++;
+                        } else if (run > 0) {
+                            mapMissingRuns.push(run);
+                            run = 0;
+                        }
+                    }
+                    if (run > 0) mapMissingRuns.push(run);
+                }
+
+                const camSelect = document.getElementById('cam-select');
+                const camLabel = (camSelect && camSelect.selectedOptions && camSelect.selectedOptions[0])
+                    ? camSelect.selectedOptions[0].textContent
+                    : "Default Camera";
+
+                const endRef = sys.completedTime > 0 ? sys.completedTime : performance.now();
+                const durationSec = sys.startTime > 0 ? parseFloat(((endRef - sys.startTime) / 1000).toFixed(1)) : 0;
+                const decFps = sys.decodeTimestamps.length;
+                const capFps = sys.captureFps || 30;
+                const dupPct = sys.rawScans > 0 ? parseFloat(((sys.duplicateScans / sys.rawScans) * 100).toFixed(1)) : 0;
+
+                const avgLuma = this.lumaSamples.length > 0
+                    ? parseFloat((this.lumaSamples.reduce((a, b) => a + b, 0) / this.lumaSamples.length).toFixed(1))
+                    : 0;
+                const avgSat = this.satSamples.length > 0
+                    ? parseFloat((this.satSamples.reduce((a, b) => a + b, 0) / this.satSamples.length).toFixed(3))
+                    : 0;
+                const avgSnrDb = this.acousticSnrSamples.length > 0
+                    ? parseFloat((this.acousticSnrSamples.reduce((a, b) => a + b, 0) / this.acousticSnrSamples.length).toFixed(1))
+                    : 0;
+                const avgJitterMs = this.interArrivals.length > 0
+                    ? Math.round(this.interArrivals.reduce((a, b) => a + b, 0) / this.interArrivals.length)
+                    : 0;
+
+                const compType = sys.meta.z === 2 ? 'ZSTD' : (sys.meta.z === 1 ? 'GZIP' : 'RAW');
+
+                return {
+                    session_metadata: {
+                        timestamp_iso: new Date().toISOString(),
+                        filename: sys.meta.n || "SIN_ARCHIVO",
+                        compression_type: compType,
+                        compression: compType,
+                        total_original_bytes: sys.meta.s || 0,
+                        total_compressed_bytes: sys.meta.compLen || 0,
+                        mtu_bytes: sys.mtu,
+                        total_chunks: sys.total,
+                        duration_seconds: durationSec
+                    },
+                    optical_telemetry: {
+                        camera_lens: camLabel,
+                        focus_mode: sys.focusLocked ? "manual_0.35m" : "continuous_auto",
+                        shutter_speed_ms: sys.fastShutter ? 1.0 : "auto",
+                        avg_capture_fps: capFps,
+                        avg_decode_fps: decFps,
+                        efficiency_ratio: parseFloat((decFps / Math.max(1, capFps)).toFixed(2)),
+                        luma_avg: avgLuma,
+                        saturation_ratio: avgSat,
+                        overexposure_events: this.overexposureEvents,
+                        low_light_events: this.lowLightEvents
+                    },
+                    optical_performance: {
+                        capture_fps: capFps,
+                        decode_fps: decFps,
+                        total_raw_scans: sys.rawScans,
+                        duplicate_scans: sys.duplicateScans,
+                        efficiency_ratio: (decFps / Math.max(1, capFps)).toFixed(2)
+                    },
+                    protocol_performance: {
+                        total_raw_scans: sys.rawScans,
+                        unique_blocks_received: sys.received,
+                        duplicate_scans: sys.duplicateScans,
+                        duplicate_percentage: dupPct,
+                        net_throughput_kbps: sys.lastSpeedKbps || 0,
+                        effective_goodput_kbps: sys.lastSpeedKbps || 0,
+                        inter_arrival_avg_ms: avgJitterMs,
+                        inter_arrival_samples_ms: this.interArrivals.slice(-25),
+                        fountain_xor_parities_received: this.fountainParitiesReceived,
+                        fountain_peeling_cascades_triggered: this.fountainPeelingCascades,
+                        fountain_peeling_max_depth: this.fountainMaxPeelingDepth,
+                        fountain_blocks_solved_by_xor: sys.fountainSolved
+                    },
+                    loss_profile: {
+                        loss_burst_runs: mapMissingRuns.length > 0 ? mapMissingRuns.slice(0, 40) : this.lossBursts.slice(-40),
+                        loss_burst_sample: this.lossBursts.slice(-40),
+                        sector_loss_distribution: {
+                            sector_0_25_pct: sectorLoss.Q1,
+                            sector_25_50_pct: sectorLoss.Q2,
+                            sector_50_75_pct: sectorLoss.Q3,
+                            sector_75_100_pct: sectorLoss.Q4
+                        },
+                        sector_distribution: sectorLoss
+                    },
+                    reverse_feedback_telemetry: {
+                        optical_ack_events: this.opticalAckEvents,
+                        optical_ack_bitmap_bytes: this.opticalAckBitmapBytes || Math.ceil((sys.total || 0) / 8),
+                        acoustic_sessions_started: this.acousticSessionsStarted,
+                        acoustic_handshake_rtt_ms: this.acousticRtts,
+                        acoustic_avg_snr_db: avgSnrDb,
+                        acoustic_fsk_errors: this.acousticFskErrors
+                    },
+                    acoustic_telemetry: {
+                        rtt_samples_ms: this.acousticRtts,
+                        avg_snr_db: avgSnrDb,
+                        fsk_errors: this.acousticFskErrors
+                    },
+                    time_series_samples_10s: this.timeSeries,
+                    time_series_10s: this.timeSeries
+                };
+            },
+
+            togglePreview(sys) {
+                const pre = document.getElementById('ai-telemetry-preview');
+                if (!pre) return;
+                if (pre.style.display === 'none') {
+                    pre.textContent = JSON.stringify(this.buildPayload(sys), null, 2);
+                    pre.style.display = 'block';
+                } else {
+                    pre.style.display = 'none';
+                }
+            },
+
+            exportJson(sys) {
+                const dataDump = this.buildPayload(sys);
+                const jsonStr = JSON.stringify(dataDump, null, 2);
+                const pre = document.getElementById('ai-telemetry-preview');
+                if (pre && pre.style.display !== 'none') {
+                    pre.textContent = jsonStr;
+                }
+                navigator.clipboard.writeText(jsonStr).then(() => {
+                    alert("📋 Telemetría completa copiada al portapapeles. Pégala directamente en la IA para obtener recomendaciones.");
+                }).catch(() => {
+                    if (pre) {
+                        pre.textContent = jsonStr;
+                        pre.style.display = 'block';
+                    }
+                    alert("📋 Telemetría generada en pantalla (selecciona y copia el bloque JSON).");
+                });
+            }
+        };
+
+        // Muestreador periódico cada 10 segundos para time_series_samples_10s
+        setInterval(() => {
+            if (sys.active && sys.received < sys.total) {
+                const elapsed = (performance.now() - sys.startTime) / 1000;
+                const decFps = sys.decodeTimestamps.length;
+                const dupPct = sys.rawScans > 0 ? ((sys.duplicateScans / sys.rawScans) * 100).toFixed(1) : 0;
+                aiTelemetryLogger.snapshotInterval(elapsed, sys.received, decFps, sys.lastSpeedKbps || 0, dupPct);
+            }
+        }, 10000);
     </script>
 </body>
 

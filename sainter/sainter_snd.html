@@ -392,7 +392,7 @@
         /* --- RUTAS DE RETORNO AISLADAS (ÓPTICO Y ACÚSTICO AUTÓNOMO) --- */
         .channels-grid {
             display: grid;
-            grid-template-columns: 1fr 1fr;
+            grid-template-columns: 1fr;
             gap: 8px;
         }
 
@@ -408,19 +408,62 @@
 
         .channel-card.optical-route {
             border-color: rgba(240, 173, 78, 0.35);
+            flex-direction: row;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
         }
 
         .channel-card.acoustic-route {
-            border-color: rgba(47, 129, 247, 0.45);
+            border-color: rgba(47, 129, 247, 0.55);
+            background: linear-gradient(180deg, #070b12 0%, #04070c 100%);
         }
 
         #audio-fft-canvas {
             width: 100%;
-            height: 34px;
+            height: 98px;
             background: #010409;
+            border: 1px solid #26354d;
+            border-radius: 5px;
+            display: block;
+            cursor: pointer;
+        }
+
+        .mic-controls-row {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .mic-select {
+            flex: 1;
+            min-width: 140px;
+            background: #010409;
+            color: var(--text);
             border: 1px solid var(--border);
             border-radius: 4px;
-            display: block;
+            padding: 5px 7px;
+            font-family: inherit;
+            font-size: 0.66rem;
+        }
+
+        .rx-live-banner {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #02060d;
+            border: 1px solid #1c2738;
+            border-radius: 4px;
+            padding: 5px 8px;
+            font-size: 0.68rem;
+            color: var(--dim);
+        }
+
+        .rx-live-banner b {
+            color: var(--accent);
+            font-family: inherit;
+            letter-spacing: 0.5px;
         }
 
         /* Indicadores progresivos de estado acústico (Fase 1, Fase 2, Fase 3) */
@@ -987,24 +1030,38 @@
             <div class="channels-grid">
                 <!-- CANAL 1: RETORNO ÓPTICO (BITMAP PLANO 664B) -->
                 <div class="channel-card optical-route">
-                    <div class="config-label">
-                        <b style="color: var(--warn);">📷 Retorno Óptico (Cámara QR)</b>
+                    <div style="display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 180px;">
+                        <b style="color: var(--warn); font-size: 0.72rem;">📷 Retorno Óptico (Cámara QR)</b>
+                        <span style="font-size: 0.64rem; color: var(--dim);">Decodifica el Bitmap Plano del celular en una sola lectura</span>
                     </div>
-                    <div style="font-size: 0.65rem; color: var(--dim); line-height: 1.3;">
-                        Decodifica el Bitmap Plano proyectado en la pantalla del teléfono en una sola lectura.
-                    </div>
-                    <button class="btn btn-reverse" onclick="openAckScanner()" id="btn-scan-ack" disabled style="margin-top: auto;">
+                    <button class="btn btn-reverse" onclick="openAckScanner()" id="btn-scan-ack" disabled>
                         📷 Abrir Lector QR [A]
                     </button>
                 </div>
 
-                <!-- CANAL 2: RETORNO ACÚSTICO AUTÓNOMO (MACRO-SECTORES S00..S31) -->
+                <!-- CANAL 2: RETORNO ACÚSTICO AUTÓNOMO CON ESPECTROGRAMA WATERFALL + SELECTOR DE MICRÓFONO -->
                 <div class="channel-card acoustic-route">
                     <div class="config-label">
-                        <b style="color: #79c0ff;">🔊 Retorno Acústico (Sonido)</b>
-                        <span id="fft-freq-lbl" style="color: #79c0ff; font-weight: bold;">PASIVO</span>
+                        <b style="color: #79c0ff;">🔊 Espectrograma & Módem Acústico (1620–3420 Hz)</b>
+                        <span id="fft-freq-lbl" style="color: var(--accent); font-weight: bold;">INICIANDO MIC...</span>
                     </div>
-                    <canvas id="audio-fft-canvas" title="Analizador de espectro acústico continuo"></canvas>
+
+                    <!-- Espectrograma Dual: Espectro FFT en vivo (arriba) + Cascada Waterfall 2D (abajo) -->
+                    <canvas id="audio-fft-canvas" onclick="forceActivateMicrophone()" title="Arriba: Espectro FFT (Voz 150-1500Hz / Módem FSK 1600-3450Hz) | Abajo: Cascada Waterfall en tiempo real. Haz clic para activar/recalibrar micrófono."></canvas>
+
+                    <div class="rx-live-banner">
+                        <span>TRAMA ACÚSTICA RX: <b id="rx-live-buffer">ESPERANDO TONOS...</b></span>
+                        <span id="rx-snr-lbl" style="color: #79c0ff; font-size: 0.64rem;">SNR: 0 dB | Gain: 2.5x</span>
+                    </div>
+
+                    <div class="mic-controls-row">
+                        <select id="mic-select" class="mic-select" onchange="switchMicrophoneDevice(this.value)" title="Seleccionar micrófono de la laptop">
+                            <option value="">🎙️ Micrófono predeterminado del sistema...</option>
+                        </select>
+                        <button class="tool-chip" id="btn-mic-gain" onclick="cycleMicGain()" title="Aumentar ganancia digital del micrófono si el sonido del celular llega bajo">🎚️ Gain: 2.5x</button>
+                        <button class="tool-chip amber" onclick="runAcousticLoopbackTest()" title="Emite una ráfaga FSK de prueba por las bocinas de la laptop para verificar que el micrófono y el espectrograma decodifican correctamente">🔊 Probar Sonido</button>
+                    </div>
+
                     <button class="btn btn-mic" id="btn-audio-listen" onclick="toggleAcousticListener()">
                         🎙️ Escucha Continua Activa
                     </button>
@@ -1860,7 +1917,7 @@
         }();
 
         // =========================================================================
-        // 5. MÓDEM ACÚSTICO BIDIRECCIONAL CON DECODIFICACIÓN DE MACRO-SECTORES (S00..S31)
+        // 5. MÓDEM ACÚSTICO BIDIRECCIONAL CON ESPECTROGRAMA WATERFALL 2D Y PREAMP
         // =========================================================================
         const ACOUSTIC_PROTOCOL = {
             HELLO: 1720,   // Celular -> Laptop
@@ -1884,8 +1941,19 @@
             EOF: 3220,
             ACK_OK: 3320,
             FIN_100: 3420,
-            TOLERANCE_HZ: 38
+            TOLERANCE_HZ: 44
         };
+
+        sys.micGainLevel = 2.5;
+        sys.micGainNode = null;
+        sys.selectedMicId = "";
+        sys.loopbackTesting = false;
+
+        // Buffer offscreen para el Espectrograma Waterfall (Cascada 2D en tiempo real)
+        const waterfallCanvas = document.createElement('canvas');
+        waterfallCanvas.width = 240;
+        waterfallCanvas.height = 46;
+        const waterfallCtx = waterfallCanvas.getContext('2d');
 
         function setSenderAcousticPhaseUI(phase, extraText = "") {
             sys.acousticPhase = phase;
@@ -1893,6 +1961,7 @@
             const p2 = document.getElementById('snd-phase-2');
             const p3 = document.getElementById('snd-phase-3');
             const p2Txt = document.getElementById('snd-phase-2-txt');
+            const liveBuf = document.getElementById('rx-live-buffer');
 
             if (phase === 0) {
                 [p1, p2, p3].forEach(el => el.className = 'sync-phase-row');
@@ -1904,14 +1973,17 @@
             p2.className = 'sync-phase-row ' + (phase === 2 ? 'current' : (phase > 2 ? 'done' : ''));
             p3.className = 'sync-phase-row ' + (phase === 3 ? 'done current' : '');
 
-            if (phase === 2 && extraText) {
+            if (phase === 1) {
+                if (liveBuf) liveBuf.innerText = "HANDSHAKE [HELLO 1720Hz]...";
+            } else if (phase === 2 && extraText) {
                 p2Txt.innerText = `Fase 2: «Transmitiendo bloques faltantes...» (${extraText})`;
+                if (liveBuf) liveBuf.innerText = extraText;
             } else if (phase !== 2) {
                 p2Txt.innerText = 'Fase 2: «Transmitiendo bloques faltantes...»';
             }
         }
 
-        function emitLaptopTone(freq, durationMs = 260) {
+        function emitLaptopTone(freq, durationMs = 200, suppressRx = true) {
             return new Promise((resolve) => {
                 if (!sys.audioCtx) {
                     const AudioContextClass = window.AudioContext || window.webkitAudioContext;
@@ -1921,7 +1993,7 @@
                     sys.audioCtx.resume();
                 }
 
-                sys.isEmittingTone = true;
+                if (suppressRx) sys.isEmittingTone = true;
                 const now = sys.audioCtx.currentTime + 0.01;
                 const durSec = durationMs / 1000;
 
@@ -1931,57 +2003,165 @@
                 osc.frequency.setValueAtTime(freq, now);
 
                 gain.gain.setValueAtTime(0.001, now);
-                gain.gain.linearRampToValueAtTime(0.4, now + 0.015);
-                gain.gain.setValueAtTime(0.4, now + Math.max(0.02, durSec - 0.015));
+                gain.gain.linearRampToValueAtTime(0.45, now + 0.012);
+                gain.gain.setValueAtTime(0.45, now + Math.max(0.018, durSec - 0.012));
                 gain.gain.linearRampToValueAtTime(0.001, now + durSec);
 
                 osc.connect(gain);
                 gain.connect(sys.audioCtx.destination);
+                // Si es prueba de autodiagnóstico (suppressRx === false) y el analizador existe, inyectar también al analizador por si el mic físico está muteado en Windows
+                if (!suppressRx && sys.analyser) {
+                    try { gain.connect(sys.analyser); } catch (e) { }
+                }
                 osc.start(now);
                 osc.stop(now + durSec);
 
                 setTimeout(() => {
-                    sys.isEmittingTone = false;
+                    if (suppressRx) sys.isEmittingTone = false;
                     resolve();
-                }, durationMs + 35);
+                }, durationMs + 25);
             });
         }
 
-        async function ensurePassiveAcousticListener() {
-            if (sys.audioListening) return;
+        async function populateMicrophoneDevices() {
+            if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) return;
+            try {
+                const devices = await navigator.mediaDevices.enumerateDevices();
+                const mics = devices.filter(d => d.kind === 'audioinput');
+                const sel = document.getElementById('mic-select');
+                if (!sel || mics.length === 0) return;
+
+                const currentVal = sys.selectedMicId || sel.value;
+                sel.innerHTML = '';
+                mics.forEach((m, idx) => {
+                    const opt = document.createElement('option');
+                    opt.value = m.deviceId;
+                    opt.text = m.label || `🎙️ Micrófono #${idx + 1}`;
+                    sel.appendChild(opt);
+                });
+                if (currentVal && Array.from(sel.options).some(o => o.value === currentVal)) {
+                    sel.value = currentVal;
+                }
+            } catch (e) { }
+        }
+
+        async function switchMicrophoneDevice(deviceId) {
+            sys.selectedMicId = deviceId;
+            stopAcousticListener();
+            await ensurePassiveAcousticListener(true);
+        }
+
+        function cycleMicGain() {
+            const levels = [1.2, 2.5, 4.5, 7.0];
+            const idx = (levels.indexOf(sys.micGainLevel) + 1) % levels.length;
+            sys.micGainLevel = levels[idx];
+            if (sys.micGainNode && sys.audioCtx) {
+                sys.micGainNode.gain.setValueAtTime(sys.micGainLevel, sys.audioCtx.currentTime);
+            }
+            const btn = document.getElementById('btn-mic-gain');
+            if (btn) btn.innerText = `🎚️ Gain: ${sys.micGainLevel.toFixed(1)}x`;
+        }
+
+        async function forceActivateMicrophone() {
+            if (sys.audioCtx && sys.audioCtx.state === 'suspended') {
+                try { await sys.audioCtx.resume(); } catch (e) { }
+            }
+            if (!sys.audioListening || !sys.audioStream) {
+                await ensurePassiveAcousticListener(true);
+            }
+        }
+
+        async function ensurePassiveAcousticListener(forceRestart = false) {
             const btn = document.getElementById('btn-audio-listen');
             const lbl = document.getElementById('fft-freq-lbl');
+
+            if (sys.audioListening && !forceRestart) {
+                if (sys.audioCtx && sys.audioCtx.state === 'suspended') {
+                    try { await sys.audioCtx.resume(); } catch (e) { }
+                }
+                return;
+            }
+
             try {
-                sys.audioStream = await navigator.mediaDevices.getUserMedia({
-                    audio: {
-                        echoCancellation: false,
-                        noiseSuppression: false,
-                        autoGainControl: false
-                    }
-                });
+                const audioConstraints = {
+                    echoCancellation: false,
+                    noiseSuppression: false,
+                    autoGainControl: false
+                };
+                if (sys.selectedMicId) {
+                    audioConstraints.deviceId = { exact: sys.selectedMicId };
+                }
+
+                try {
+                    sys.audioStream = await navigator.mediaDevices.getUserMedia({ audio: audioConstraints });
+                } catch (constraintErr) {
+                    // Fallback si el driver de audio local en Windows rechaza constraints avanzadas
+                    sys.audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                }
+
+                await populateMicrophoneDevices();
+
                 const AudioContextClass = window.AudioContext || window.webkitAudioContext;
                 if (!sys.audioCtx) sys.audioCtx = new AudioContextClass();
-                if (sys.audioCtx.state === 'suspended') await sys.audioCtx.resume();
+                if (sys.audioCtx.state === 'suspended') {
+                    try { await sys.audioCtx.resume(); } catch (e) { }
+                }
 
                 const source = sys.audioCtx.createMediaStreamSource(sys.audioStream);
+                sys.micGainNode = sys.audioCtx.createGain();
+                sys.micGainNode.gain.value = sys.micGainLevel;
+
                 sys.analyser = sys.audioCtx.createAnalyser();
                 sys.analyser.fftSize = 4096;
-                sys.analyser.smoothingTimeConstant = 0.15;
-                source.connect(sys.analyser);
+                sys.analyser.minDecibels = -96;
+                sys.analyser.maxDecibels = -22;
+                sys.analyser.smoothingTimeConstant = 0.12;
+
+                source.connect(sys.micGainNode);
+                sys.micGainNode.connect(sys.analyser);
 
                 sys.audioListening = true;
                 btn.classList.add('listening');
-                btn.innerText = "🎙️ Escucha Pasiva Activa";
-                lbl.innerText = "EN ESCUCHA";
+                btn.innerText = "🎙️ Escucha Continua Activa (Clic p/ Pausar)";
+                lbl.innerText = sys.audioCtx.state === 'running' ? "MIC ACTIVO" : "CLIC P/ DESBLOQUEAR AUDIO";
+
+                cancelAnimationFrame(sys.fftLoopId);
                 scanAcousticFFTLoop();
             } catch (err) {
-                lbl.innerText = "CLICK P/ ACTIVAR";
+                console.warn("Error accediendo al micrófono:", err);
+                lbl.innerText = "⚠️ CLIC P/ ACTIVAR MIC";
+                btn.classList.remove('listening');
+                btn.innerText = "🎙️ Activar Micrófono (Haz Clic Aquí)";
+                const canvas = document.getElementById('audio-fft-canvas');
+                if (canvas) {
+                    const ctx = canvas.getContext('2d');
+                    const w = canvas.width = canvas.clientWidth || 320;
+                    const h = canvas.height = canvas.clientHeight || 98;
+                    ctx.clearRect(0, 0, w, h);
+                    ctx.fillStyle = 'rgba(248, 81, 73, 0.14)';
+                    ctx.fillRect(0, 0, w, h);
+                    ctx.fillStyle = '#f85149';
+                    ctx.font = 'bold 11px Consolas, monospace';
+                    ctx.textAlign = 'center';
+                    ctx.fillText('🎙️ HAZ CLIC AQUÍ PARA CONECTAR EL MICRÓFONO', w / 2, h / 2 - 4);
+                    ctx.fillStyle = '#8b949e';
+                    ctx.font = '10px Consolas, monospace';
+                    ctx.fillText(err && err.name ? `(${err.name}: revisa permisos del navegador)` : '(Permiso requerido en archivo HTML local)', w / 2, h / 2 + 12);
+                }
             }
         }
 
         async function toggleAcousticListener() {
             const btn = document.getElementById('btn-audio-listen');
             const lbl = document.getElementById('fft-freq-lbl');
+
+            // Si el navegador tenía el AudioContext suspendido (típico en páginas HTML locales file://),
+            // el primer clic del usuario lo desbloquea en lugar de apagar el micrófono
+            if (sys.audioListening && sys.audioCtx && sys.audioCtx.state === 'suspended') {
+                await sys.audioCtx.resume();
+                lbl.innerText = "MIC ACTIVO";
+                return;
+            }
 
             if (sys.audioListening) {
                 stopAcousticListener();
@@ -1991,7 +2171,7 @@
                 setSenderAcousticPhaseUI(0);
                 return;
             }
-            await ensurePassiveAcousticListener();
+            await ensurePassiveAcousticListener(true);
         }
 
         function stopAcousticListener() {
@@ -2001,6 +2181,34 @@
                 sys.audioStream.getTracks().forEach(t => t.stop());
                 sys.audioStream = null;
             }
+        }
+
+        // Autotest de Loopback Acústico: emite tonos FSK por las bocinas de la laptop y los decodifica por el micrófono
+        async function runAcousticLoopbackTest() {
+            await forceActivateMicrophone();
+            if (!sys.audioListening || sys.loopbackTesting) return;
+            sys.loopbackTesting = true;
+
+            const liveBuf = document.getElementById('rx-live-buffer');
+            if (liveBuf) liveBuf.innerText = "EMITIENDO TEST LOOPBACK...";
+
+            const testSequence = [
+                ACOUSTIC_PROTOCOL.HELLO,
+                1620, // 'S'
+                2020, // '0'
+                2420, // '4'
+                3120, // ','
+                2020, // '0'
+                2920, // '9'
+                ACOUSTIC_PROTOCOL.EOF
+            ];
+
+            for (const f of testSequence) {
+                if (!sys.audioListening) break;
+                await emitLaptopTone(f, 145, false); // suppressRx = false para que el micrófono lo escuche y grafique
+                await new Promise(r => setTimeout(r, 55));
+            }
+            sys.loopbackTesting = false;
         }
 
         function classifyFrequencySymbol(freqHz) {
@@ -2018,23 +2226,58 @@
             return null;
         }
 
+        // Mapea intensidad (0..255) a color térmico para la cascada Waterfall
+        function intensityToWaterfallColor(v) {
+            if (v < 20) return [3, 7, 16];
+            if (v < 70) return [12, 45, 110];
+            if (v < 130) return [0, 170, 255];
+            if (v < 190) return [0, 255, 95];
+            return [255, 238, 0];
+        }
+
         function scanAcousticFFTLoop() {
             if (!sys.audioListening || !sys.analyser) return;
+
+            const canvas = document.getElementById('audio-fft-canvas');
+            const ctx = canvas.getContext('2d');
+            const w = canvas.width = canvas.clientWidth || 320;
+            const h = canvas.height = canvas.clientHeight || 98;
+            ctx.clearRect(0, 0, w, h);
+
+            // Si el navegador aún mantiene el AudioContext en estado 'suspended', mostrar aviso interactivo claro
+            if (sys.audioCtx && sys.audioCtx.state === 'suspended') {
+                ctx.fillStyle = 'rgba(210, 153, 34, 0.16)';
+                ctx.fillRect(0, 0, w, h);
+                ctx.fillStyle = '#f0ad4e';
+                ctx.font = 'bold 11px Consolas, monospace';
+                ctx.textAlign = 'center';
+                ctx.fillText('⚠️ HAZ CLIC AQUÍ PARA ACTIVAR EL AUDIO DEL NAVEGADOR', w / 2, h / 2 - 4);
+                ctx.fillStyle = '#8b949e';
+                ctx.font = '10px Consolas, monospace';
+                ctx.fillText('(Requerido en páginas HTML locales para habilitar FFT)', w / 2, h / 2 + 12);
+                sys.fftLoopId = requestAnimationFrame(scanAcousticFFTLoop);
+                return;
+            }
 
             const bufferLen = sys.analyser.frequencyBinCount;
             const data = new Uint8Array(bufferLen);
             sys.analyser.getByteFrequencyData(data);
 
-            const sampleRate = sys.audioCtx.sampleRate;
+            const sampleRate = sys.audioCtx.sampleRate || 48000;
             const binHz = sampleRate / sys.analyser.fftSize;
 
-            const minBin = Math.floor(1550 / binHz);
-            const maxBin = Math.min(bufferLen - 1, Math.ceil(3500 / binHz));
+            // Rango visual completo (120 Hz a 3550 Hz) para ver tanto voz/ambiente como la banda FSK (1550-3450 Hz)
+            const visMinBin = Math.max(1, Math.floor(120 / binHz));
+            const visMaxBin = Math.min(bufferLen - 1, Math.ceil(3550 / binHz));
+
+            // Banda estricta del módem FSK (1560 Hz a 3460 Hz)
+            const fskMinBin = Math.floor(1560 / binHz);
+            const fskMaxBin = Math.min(bufferLen - 1, Math.ceil(3460 / binHz));
 
             let peakVal = 0;
-            let peakBin = minBin;
+            let peakBin = fskMinBin;
             let sumVal = 0;
-            for (let b = minBin; b <= maxBin; b++) {
+            for (let b = fskMinBin; b <= fskMaxBin; b++) {
                 const v = data[b];
                 sumVal += v;
                 if (v > peakVal) {
@@ -2042,31 +2285,105 @@
                     peakBin = b;
                 }
             }
-            const avgNoise = sumVal / Math.max(1, maxBin - minBin + 1);
-            const dominantFreq = Math.round(peakBin * binHz);
+            const avgNoise = sumVal / Math.max(1, fskMaxBin - fskMinBin + 1);
+            const snrDiff = Math.max(0, Math.round(peakVal - avgNoise));
 
-            const canvas = document.getElementById('audio-fft-canvas');
-            const ctx = canvas.getContext('2d');
-            const w = canvas.width = canvas.clientWidth || 160;
-            const h = canvas.height = canvas.clientHeight || 34;
-            ctx.clearRect(0, 0, w, h);
+            // Interpolación parabólica sub-bin para máxima precisión en Hz
+            let fineBin = peakBin;
+            if (peakBin > fskMinBin && peakBin < fskMaxBin) {
+                const alpha = data[peakBin - 1];
+                const beta = data[peakBin];
+                const gamma = data[peakBin + 1];
+                const denom = alpha - 2 * beta + gamma;
+                if (denom !== 0) {
+                    fineBin = peakBin + 0.5 * (alpha - gamma) / denom;
+                }
+            }
+            const dominantFreq = Math.round(fineBin * binHz);
 
-            const bars = 32;
-            const step = Math.max(1, Math.floor((maxBin - minBin) / bars));
-            for (let i = 0; i < bars; i++) {
-                const val = data[minBin + i * step] / 255;
-                ctx.fillStyle = val > 0.55 ? '#00ff41' : '#2f81f7';
-                const bh = val * h;
-                ctx.fillRect(i * (w / bars), h - bh, (w / bars) - 1, bh);
+            // Mitad superior (0 .. specH): Analizador de Espectro FFT en vivo
+            const specH = Math.floor(h * 0.52);
+            const wfY = specH + 2;
+            const wfH = h - wfY;
+
+            // Sombrear la zona activa del módem FSK (1560 Hz - 3460 Hz)
+            const fskStartX = ((fskMinBin - visMinBin) / (visMaxBin - visMinBin)) * w;
+            const fskEndX = ((fskMaxBin - visMinBin) / (visMaxBin - visMinBin)) * w;
+            ctx.fillStyle = 'rgba(47, 129, 247, 0.10)';
+            ctx.fillRect(fskStartX, 0, Math.max(10, fskEndX - fskStartX), specH);
+
+            const numBars = 64;
+            const binSpan = Math.max(1, visMaxBin - visMinBin);
+            for (let i = 0; i < numBars; i++) {
+                const bStart = visMinBin + Math.floor((i / numBars) * binSpan);
+                const bEnd = Math.max(bStart + 1, visMinBin + Math.floor(((i + 1) / numBars) * binSpan));
+                let maxB = 0;
+                for (let b = bStart; b < bEnd && b < bufferLen; b++) {
+                    if (data[b] > maxB) maxB = data[b];
+                }
+                const norm = maxB / 255;
+                const isFskZone = bStart >= fskMinBin && bStart <= fskMaxBin;
+                if (isFskZone) {
+                    ctx.fillStyle = maxB > 65 ? '#00ff41' : '#2f81f7';
+                } else {
+                    ctx.fillStyle = maxB > 80 ? '#39c5bb' : '#1f4468';
+                }
+                const barH = Math.max(1, norm * (specH - 4));
+                const bx = (i / numBars) * w;
+                const bw = Math.max(1.5, (w / numBars) - 1);
+                ctx.fillRect(bx, specH - barH, bw, barH);
             }
 
+            // Línea divisoria y etiquetas de banda
+            ctx.strokeStyle = '#26354d';
+            ctx.beginPath();
+            ctx.moveTo(0, specH + 1);
+            ctx.lineTo(w, specH + 1);
+            ctx.stroke();
+
+            ctx.fillStyle = 'rgba(201, 209, 217, 0.65)';
+            ctx.font = '9px Consolas, monospace';
+            ctx.textAlign = 'left';
+            ctx.fillText('VOZ/AMB (120-1500Hz)', 4, 10);
+            ctx.textAlign = 'right';
+            ctx.fillStyle = '#79c0ff';
+            ctx.fillText(`BANDA MÓDEM FSK (1.6-3.4kHz) | PICO: ${dominantFreq}Hz`, w - 4, 10);
+
+            // Mitad inferior (wfY .. h): Espectrograma Waterfall 2D en Cascada
+            const wfW = waterfallCanvas.width;
+            const wfCanvasH = waterfallCanvas.height;
+            waterfallCtx.drawImage(waterfallCanvas, 0, 0, wfW, wfCanvasH - 1, 0, 1, wfW, wfCanvasH - 1);
+
+            const rowImg = waterfallCtx.createImageData(wfW, 1);
+            const rowPixels = rowImg.data;
+            for (let x = 0; x < wfW; x++) {
+                const binIdx = Math.min(bufferLen - 1, visMinBin + Math.floor((x / wfW) * binSpan));
+                const val = data[binIdx];
+                const [r, g, b] = intensityToWaterfallColor(val);
+                const p = x * 4;
+                rowPixels[p] = r;
+                rowPixels[p + 1] = g;
+                rowPixels[p + 2] = b;
+                rowPixels[p + 3] = 255;
+            }
+            waterfallCtx.putImageData(rowImg, 0, 0);
+            ctx.drawImage(waterfallCanvas, 0, wfY, w, wfH);
+
+            const snrLbl = document.getElementById('rx-snr-lbl');
+            if (snrLbl) {
+                snrLbl.innerText = `Pico: ${peakVal}/255 | SNR: +${snrDiff} | Gain: ${sys.micGainLevel.toFixed(1)}x`;
+            }
+
+            // Demodulación FSK con umbral adaptativo sensible (peakVal >= 45 y snrDiff >= 18)
             if (!sys.isEmittingTone) {
-                const isStrongSignal = (peakVal > 135 && peakVal > avgNoise * 2.15);
+                const isStrongSignal = (peakVal >= 45 && snrDiff >= 18);
                 if (isStrongSignal) {
                     sys.silenceFrames = 0;
-                    document.getElementById('fft-freq-lbl').innerText = `${dominantFreq} Hz`;
                     const sym = classifyFrequencySymbol(dominantFreq);
                     if (sym) {
+                        const tag = sym.type === 'DATA' ? `'${sym.ch}'` : sym.type;
+                        document.getElementById('fft-freq-lbl').innerText = `${dominantFreq} Hz [${tag}]`;
+
                         const symKey = sym.type === 'DATA' ? `D_${sym.ch}` : sym.type;
                         if (sys.candidateSymbol === symKey) {
                             sys.candidateHits++;
@@ -2079,6 +2396,8 @@
                             sys.lastDecodedSymbol = symKey;
                             handleDemodulatedSymbol(sym);
                         }
+                    } else {
+                        document.getElementById('fft-freq-lbl').innerText = `${dominantFreq} Hz`;
                     }
                 } else {
                     sys.silenceFrames++;
@@ -2089,6 +2408,9 @@
                             sys.lastDecodedSymbol = null;
                         }
                     }
+                    if (sys.silenceFrames > 25 && sys.acousticPhase === 0) {
+                        document.getElementById('fft-freq-lbl').innerText = "MIC ACTIVO (ESCUCHANDO)";
+                    }
                 }
             }
 
@@ -2096,9 +2418,12 @@
         }
 
         async function handleDemodulatedSymbol(sym) {
+            const liveBuf = document.getElementById('rx-live-buffer');
+
             if (sym.type === 'FIN_100') {
                 if (sys.running) togglePlay();
                 setSenderAcousticPhaseUI(0);
+                if (liveBuf) liveBuf.innerText = "100% COMPLETADO (FIN_100)";
                 triggerFlashAck(0, "✅ TRANSFERENCIA 100% VERIFICADA (SHA-256)");
                 document.getElementById('status').innerText = "● TRANSFERENCIA COMPLETADA Y VERIFICADA";
                 return;
@@ -2109,18 +2434,21 @@
                 sys.rxRleBuffer = "";
                 sys.lastSymbolChar = "";
                 setSenderAcousticPhaseUI(1);
-                document.getElementById('status').innerText = "● NEGOCIANDO CONEXIÓN ACÚSTICA...";
+                document.getElementById('status').innerText = "● NEGOCIANDO CONEXIÓN ACÚSTICA [HELLO]...";
 
                 clearTimeout(sys.rxSessionTimeout);
                 sys.rxSessionTimeout = setTimeout(() => {
-                    if (sys.acousticPhase === 2 && sys.rxRleBuffer.length > 0) {
+                    if (sys.rxRleBuffer.length > 0) {
                         finalizeAcousticRleReception();
                     } else if (sys.acousticPhase === 1) {
                         setSenderAcousticPhaseUI(0);
                     }
-                }, 9000);
+                }, 10000);
 
-                await emitLaptopTone(ACOUSTIC_PROTOCOL.READY, 260);
+                // Emitir READY corto (150ms) sin bloquear recepción si estamos en prueba loopback
+                if (!sys.loopbackTesting) {
+                    await emitLaptopTone(ACOUSTIC_PROTOCOL.READY, 150, true);
+                }
                 return;
             }
 
@@ -2131,6 +2459,11 @@
                 }
                 const ch = (sym.type === 'REPEAT') ? sys.lastSymbolChar : sym.ch;
                 if (ch) {
+                    // Si llega un nuevo 'S' al repetir la ráfaga y ya teníamos una trama completa previa, procesar o reiniciar limpio
+                    if (ch === 'S' && sys.rxRleBuffer.length >= 3) {
+                        await finalizeAcousticRleReception();
+                        return;
+                    }
                     sys.rxRleBuffer += ch;
                     sys.lastSymbolChar = ch;
                     setSenderAcousticPhaseUI(2, sys.rxRleBuffer);
@@ -2142,7 +2475,7 @@
                     if (sys.rxRleBuffer.length > 0) {
                         finalizeAcousticRleReception();
                     }
-                }, 1600);
+                }, 1700);
                 return;
             }
 
@@ -2157,14 +2490,34 @@
             sys.rxRleBuffer = "";
             sys.lastSymbolChar = "";
 
-            if (!rawStr || !sys.totalChunks) {
+            const liveBuf = document.getElementById('rx-live-buffer');
+            if (!rawStr) {
                 setSenderAcousticPhaseUI(0);
+                return;
+            }
+
+            // Mostrar siempre la trama recibida en el campo manual y en el monitor en vivo
+            document.getElementById('custom-frames').value = rawStr;
+            if (liveBuf) liveBuf.innerText = `✅ RECIBIDO: ${rawStr}`;
+
+            // Si aún no hay un archivo cargado (ej. durante una prueba en vacío), confirmar recepción visual y sonora
+            if (!sys.totalChunks) {
+                setSenderAcousticPhaseUI(3);
+                if (!sys.loopbackTesting) {
+                    await emitLaptopTone(ACOUSTIC_PROTOCOL.ACK_OK, 260, true);
+                }
+                triggerFlashAck(0, `✅ SONIDO RECIBIDO: ${rawStr}`);
+                document.getElementById('status').innerText = `● TRAMA ACÚSTICA RECIBIDA (${rawStr}) — CARGA UN ARCHIVO PARA APLICAR`;
+                setTimeout(() => {
+                    if (sys.acousticPhase === 3) setSenderAcousticPhaseUI(0);
+                }, 4000);
                 return;
             }
 
             const decodedMissing = parseMacroSectorsOrRanges(rawStr, sys.totalChunks);
             if (decodedMissing.length > 0) {
                 sys.activeIndices = decodedMissing;
+                sys.activeSet = new Set(decodedMissing);
                 sys.activeIdx = 0;
                 setTxMode('priority', true);
                 updateTimelineBounds();
@@ -2172,10 +2525,12 @@
                 renderCurrentActiveFrame();
 
                 setSenderAcousticPhaseUI(3);
-                await emitLaptopTone(ACOUSTIC_PROTOCOL.ACK_OK, 300);
+                if (!sys.loopbackTesting) {
+                    await emitLaptopTone(ACOUSTIC_PROTOCOL.ACK_OK, 260, true);
+                }
 
-                triggerFlashAck(decodedMissing.length, "✅ MACRO-SECTORES RECONFIGURADOS POR SONIDO");
-                document.getElementById('status').innerText = `● BUCLE PRIORITARIO ACTIVO (${decodedMissing.length} FALTANTES)`;
+                triggerFlashAck(decodedMissing.length, `✅ SECTORES SINCRONIZADOS (${rawStr})`);
+                document.getElementById('status').innerText = `● BUCLE PRIORITARIO ACTIVO (${decodedMissing.length} FALTANTES DE ${rawStr})`;
 
                 if (!sys.running) {
                     togglePlay();
@@ -2670,6 +3025,7 @@
             }
 
             sys.activeIndices = missing;
+            sys.activeSet = new Set(missing);
             sys.activeIdx = 0;
             setTxMode('priority', true);
             updateTimelineBounds();
@@ -2800,6 +3156,12 @@
         ['click', 'keydown', 'pointerdown'].forEach(evt => {
             document.addEventListener(evt, () => {
                 if (!senderWakeLock || senderWakeLock.released) ensureSenderWakeLock();
+                if (sys.audioCtx && sys.audioCtx.state === 'suspended') {
+                    sys.audioCtx.resume().then(() => {
+                        const lbl = document.getElementById('fft-freq-lbl');
+                        if (lbl && sys.audioListening) lbl.innerText = "MIC ACTIVO";
+                    }).catch(() => { });
+                }
             }, { passive: true });
         });
 
