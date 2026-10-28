@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SAINTER V3.2 - OPTICAL RECEIVER & TELEMETRY</title>
+    <title>SAINTER V3.5 - OPTICAL & ACOUSTIC RECEIVER</title>
     <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
     <style>
         :root {
@@ -220,7 +220,6 @@
             border-bottom-right-radius: 10px;
         }
 
-        /* Animación hacia adentro al detectar QR alineado */
         .reticle-box.locked .bracket-corner {
             border-color: var(--neon);
         }
@@ -367,7 +366,7 @@
 
         #chunk-map-canvas {
             width: 100%;
-            height: 155px;
+            height: 165px;
             background: #05080e;
             border: 1px solid var(--border);
             border-radius: 6px;
@@ -464,6 +463,35 @@
             color: var(--text);
         }
 
+        /* --- CANAL ACÚSTICO INVERSO (BEEP-BOOP AUDIO ACK) --- */
+        .acoustic-bar {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        .btn-audio {
+            padding: 10px 8px;
+            background: rgba(47, 129, 247, 0.12);
+            border: 1px solid var(--accent);
+            color: #79c0ff;
+            border-radius: 8px;
+            font-size: 0.72rem;
+            font-weight: bold;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            transition: 0.15s;
+        }
+
+        .btn-audio:active {
+            transform: scale(0.97);
+            background: var(--accent);
+            color: #fff;
+        }
+
         /* --- ACTIONS & FLOATING REVERSE HANDSHAKE --- */
         .actions {
             display: grid;
@@ -503,13 +531,13 @@
             display: none;
         }
 
-        /* --- REVERSE ACK QR MODAL (HIGH-BRIGHTNESS TORCH MODE + CIRCULAR TIMER) --- */
+        /* --- REVERSE ACK QR MODAL (FONDO OSCURO DE ALTO CONTRASTE PARA WEBCAM) --- */
         .modal-backdrop {
             position: fixed;
             inset: 0;
-            /* Fondo blanco reflectante a máxima luminancia para lectura instantánea en webcam */
-            background: #ffffff;
-            color: #000000;
+            /* Fondo oscuro profundo para evitar deslumbrar/sobreexponer la webcam de la laptop */
+            background: rgba(4, 6, 10, 0.97);
+            color: var(--text);
             z-index: 5000;
             display: none;
             align-items: center;
@@ -522,27 +550,28 @@
         }
 
         .modal-card {
-            background: #ffffff;
-            border: 2px solid #000000;
+            background: #0b0f17;
+            border: 1px solid var(--border);
             border-radius: 14px;
             width: 100%;
             max-width: 440px;
-            padding: 18px;
+            padding: 20px;
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 12px;
+            gap: 14px;
             text-align: center;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.18);
+            box-shadow: 0 12px 48px rgba(0, 0, 0, 0.85);
         }
 
         #ack-qr-container {
+            /* Únicamente el recuadro del QR conserva su quiet zone blanca para máximo contraste óptico */
             background: #ffffff;
-            padding: 16px;
-            border: 2px solid #000;
-            border-radius: 8px;
-            width: min(76vw, 300px);
-            height: min(76vw, 300px);
+            padding: 18px;
+            border: 3px solid #263042;
+            border-radius: 10px;
+            width: min(76vw, 305px);
+            height: min(76vw, 305px);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -554,39 +583,6 @@
             height: 100% !important;
             image-rendering: pixelated;
         }
-
-        /* Temporizador circular SVG */
-        .timer-ring-wrap {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-family: monospace;
-            font-weight: 900;
-            font-size: 0.82rem;
-            color: #000;
-        }
-
-        .timer-ring-svg {
-            transform: rotate(-90deg);
-            width: 32px;
-            height: 32px;
-        }
-
-        .timer-ring-bg {
-            fill: none;
-            stroke: #e0e0e0;
-            stroke-width: 4;
-        }
-
-        .timer-ring-fg {
-            fill: none;
-            stroke: #00a82d;
-            stroke-width: 4;
-            stroke-linecap: round;
-            stroke-dasharray: 75.4;
-            stroke-dashoffset: 0;
-            transition: stroke-dashoffset 0.2s linear;
-        }
     </style>
 </head>
 
@@ -595,7 +591,7 @@
     <!-- HEADER -->
     <div class="header">
         <div class="brand">
-            📡 SAINTER//RCPT <span class="badge">V3.2 TELEMETRY</span>
+            📡 SAINTER//RCPT <span class="badge">V3.5 HYBRID ACK</span>
         </div>
         <div class="mode-switch">
             <button class="mode-btn active" onclick="setMode('cam')" id="btn-mode-cam">📷 CÁMARA</button>
@@ -656,7 +652,7 @@
                 <span id="lbl-count">0 / 0 Bloques</span>
             </div>
 
-            <!-- CANVAS 2D BITFIELD GRID CON TOOLTIP TÁCTIL -->
+            <!-- CANVAS 2D BITFIELD GRID CON CUADRÍCULA 4x4 DE REFERENCIA Y TOOLTIP -->
             <div class="canvas-wrap">
                 <canvas id="chunk-map-canvas"></canvas>
                 <div id="chunk-tooltip">BLK #0: Pendiente</div>
@@ -668,10 +664,10 @@
                     <i class="legend-dot" style="background: #00ff41;"></i>Todos
                 </button>
                 <button class="legend-filter-btn" id="flt-missing" onclick="setMapFilter('missing')" title="Resaltar únicamente los bloques pendientes en el mapa">
-                    <i class="legend-dot" style="background: #ff3b30;"></i>Resaltar Pendientes
+                    <i class="legend-dot" style="background: #ff3b30;"></i>Resaltar Huecos
                 </button>
                 <button class="legend-filter-btn" id="flt-received" onclick="setMapFilter('received')">
-                    <i class="legend-dot" style="background: #ffea00;"></i>Solo Recibidos / Recientes
+                    <i class="legend-dot" style="background: #ffea00;"></i>Solo Recibidos
                 </button>
             </div>
 
@@ -702,6 +698,20 @@
                     <span class="tele-val" id="tele-last">-</span>
                 </div>
             </div>
+
+            <!-- CANAL DE RETORNO ACÚSTICO (AUDIO ACK BEEP-BOOP) -->
+            <div class="card-header" style="margin-top: 4px;">
+                <span>🔊 Canal de Retorno Acústico (Audio ACK)</span>
+                <span id="audio-ack-lbl" style="color: var(--accent);">WEB AUDIO FSK</span>
+            </div>
+            <div class="acoustic-bar">
+                <button class="btn-audio" onclick="emitAcousticStallSignal()" title="Emite tono para que la laptop pause el carrusel y abra la webcam automáticamente">
+                    🔊 Beep: Pedir Escáner QR
+                </button>
+                <button class="btn-audio" onclick="emitAcousticSectorBurst()" title="Codifica en tonos Beep-Boop el sector con más bloques faltantes">
+                    🎵 Beep-Boop: Enviar Huecos
+                </button>
+            </div>
         </div>
 
         <!-- ACCIONES DE RETORNO ÓPTICO Y ENSAMBLAJE -->
@@ -715,26 +725,21 @@
         </div>
     </div>
 
-    <!-- MODAL DE HANDSHAKE INVERSO (BRILLO MÁXIMO + TEMPORIZADOR CIRCULAR) -->
+    <!-- MODAL DE HANDSHAKE INVERSO (FONDO OSCURO + CIERRE SOLO MANUAL) -->
     <div class="modal-backdrop" id="ack-modal">
         <div class="modal-card">
             <div style="display: flex; justify-content: space-between; width: 100%; align-items: center;">
-                <b style="color: #000; font-size: 0.85rem;">🔆 HANDSHAKE INVERSO (MAX NITS)</b>
-                <div class="timer-ring-wrap" title="Cierre automático y reactivación de cámara">
-                    <svg class="timer-ring-svg" viewBox="0 0 32 32">
-                        <circle class="timer-ring-bg" cx="16" cy="16" r="12"></circle>
-                        <circle class="timer-ring-fg" id="ack-timer-circle" cx="16" cy="16" r="12"></circle>
-                    </svg>
-                    <span id="ack-timer-lbl">15s</span>
-                </div>
+                <b style="color: var(--warn); font-size: 0.85rem;">🔄 QR ACK (CONTRASTE OSCURO PARA WEBCAM)</b>
+                <button class="btn-optic" onclick="closeReverseAckModal()" style="color: var(--err); border-color: var(--err);">✖ CERRAR</button>
             </div>
-            <div style="font-size: 0.75rem; color: #222; font-weight: 600;" id="ack-summary">
-                Muestra este código QR frente a la cámara del Emisor para retransmitir únicamente los bloques pendientes.
+            <div style="font-size: 0.74rem; color: var(--dim);" id="ack-summary">
+                Esta ventana permanece fija hasta que pulses Cerrar. Apunta el QR hacia la cámara del Emisor.
             </div>
             <div id="ack-qr-container"></div>
             <div style="display: flex; gap: 8px; width: 100%;">
-                <button class="btn-optic" style="flex: 1; background: #f0f0f0; color: #000; border-color: #999;" onclick="copyMissingRangesFallback()">📋 Copiar RLE</button>
-                <button class="btn-optic" style="flex: 1; background: #00a82d; color: #fff; border-color: #007a20;" onclick="closeReverseAckModal()">▶ Reanudar Captura</button>
+                <button class="btn-optic" style="flex: 1;" onclick="emitAcousticStallSignal()">🔊 Beep Abrir Cam</button>
+                <button class="btn-optic" style="flex: 1;" onclick="copyMissingRangesFallback()">📋 Copiar RLE</button>
+                <button class="btn-optic active" style="flex: 1;" onclick="closeReverseAckModal()">▶ Cerrar</button>
             </div>
         </div>
     </div>
@@ -827,13 +832,13 @@
         }();
 
         // =========================================================================
-        // 2. VISUALIZADOR DE FRAGMENTOS (CHUNK MAP + FILTRO + INSPECTOR TÁCTIL)
+        // 2. VISUALIZADOR DE FRAGMENTOS (CHUNK MAP + CUADRÍCULA 4x4 + INSPECTOR)
         // =========================================================================
         class ChunkMap {
             constructor(canvas, totalChunks) {
                 this.canvas = canvas;
                 this.ctx = canvas.getContext('2d');
-                this.filter = 'all'; // 'all' | 'missing' | 'received'
+                this.filter = 'all';
                 this.selectedIdx = -1;
                 this.setTotal(totalChunks);
                 this.bindTouchEvents();
@@ -841,7 +846,7 @@
 
             setTotal(totalChunks) {
                 this.total = Math.max(1, totalChunks);
-                this.cols = Math.ceil(Math.sqrt(this.total * 1.6));
+                this.cols = Math.ceil(Math.sqrt(this.total * 1.6)); // Geometría idéntica en Emisor y Receptor
                 this.rows = Math.ceil(this.total / this.cols);
                 this.resize();
             }
@@ -853,7 +858,7 @@
             resize() {
                 const dpr = window.devicePixelRatio || 1;
                 this.canvas.width = (this.canvas.clientWidth || 500) * dpr;
-                this.canvas.height = (this.canvas.clientHeight || 155) * dpr;
+                this.canvas.height = (this.canvas.clientHeight || 165) * dpr;
                 this.cellW = this.canvas.width / this.cols;
                 this.cellH = this.canvas.height / this.rows;
             }
@@ -881,8 +886,8 @@
                         if (isRec) {
                             stateTxt = age < 1000 ? "⚡ RECIENTE (<1s)" : "✅ RECIBIDO";
                         }
-                        tooltip.innerText = `Bloque #${idx} / ${this.total - 1} — ${stateTxt}`;
-                        tooltip.style.left = `${Math.min(Math.max(55, relX), rect.width - 55)}px`;
+                        tooltip.innerText = `Bloque #${idx} [Fila ${row + 1}, Col ${col + 1}] — ${stateTxt}`;
+                        tooltip.style.left = `${Math.min(Math.max(70, relX), rect.width - 70)}px`;
                         tooltip.style.top = `${Math.max(24, relY)}px`;
                         tooltip.style.display = 'block';
                     } else {
@@ -891,13 +896,9 @@
                     }
                 };
 
-                this.canvas.addEventListener('pointerdown', (e) => {
-                    handlePointer(e.clientX, e.clientY);
-                });
+                this.canvas.addEventListener('pointerdown', (e) => handlePointer(e.clientX, e.clientY));
                 this.canvas.addEventListener('pointermove', (e) => {
-                    if (e.pointerType === 'mouse' || e.buttons > 0) {
-                        handlePointer(e.clientX, e.clientY);
-                    }
+                    if (e.pointerType === 'mouse' || e.buttons > 0) handlePointer(e.clientX, e.clientY);
                 });
                 this.canvas.addEventListener('pointerleave', () => {
                     tooltip.style.display = 'none';
@@ -907,7 +908,9 @@
 
             render(chunksState, recentTimestamps) {
                 const now = performance.now();
-                this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+                const w = this.canvas.width;
+                const h = this.canvas.height;
+                this.ctx.clearRect(0, 0, w, h);
                 const pad = this.total > 2500 ? 0 : 0.5;
 
                 for (let i = 0; i < this.total; i++) {
@@ -916,7 +919,6 @@
                     const isReceived = chunksState[i] !== null && chunksState[i] !== undefined;
 
                     if (this.filter === 'missing') {
-                        // Resaltar en rojo/ámbar brillante solo los bloques faltantes y atenuar los recibidos
                         this.ctx.fillStyle = isReceived ? '#0c1f17' : '#ff3b30';
                     } else if (this.filter === 'received') {
                         if (isReceived) {
@@ -952,6 +954,20 @@
                         this.ctx.strokeRect(x, y, this.cellW, this.cellH);
                     }
                 }
+
+                // Guías de referencia espacial 4x4 (idénticas a las del Emisor para ubicar áreas visualmente)
+                this.ctx.strokeStyle = 'rgba(47, 129, 247, 0.28)';
+                this.ctx.lineWidth = 1;
+                for (let g = 1; g < 4; g++) {
+                    const gx = (w / 4) * g;
+                    const gy = (h / 4) * g;
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(gx, 0);
+                    this.ctx.lineTo(gx, h);
+                    this.ctx.moveTo(0, gy);
+                    this.ctx.lineTo(w, gy);
+                    this.ctx.stroke();
+                }
             }
         }
 
@@ -965,7 +981,99 @@
         }
 
         // =========================================================================
-        // 3. ESTADO DEL RECEPTOR Y MOTOR DE TELEMETRÍA
+        // 3. CANAL DE RETORNO ACÚSTICO WEB AUDIO API (AUDIO ACK / BEEP-BOOP FSK)
+        // =========================================================================
+        let audioCtx = null;
+        function getAudioCtx() {
+            if (!audioCtx) {
+                const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+                audioCtx = new AudioContextClass();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+            return audioCtx;
+        }
+
+        // Emite una secuencia de tonos puros [{ freq, durationMs, gapMs }]
+        async function playToneSequence(sequence, statusText) {
+            const lbl = document.getElementById('audio-ack-lbl');
+            if (lbl && statusText) lbl.innerText = statusText;
+            const ctx = getAudioCtx();
+            let offsetSec = ctx.currentTime + 0.03;
+
+            for (const step of sequence) {
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(step.freq, offsetSec);
+
+                const dur = (step.durationMs || 90) / 1000;
+                gain.gain.setValueAtTime(0.001, offsetSec);
+                gain.gain.linearRampToValueAtTime(0.35, offsetSec + 0.01);
+                gain.gain.setValueAtTime(0.35, offsetSec + dur - 0.015);
+                gain.gain.linearRampToValueAtTime(0.001, offsetSec + dur);
+
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.start(offsetSec);
+                osc.stop(offsetSec + dur);
+
+                offsetSec += dur + ((step.gapMs || 25) / 1000);
+            }
+        }
+
+        // 3.1 Tono de Éxito 100% (FIN ACK): 2400 Hz -> 3200 Hz -> 2400 Hz -> 3200 Hz
+        function emitAcousticSuccess100() {
+            playToneSequence([
+                { freq: 2400, durationMs: 110, gapMs: 30 },
+                { freq: 3200, durationMs: 110, gapMs: 30 },
+                { freq: 2400, durationMs: 110, gapMs: 30 },
+                { freq: 3200, durationMs: 180, gapMs: 20 }
+            ], "🔊 FIN 100% EMITIDO");
+        }
+
+        // 3.2 Tono de Estancamiento / Solicitud de Escáner QR: 1800 Hz -> 1350 Hz -> 1800 Hz
+        function emitAcousticStallSignal() {
+            playToneSequence([
+                { freq: 1800, durationMs: 130, gapMs: 35 },
+                { freq: 1350, durationMs: 130, gapMs: 35 },
+                { freq: 1800, durationMs: 160, gapMs: 20 }
+            ], "🔊 BEEP SOLICITUD CAM");
+        }
+
+        // 3.3 Beep-Boop Data Burst: Calcula cuál de los 4 cuadrantes (Q1..Q4) tiene más huecos y lo transmite por FSK
+        function emitAcousticSectorBurst() {
+            if (!sys.active || sys.received === sys.total) {
+                emitAcousticSuccess100();
+                return;
+            }
+            // Contar faltantes por cada cuarto (Q1=0..25%, Q2=25..50%, Q3=50..75%, Q4=75..100%)
+            const qCounts = [0, 0, 0, 0];
+            for (let i = 0; i < sys.total; i++) {
+                if (sys.chunks[i] === null) {
+                    const q = Math.min(3, Math.floor((i / sys.total) * 4));
+                    qCounts[q]++;
+                }
+            }
+            let worstQ = 0;
+            for (let q = 1; q < 4; q++) {
+                if (qCounts[q] > qCounts[worstQ]) worstQ = q;
+            }
+
+            // Frecuencias MFSK de sector: Preámbulo (2100 Hz) + Tono de Sector (Q1=1500, Q2=1700, Q3=1900, Q4=2250 Hz) repetido 2 veces
+            const sectorFreqs = [1500, 1700, 1900, 2250];
+            const f = sectorFreqs[worstQ];
+            playToneSequence([
+                { freq: 2100, durationMs: 120, gapMs: 35 },
+                { freq: f, durationMs: 150, gapMs: 35 },
+                { freq: 2100, durationMs: 120, gapMs: 35 },
+                { freq: f, durationMs: 170, gapMs: 20 }
+            ], `🎵 ENVIADO SECTOR Q${worstQ + 1}`);
+        }
+
+        // =========================================================================
+        // 4. ESTADO DEL RECEPTOR Y MOTOR DE TELEMETRÍA
         // =========================================================================
         const sys = {
             mode: 'cam',
@@ -984,12 +1092,9 @@
             rawScans: 0,
             duplicateScans: 0,
             decodeTimestamps: [],
-            uniqueHistory: [], // Array de { t: timestamp, bytes: byteLen }
+            uniqueHistory: [],
             lastLockTime: 0,
             captureFps: 30,
-            // Handshake modal timer & wakeLock
-            ackTimerId: null,
-            ackSecondsLeft: 15,
             wakeLockSentinel: null
         };
 
@@ -998,7 +1103,6 @@
         let barcodeDetector = null;
         let chunkMap = null;
 
-        // Canvas oculto 32x32 para muestreo de nivel de iluminación y reflejos
         const lightSampleCanvas = document.createElement('canvas');
         lightSampleCanvas.width = 32;
         lightSampleCanvas.height = 32;
@@ -1026,7 +1130,6 @@
             setInterval(sampleAmbientLighting, 900);
         };
 
-        // --- DETECTOR DE NIVEL DE ILUMINACIÓN Y REFLEJOS EXCESIVOS ---
         function sampleAmbientLighting() {
             const alertBox = document.getElementById('light-alert');
             const alertTxt = document.getElementById('light-alert-txt');
@@ -1066,7 +1169,6 @@
             } catch (e) { }
         }
 
-        // --- DETECCIÓN EXPLÍCITA DE LENTES ---
         async function populateCameras() {
             const select = document.getElementById('cam-select');
             try {
@@ -1102,9 +1204,6 @@
             }
         }
 
-        // =========================================================================
-        // 4. CONTROL ÓPTICO AVANZADO (DESACTIVACIÓN DE FOCUS HUNTING & EXPOSICIÓN)
-        // =========================================================================
         function getActiveVideoTrack() {
             const videoEl = document.querySelector('#reader video');
             if (videoEl && videoEl.srcObject) {
@@ -1137,9 +1236,7 @@
                 try {
                     await videoTrack.applyConstraints(constraints);
                     document.getElementById('optic-caps-lbl').innerText = enableManualFocus ? "MF LOCKED (0.35m)" : "CONTINUOUS AF";
-                } catch (err) {
-                    console.warn("Restricciones avanzadas de cámara no soportadas por el sensor:", err);
-                }
+                } catch (err) { }
             }
         }
 
@@ -1177,7 +1274,6 @@
             }
         }
 
-        // --- CAMBIO DE MODO (CÁMARA / CAPTURA DE PANTALLA) ---
         async function setMode(mode) {
             await stopAll();
             sys.mode = mode;
@@ -1264,7 +1360,6 @@
             try {
                 const d = JSON.parse(txt);
 
-                // 1. Cabecera del protocolo {"t":"H","c":N,"n":"archivo.ext","h":"hash","s":bytes,"z":1}
                 if (d.t === "H") {
                     if (!sys.active || sys.meta.h !== d.h) {
                         sys.active = true;
@@ -1291,7 +1386,6 @@
                     return;
                 }
 
-                // 2. Fragmento de datos [idx, "hex_o_payload"]
                 if (sys.active && Array.isArray(d)) {
                     const idx = d[0];
                     const payload = d[1];
@@ -1303,11 +1397,9 @@
                             sys.recentTimes[idx] = now;
                             sys.received++;
 
-                            // Estimar bytes netos del bloque (Hex = 2 chars por byte)
                             const byteLen = Math.floor(payload.length / 2);
                             sys.uniqueHistory.push({ t: now, bytes: byteLen });
 
-                            // Feedback háptico al decodificar un bloque único nuevo (o vibración prolongada al 100%)
                             if (navigator.vibrate) {
                                 try {
                                     if (sys.received === sys.total) {
@@ -1320,6 +1412,8 @@
 
                             if (sys.received === sys.total) {
                                 sys.completedTime = now;
+                                // Emitir tono acústico de confirmación 100% para que el emisor se detenga automáticamente
+                                try { emitAcousticSuccess100(); } catch (e) { }
                             }
 
                             updateProgressUI();
@@ -1334,23 +1428,19 @@
         function updateTelemetryAndMap() {
             const now = performance.now();
 
-            // Estado de la retícula óptica y Bracket Corners (Verde Neón si decodificó hace < 450ms)
             const reticle = document.getElementById('reticle-box');
             const reticleLbl = document.getElementById('reticle-status');
             const isLocked = (now - sys.lastLockTime) < 450;
             reticle.classList.toggle('locked', isLocked);
 
-            // FPS de decodificación real en ventana móvil de 1000ms
             sys.decodeTimestamps = sys.decodeTimestamps.filter(t => (now - t) <= 1000);
             const decFps = sys.decodeTimestamps.length;
             reticleLbl.innerText = isLocked ? `LOCKED (${decFps} FPS)` : "BUSCANDO QR...";
             document.getElementById('tele-fps').innerText = `${sys.captureFps} / ${decFps}`;
 
-            // Tasa de duplicados
             const dupRatio = sys.rawScans > 0 ? ((sys.duplicateScans / sys.rawScans) * 100).toFixed(1) : "0.0";
             document.getElementById('tele-dup').innerText = `${dupRatio}%`;
 
-            // Cronómetro de tiempo transcurrido
             if (sys.active && sys.startTime > 0) {
                 const endRef = sys.completedTime > 0 ? sys.completedTime : now;
                 document.getElementById('tele-elapsed').innerText = formatMMSS((endRef - sys.startTime) / 1000);
@@ -1358,7 +1448,6 @@
                 document.getElementById('tele-elapsed').innerText = "00:00";
             }
 
-            // Velocidad neta (KB/s o MB/s) y ETA dinámico sobre ventana móvil de 5 segundos
             sys.uniqueHistory = sys.uniqueHistory.filter(item => (now - item.t) <= 5000);
             const uniquePerSec = sys.uniqueHistory.length / 5;
             const bytesLast5s = sys.uniqueHistory.reduce((acc, item) => acc + item.bytes, 0);
@@ -1380,7 +1469,6 @@
                 document.getElementById('tele-eta').innerText = "ESTANCADO";
             }
 
-            // Redibujar ChunkMap Canvas 2D
             if (chunkMap) {
                 chunkMap.render(sys.active ? sys.chunks : new Array(100).fill(null), sys.recentTimes);
             }
@@ -1408,7 +1496,7 @@
         }
 
         // =========================================================================
-        // 6. HANDSHAKE INVERSO (BRILLO MÁXIMO + TEMPORIZADOR CIRCULAR DE 15s)
+        // 6. HANDSHAKE INVERSO (FONDO OSCURO DE ALTO CONTRASTE + CIERRE MANUAL)
         // =========================================================================
         function exportMissingBitmap(chunks, total) {
             const byteLength = Math.ceil(total / 8);
@@ -1459,54 +1547,24 @@
             const missingCount = sys.total - sys.received;
 
             document.getElementById('ack-summary').innerText =
-                `Faltan ${missingCount} de ${sys.total} bloques (${qrString.length} B). Fondo de alto brillo activo.`;
+                `Faltan ${missingCount} de ${sys.total} bloques (${qrString.length} B). Permanece abierto hasta que pulses Cerrar.`;
 
             new QRCode(document.getElementById('ack-qr-container'), qrString);
             document.getElementById('ack-modal').classList.add('open');
 
-            // Forzar nivel máximo de brillo si el API de pantalla o WakeLock están disponibles
             try {
-                if ('screen' in window && 'brightness' in window.screen) {
-                    window.screen.brightness = 1.0;
-                }
                 if ('wakeLock' in navigator) {
                     sys.wakeLockSentinel = await navigator.wakeLock.request('screen');
                 }
             } catch (e) { }
-
-            // Iniciar temporizador circular de 15 segundos antes de cerrar y reactivar cámara
-            clearInterval(sys.ackTimerId);
-            const totalDuration = 15;
-            sys.ackSecondsLeft = totalDuration;
-            const circle = document.getElementById('ack-timer-circle');
-            const lbl = document.getElementById('ack-timer-lbl');
-            const circumference = 75.4; // 2 * PI * 12
-
-            const updateRing = () => {
-                lbl.innerText = `${sys.ackSecondsLeft}s`;
-                const offset = circumference * (1 - sys.ackSecondsLeft / totalDuration);
-                circle.style.strokeDashoffset = offset;
-            };
-            updateRing();
-
-            sys.ackTimerId = setInterval(() => {
-                sys.ackSecondsLeft--;
-                if (sys.ackSecondsLeft <= 0) {
-                    closeReverseAckModal();
-                } else {
-                    updateRing();
-                }
-            }, 1000);
         }
 
         async function closeReverseAckModal() {
-            clearInterval(sys.ackTimerId);
             document.getElementById('ack-modal').classList.remove('open');
             if (sys.wakeLockSentinel) {
                 try { await sys.wakeLockSentinel.release(); } catch (e) { }
                 sys.wakeLockSentinel = null;
             }
-            // Asegurar que la cámara de captura esté activa al cerrar el modal
             if (sys.mode === 'cam' && !html5QrCode.isScanning && sys.received < sys.total) {
                 await setMode('cam');
             }

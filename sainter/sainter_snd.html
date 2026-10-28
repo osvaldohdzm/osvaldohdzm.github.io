@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SAINTER V3.2 - OPTICAL DATA CASTER (EMISOR)</title>
+    <title>SAINTER V3.5 - OPTICAL & ACOUSTIC DATA CASTER (EMISOR)</title>
     <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
     <style>
         :root {
@@ -13,8 +13,10 @@
             --border: #21262d;
             --accent: #00ff41;
             --accent-dim: rgba(0, 255, 65, 0.15);
+            --blue: #2f81f7;
             --success: #00b82d;
             --warn: #f0ad4e;
+            --amber: #ff9e00;
             --danger: #f85149;
             --text: #e6edf3;
             --dim: #7d8590;
@@ -116,13 +118,13 @@
         /* --- HEADER --- */
         .header {
             width: 100%;
-            max-width: 920px;
-            padding: 16px 24px;
+            max-width: 1020px;
+            padding: 14px 24px;
             border-bottom: 1px solid var(--border);
             display: flex;
             justify-content: space-between;
             align-items: center;
-            background: rgba(13, 17, 23, 0.9);
+            background: rgba(13, 17, 23, 0.92);
             position: sticky;
             top: 0;
             z-index: 100;
@@ -150,15 +152,15 @@
 
         /* --- LAYOUT --- */
         .dashboard {
-            width: 95%;
-            max-width: 920px;
-            padding: 20px 0 50px;
+            width: 96%;
+            max-width: 1020px;
+            padding: 18px 0 50px;
             display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
+            grid-template-columns: 1.05fr 0.95fr;
+            gap: 18px;
         }
 
-        @media (max-width: 780px) {
+        @media (max-width: 840px) {
             .dashboard {
                 grid-template-columns: 1fr;
             }
@@ -167,21 +169,21 @@
         .card {
             background: var(--panel);
             border: 1px solid var(--border);
-            padding: 20px;
+            padding: 18px;
             border-radius: 6px;
             position: relative;
             display: flex;
             flex-direction: column;
-            gap: 14px;
+            gap: 12px;
         }
 
         .card-title {
-            font-size: 0.75rem;
+            font-size: 0.74rem;
             color: var(--accent);
             text-transform: uppercase;
-            letter-spacing: 2px;
+            letter-spacing: 1.5px;
             border-bottom: 1px solid var(--border);
-            padding-bottom: 8px;
+            padding-bottom: 6px;
             margin: 0;
             display: flex;
             justify-content: space-between;
@@ -200,14 +202,14 @@
 
         .sel-btn {
             flex: 1;
-            padding: 10px;
+            padding: 8px;
             background: transparent;
             border: none;
             color: var(--dim);
             cursor: pointer;
             font-family: inherit;
             font-weight: bold;
-            font-size: 0.72rem;
+            font-size: 0.7rem;
             text-transform: uppercase;
             border-radius: 3px;
             transition: 0.15s;
@@ -221,13 +223,13 @@
         /* --- INPUT AREAS --- */
         .input-box {
             width: 100%;
-            min-height: 135px;
+            min-height: 105px;
             position: relative;
         }
 
         #area-file {
             width: 100%;
-            height: 135px;
+            height: 105px;
             border: 1px dashed var(--dim);
             border-radius: 4px;
             display: flex;
@@ -238,7 +240,7 @@
             background: #05080d;
             transition: 0.2s;
             text-align: center;
-            padding: 15px;
+            padding: 10px;
         }
 
         #area-file:hover {
@@ -248,13 +250,13 @@
 
         #area-text {
             width: 100%;
-            min-height: 110px;
+            min-height: 90px;
             background: #010409;
             border: 1px solid var(--accent);
             color: var(--accent);
-            padding: 12px;
+            padding: 10px;
             font-family: Consolas, monospace;
-            font-size: 0.82rem;
+            font-size: 0.8rem;
             resize: vertical;
             outline: none;
             border-radius: 4px;
@@ -263,7 +265,7 @@
         #area-text-wrap {
             display: none;
             flex-direction: column;
-            gap: 10px;
+            gap: 8px;
             width: 100%;
         }
 
@@ -271,11 +273,11 @@
         .config-row {
             display: flex;
             flex-direction: column;
-            gap: 8px;
+            gap: 6px;
         }
 
         .config-label {
-            font-size: 0.7rem;
+            font-size: 0.67rem;
             color: var(--dim);
             display: flex;
             justify-content: space-between;
@@ -289,16 +291,20 @@
 
         .preset-btn {
             flex: 1;
-            padding: 8px 6px;
+            padding: 7px 6px;
             background: #010409;
             border: 1px solid var(--border);
             color: var(--text);
             font-family: inherit;
-            font-size: 0.7rem;
+            font-size: 0.68rem;
             font-weight: bold;
             cursor: pointer;
             border-radius: 4px;
             transition: 0.15s;
+        }
+
+        .preset-btn:hover:not(:disabled) {
+            border-color: var(--accent);
         }
 
         .preset-btn.active {
@@ -312,22 +318,22 @@
             justify-content: space-between;
             align-items: center;
             background: #010409;
-            padding: 10px 12px;
+            padding: 7px 12px;
             border: 1px solid var(--border);
             border-radius: 4px;
-            font-size: 0.75rem;
+            font-size: 0.72rem;
         }
 
         /* --- METRICS --- */
         .metrics {
             display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 8px;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 6px;
             background: #010409;
-            padding: 12px;
+            padding: 9px 10px;
             border: 1px solid var(--border);
             border-radius: 4px;
-            font-size: 0.72rem;
+            font-size: 0.68rem;
             color: var(--dim);
         }
 
@@ -341,17 +347,139 @@
             color: var(--text);
         }
 
+        /* --- MATRIZ 2D GEMELA CON SELECCIÓN RECTANGULAR (MARQUEE) --- */
+        .grid2d-panel {
+            background: #070a0f;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .grid2d-wrap {
+            position: relative;
+            width: 100%;
+        }
+
+        #grid-2d-selector {
+            width: 100%;
+            height: 155px;
+            background: #05080e;
+            border: 1px solid #263042;
+            border-radius: 5px;
+            display: block;
+            cursor: crosshair;
+            touch-action: none;
+        }
+
+        #grid2d-tooltip {
+            position: absolute;
+            top: 6px;
+            right: 6px;
+            background: rgba(5, 7, 10, 0.92);
+            border: 1px solid var(--amber);
+            color: var(--text);
+            font-size: 0.65rem;
+            padding: 3px 8px;
+            border-radius: 4px;
+            pointer-events: none;
+            display: none;
+            z-index: 15;
+        }
+
+        /* --- RECEPCIÓN ACÚSTICA FFT (AUDIO ACK) --- */
+        .acoustic-panel {
+            background: #070a0f;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .acoustic-row {
+            display: grid;
+            grid-template-columns: 1.2fr 1fr;
+            gap: 8px;
+            align-items: center;
+        }
+
+        #audio-fft-canvas {
+            width: 100%;
+            height: 36px;
+            background: #010409;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            display: block;
+        }
+
+        /* --- HERRAMIENTAS DE CUADRATURA, RELLENO Y DESPLAZAMIENTO --- */
+        .quick-tools-panel {
+            background: #070a0f;
+            border: 1px solid var(--border);
+            border-radius: 5px;
+            padding: 9px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .quick-tools-row {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 5px;
+        }
+
+        .quick-tools-row.three-cols {
+            grid-template-columns: repeat(3, 1fr);
+        }
+
+        .tool-chip {
+            padding: 6px 4px;
+            background: #11161f;
+            border: 1px solid var(--border);
+            color: var(--text);
+            font-family: inherit;
+            font-size: 0.65rem;
+            font-weight: bold;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: 0.15s;
+            text-align: center;
+            white-space: nowrap;
+        }
+
+        .tool-chip:hover:not(:disabled) {
+            border-color: var(--accent);
+            color: var(--accent);
+            background: rgba(0, 255, 65, 0.08);
+        }
+
+        .tool-chip.active {
+            border-color: var(--amber);
+            color: #000;
+            background: var(--amber);
+        }
+
+        .tool-chip.amber:hover:not(:disabled) {
+            border-color: var(--amber);
+            color: var(--amber);
+            background: rgba(255, 158, 0, 0.12);
+        }
+
         /* --- QR DISPLAY, QUIET ZONE & LED PULSE --- */
         #qr-frame {
             background: #ffffff;
             width: 100%;
-            max-width: 350px;
+            max-width: 335px;
             aspect-ratio: 1 / 1;
             margin: 0 auto;
             display: flex;
             align-items: center;
             justify-content: center;
-            /* Quiet zone estricta >= 4 módulos */
             padding: 20px;
             border-radius: 4px;
             position: relative;
@@ -366,7 +494,6 @@
             display: block;
         }
 
-        /* Testigo visual de pulso LED en esquina del marco (fuera del área del QR) */
         .pulse-led {
             position: absolute;
             top: 5px;
@@ -390,17 +517,18 @@
             box-shadow: 0 0 8px #0088ff;
         }
 
-        /* --- TIMELINE, SCRUBBER & LINEAR HEATMAP --- */
+        /* --- TIMELINE, SCRUBBER & INTERACTIVE LINEAR HEATMAP --- */
         .timeline-wrap {
             display: flex;
             flex-direction: column;
             gap: 5px;
+            position: relative;
         }
 
         .timeline-info {
             display: flex;
             justify-content: space-between;
-            font-size: 0.72rem;
+            font-size: 0.7rem;
             color: var(--dim);
         }
 
@@ -415,13 +543,37 @@
             margin: 0;
         }
 
+        .heatmap-container {
+            position: relative;
+            width: 100%;
+        }
+
         #timeline-heatmap {
             width: 100%;
-            height: 10px;
+            height: 22px;
             background: #010409;
             border: 1px solid var(--border);
-            border-radius: 3px;
+            border-radius: 4px;
             display: block;
+            cursor: crosshair;
+            touch-action: none;
+        }
+
+        #heatmap-tooltip {
+            position: absolute;
+            top: -28px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(5, 7, 10, 0.95);
+            border: 1px solid var(--amber);
+            color: var(--text);
+            font-size: 0.65rem;
+            padding: 2px 7px;
+            border-radius: 4px;
+            pointer-events: none;
+            white-space: nowrap;
+            display: none;
+            z-index: 20;
         }
 
         .player-controls {
@@ -431,20 +583,20 @@
         }
 
         .btn {
-            padding: 12px 10px;
+            padding: 10px 8px;
             border: 1px solid var(--border);
             background: #161b22;
             color: var(--text);
             cursor: pointer;
             font-family: inherit;
             font-weight: bold;
-            font-size: 0.75rem;
+            font-size: 0.72rem;
             border-radius: 4px;
             transition: 0.15s;
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 6px;
+            gap: 5px;
         }
 
         .btn:hover:not(:disabled) {
@@ -461,7 +613,7 @@
             background: var(--success);
             color: #000;
             border-color: var(--accent);
-            font-size: 0.82rem;
+            font-size: 0.8rem;
         }
 
         .btn-run:hover:not(:disabled) {
@@ -480,15 +632,22 @@
             color: #000;
         }
 
+        .btn-mic.listening {
+            background: rgba(47, 129, 247, 0.22);
+            border-color: var(--blue);
+            color: #79c0ff;
+            box-shadow: 0 0 12px rgba(47, 129, 247, 0.35);
+        }
+
         .shortcuts-bar {
             display: flex;
             flex-wrap: wrap;
             gap: 8px;
             justify-content: center;
-            font-size: 0.65rem;
+            font-size: 0.63rem;
             color: var(--dim);
             border-top: 1px solid var(--border);
-            padding-top: 8px;
+            padding-top: 6px;
         }
 
         .kbd {
@@ -665,8 +824,8 @@
 
     <!-- FLASH VERDE DE CONFIRMACIÓN A PANTALLA COMPLETA (FLASH ACK) -->
     <div id="flash-ack-overlay">
-        <div style="font-size: 4rem; font-weight: 900;">✅ ACK SINCRONIZADO</div>
-        <div id="flash-ack-detail" style="font-size: 1.2rem; font-weight: bold; margin-top: 8px;">
+        <div style="font-size: 3.5rem; font-weight: 900;" id="flash-ack-title">✅ ACK SINCRONIZADO</div>
+        <div id="flash-ack-detail" style="font-size: 1.15rem; font-weight: bold; margin-top: 8px;">
             Cola prioritaria reconfigurada
         </div>
     </div>
@@ -686,14 +845,14 @@
     <!-- HEADER -->
     <div class="header">
         <div class="brand">
-            SAINTER//V3.2 <span class="badge">ZERO-B64 + GZIP + ACK</span>
+            SAINTER//V3.5 <span class="badge">2D BOX SELECT + AUDIO ACK + QR</span>
         </div>
         <div id="status" style="font-size: 0.7rem; color: var(--accent);">● READY_FOR_PAYLOAD</div>
     </div>
 
     <!-- DASHBOARD PRINCIPAL -->
     <div class="dashboard">
-        <!-- COLUMNA IZQUIERDA: ORIGEN Y PROTOCOLO -->
+        <!-- COLUMNA IZQUIERDA: ORIGEN, PROTOCOLO, RETORNO ACÚSTICO Y ÓPTICO -->
         <div class="card">
             <h3 class="card-title">
                 <span>1. Ingesta & Empaquetado Óptico</span>
@@ -707,9 +866,9 @@
 
             <div class="input-box">
                 <div id="area-file" onclick="document.getElementById('file-input').click()">
-                    <span style="font-size: 1.8rem; margin-bottom: 6px;">📦</span>
-                    <span style="font-weight: bold; font-size: 0.78rem;">ARRASTRA EN CUALQUIER PARTE DE LA VENTANA O HAZ CLIC</span>
-                    <span style="font-size: 0.66rem; color: var(--dim); margin-top: 4px;">Compresión GZIP nativa + codificación Hex sin Base64</span>
+                    <span style="font-size: 1.5rem; margin-bottom: 3px;">📦</span>
+                    <span style="font-weight: bold; font-size: 0.75rem;">ARRASTRA EN CUALQUIER PARTE DE LA VENTANA O HAZ CLIC</span>
+                    <span style="font-size: 0.64rem; color: var(--dim); margin-top: 2px;">Compresión GZIP nativa + codificación Hex sin Base64</span>
                 </div>
                 <div id="area-text-wrap">
                     <textarea id="area-text" placeholder="Pega aquí el contenido o código para transmitir por canal óptico..."></textarea>
@@ -744,22 +903,22 @@
 
             <div class="toggle-row">
                 <span>Compresión Previa <b>CompressionStream (GZIP)</b></span>
-                <input type="checkbox" id="chk-gzip" checked onchange="reprocessCurrentSource()" style="accent-color: var(--accent); width: 18px; height: 18px; cursor: pointer;">
+                <input type="checkbox" id="chk-gzip" checked onchange="reprocessCurrentSource()" style="accent-color: var(--accent); width: 17px; height: 17px; cursor: pointer;">
             </div>
 
             <!-- MÉTRICAS DE EMPAQUETADO -->
             <div class="metrics">
                 <div>ARCHIVO: <b id="mt-name">SIN DATOS</b></div>
                 <div>ORIGINAL: <b id="mt-size">0 B</b></div>
-                <div>PAYLOAD REAL: <b id="mt-comp">0 B</b></div>
-                <div>BLOQUES QR: <b id="mt-chunks">0</b></div>
-                <div>SHA-256 (12c): <b id="mt-hash">-</b></div>
-                <div>COLA ACTIVA: <b id="mt-active">0 blks</b></div>
+                <div>COMPRIMIDO: <b id="mt-comp">0 B</b></div>
+                <div>BLOQUES: <b id="mt-chunks">0</b></div>
+                <div>SHA-256: <b id="mt-hash">-</b></div>
+                <div>ACTIVOS: <b id="mt-active">0 blks</b></div>
             </div>
 
-            <!-- MODOS DE TRANSMISIÓN Y HANDSHAKE INVERSO -->
-            <h3 class="card-title" style="margin-top: 4px;">
-                <span>2. Modo de Transmisión & Retorno Óptico</span>
+            <!-- CANAL DE RETORNO HÍBRIDO: ÓPTICO (WEBCAM QR) + ACÚSTICO (MICRÓFONO FFT) -->
+            <h3 class="card-title" style="margin-top: 2px;">
+                <span>2. Retorno Híbrido: Óptico (QR) + Acústico (Audio ACK)</span>
             </h3>
 
             <div class="preset-group">
@@ -767,21 +926,52 @@
                 <button class="preset-btn" id="tx-mode-priority" onclick="setTxMode('priority')">⚡ Bucle Faltantes (Priority)</button>
             </div>
 
-            <button class="btn btn-reverse" onclick="openAckScanner()" id="btn-scan-ack" disabled>
-                📷 ESCANEAR RESPUESTA DEL RECEPTOR [A]
-            </button>
+            <div class="acoustic-panel">
+                <div class="config-label">
+                    <span>ESCUCHA ACÚSTICA FFT (DETECTA BEEP-BOOP DEL MÓVIL)</span>
+                    <b id="fft-freq-lbl" style="color: #79c0ff;">MIC OFF</b>
+                </div>
+                <div class="acoustic-row">
+                    <button class="btn btn-mic" id="btn-audio-listen" onclick="toggleAcousticListener()">
+                        🎙️ ACTIVAR ESCUCHA AUDIO ACK
+                    </button>
+                    <canvas id="audio-fft-canvas" title="Espectrograma FFT en tiempo real (1350 Hz - 3200 Hz)"></canvas>
+                </div>
+                <button class="btn btn-reverse" onclick="openAckScanner()" id="btn-scan-ack" disabled>
+                    📷 ESCANEAR QR DE FALTANTES POR WEBCAM [A]
+                </button>
+            </div>
+
+            <!-- PANEL DE ACCIONES RÁPIDAS (CUADRATURA, RELLENO Y DESPLAZAMIENTO) -->
+            <div class="quick-tools-panel">
+                <div class="config-label">
+                    <span>CUADRATURA AUTOMÁTICA, RELLENO Y DESFASE</span>
+                </div>
+                <div class="quick-tools-row three-cols">
+                    <button class="tool-chip" onclick="squareToStart()" title="Alinear cola al inicio del primer segmento y emitir cabecera SYN">⏮ Cuadrar Inicio</button>
+                    <button class="tool-chip amber" onclick="fillSmallGaps(3)" title="Unir huecos cortos (<=3 bloques) entre segmentos faltantes">🧩 Rellenar Huecos</button>
+                    <button class="tool-chip amber" onclick="expandActiveIntervals(2)" title="Añadir ±2 bloques en los bordes de cada intervalo">↔ Expandir ±2</button>
+                </div>
+
+                <div class="quick-tools-row">
+                    <button class="tool-chip" onclick="shiftActiveQueue(-10)">-10 Frames</button>
+                    <button class="tool-chip" onclick="shiftActiveQueue(-1)">-1 Frame</button>
+                    <button class="tool-chip" onclick="shiftActiveQueue(1)">+1 Frame</button>
+                    <button class="tool-chip" onclick="shiftActiveQueue(10)">+10 Frames</button>
+                </div>
+            </div>
 
             <div style="display: flex; gap: 8px; align-items: center;">
-                <input type="text" id="custom-frames" placeholder="Rangos manuales o Bitmap ACK (ej. 0, 4-12)"
-                    style="flex: 1; padding: 10px; background: #010409; border: 1px solid var(--border); color: var(--text); border-radius: 4px; font-family: inherit; font-size: 0.75rem;">
+                <input type="text" id="custom-frames" placeholder="Rangos sincronizados (ej. 0, 4-12)"
+                    style="flex: 1; padding: 8px; background: #010409; border: 1px solid var(--border); color: var(--text); border-radius: 4px; font-family: inherit; font-size: 0.72rem;">
                 <button class="btn" onclick="applyCustomFrames()">APLICAR</button>
             </div>
         </div>
 
-        <!-- COLUMNA DERECHA: VISOR QR Y CADENCIA -->
+        <!-- COLUMNA DERECHA: VISOR QR, MATRIZ 2D CON SELECCIÓN RECTANGULAR Y CADENCIA -->
         <div class="card" id="qr-card">
             <h3 class="card-title">
-                <span>3. Emisor Óptico de Alta Velocidad</span>
+                <span>3. Emisor Óptico & Selección Rectangular 2D</span>
                 <span id="frame-badge" style="color: var(--accent);">STANDBY</span>
             </h3>
 
@@ -794,14 +984,33 @@
                 </div>
             </div>
 
-            <!-- LÍNEA DE TIEMPO / CURSOR PROGRESO + MAPA DE CALOR LINEAL -->
+            <!-- MATRIZ 2D GEMELA CON SELECCIÓN RECTANGULAR VISUAL (IDÉNTICA AL GRID DEL MÓVIL) -->
+            <div class="grid2d-panel">
+                <div class="config-label">
+                    <span>📐 MATRIZ 2D GEMELA (ARRASTRA UN RECTÁNGULO SOBRE LA ZONA DE HUECOS)</span>
+                    <div style="display: flex; gap: 4px;">
+                        <button class="tool-chip active" id="rect-mode-replace" onclick="setRectSelectMode('replace')" title="El rectángulo dibujado aísla exactamente esa región">Aislar Área</button>
+                        <button class="tool-chip" id="rect-mode-add" onclick="setRectSelectMode('add')" title="Sumar varios rectángulos a la cola prioritaria">+ Sumar</button>
+                        <button class="tool-chip" id="rect-mode-sub" onclick="setRectSelectMode('sub')" title="Desmarcar rectángulo">- Quitar</button>
+                    </div>
+                </div>
+                <div class="grid2d-wrap">
+                    <div id="grid2d-tooltip">Fila 1, Col 1</div>
+                    <canvas id="grid-2d-selector"></canvas>
+                </div>
+            </div>
+
+            <!-- LÍNEA DE TIEMPO + MAPA DE CALOR LINEAL INTERACTIVO -->
             <div class="timeline-wrap">
                 <div class="timeline-info">
                     <span>POSICIÓN EN COLA: <b id="lbl-queue-pos">0 / 0</b></span>
                     <span>ÍNDICE DE BLOQUE: <b id="lbl-chunk-idx">-</b></span>
                 </div>
                 <input type="range" id="timeline-scrubber" min="0" max="0" value="0" disabled oninput="scrubTimeline(this.value)">
-                <canvas id="timeline-heatmap" title="Mapa de calor lineal: Verde = Confirmado, Ámbar = Cola Prioritaria de Faltantes"></canvas>
+                <div class="heatmap-container">
+                    <div id="heatmap-tooltip">Bloque #0</div>
+                    <canvas id="timeline-heatmap"></canvas>
+                </div>
             </div>
 
             <!-- CONTROL DE CADENCIA (FPS) -->
@@ -831,9 +1040,10 @@
 
             <div class="shortcuts-bar">
                 <span><b class="kbd">Espacio</b> Play/Pausa</span>
-                <span><b class="kbd">←</b> <b class="kbd">→</b> Paso a Paso</span>
-                <span><b class="kbd">Z</b> / <b class="kbd">F</b> Modo Zen</span>
-                <span><b class="kbd">A</b> Escáner ACK</span>
+                <span><b class="kbd">←</b> <b class="kbd">→</b> Paso</span>
+                <span><b class="kbd">[</b> <b class="kbd">]</b> Desplazar ±1</span>
+                <span><b class="kbd">Z</b> Zen</span>
+                <span><b class="kbd">A</b> ACK</span>
             </div>
         </div>
     </div>
@@ -846,7 +1056,7 @@
                 <button class="btn" onclick="closeAckScanner()" style="padding: 4px 10px; color: var(--danger);">✖ CERRAR</button>
             </div>
             <div style="font-size: 0.72rem; color: var(--dim);">
-                Apunta la pantalla del móvil con el <b>QR de Faltantes</b> hacia la webcam de esta laptop para reconfigurar automáticamente la cola de retransmisión.
+                Apunta la pantalla del móvil con el <b>QR de Faltantes (fondo oscuro)</b> hacia la webcam de esta laptop para reconfigurar automáticamente la cola de retransmisión.
             </div>
             <div id="ack-reader"></div>
             <div id="ack-status" style="font-size: 0.75rem; color: var(--warn); text-align: center;">
@@ -973,14 +1183,14 @@
         }();
 
         // =========================================================================
-        // 2. ARQUITECTURA DEL SISTEMA EMISOR SAINTER V3.2
+        // 2. ARQUITECTURA DEL SISTEMA EMISOR SAINTER V3.5
         // =========================================================================
         const sys = {
             sourceBlob: null,
             sourceName: "",
             mtu: 350,
             fps: 10,
-            txMode: 'full', // 'full' | 'priority'
+            txMode: 'full',
             headerPayload: "",
             chunksPayloads: [],
             totalChunks: 0,
@@ -993,7 +1203,22 @@
             timer: null,
             running: false,
             ackScanner: null,
-            zenIdleTimer: null
+            zenIdleTimer: null,
+            // Heatmap lineal
+            isPaintingHeatmap: false,
+            paintAction: true,
+            // Selección Rectangular 2D (Marquee sobre la misma cuadrícula del móvil)
+            rectMode: 'replace', // 'replace' | 'add' | 'sub'
+            isDraggingRect: false,
+            rectStart: null, // { col, row, x, y }
+            rectCurrent: null,
+            // Escucha Acústica FFT (Audio ACK)
+            audioListening: false,
+            audioCtx: null,
+            audioStream: null,
+            analyser: null,
+            fftLoopId: null,
+            toneHistory: [] // ventana de frecuencias detectadas recientemente
         };
 
         // --- DRAG & DROP GLOBAL EN TODA LA VENTANA ---
@@ -1008,9 +1233,7 @@
             }
         });
 
-        window.addEventListener('dragover', (e) => {
-            e.preventDefault();
-        });
+        window.addEventListener('dragover', (e) => e.preventDefault());
 
         window.addEventListener('dragleave', (e) => {
             e.preventDefault();
@@ -1038,7 +1261,7 @@
             }
         });
 
-        // --- ATAJOS DE TECLADO GLOBALES DE TRANSPORTE ---
+        // --- ATAJOS DE TECLADO GLOBALES ---
         window.addEventListener('keydown', (e) => {
             const tag = (e.target && e.target.tagName) ? e.target.tagName.toLowerCase() : '';
             if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
@@ -1052,6 +1275,12 @@
             } else if (e.code === 'ArrowRight') {
                 e.preventDefault();
                 stepFrame(1);
+            } else if (e.key === '[') {
+                e.preventDefault();
+                shiftActiveQueue(-1);
+            } else if (e.key === ']') {
+                e.preventDefault();
+                shiftActiveQueue(1);
             } else if (e.code === 'KeyZ' || e.code === 'KeyF') {
                 e.preventDefault();
                 toggleZen();
@@ -1096,7 +1325,6 @@
             }
         }
 
-        // --- COMPRESIÓN NATIVA GZIP (CompressionStream) ---
         async function compressGzip(uint8Data) {
             if (typeof CompressionStream === 'undefined') return { data: uint8Data, compressed: 0 };
             try {
@@ -1115,13 +1343,10 @@
             }
         }
 
-        // --- CODIFICACIÓN HEX COMPACTA (SIN BASE64) ---
         const HEX_LUT = Array.from({ length: 256 }, (_, i) => i.toString(16).padStart(2, '0'));
         function uint8ToHex(u8) {
             let out = "";
-            for (let i = 0; i < u8.length; i++) {
-                out += HEX_LUT[u8[i]];
-            }
+            for (let i = 0; i < u8.length; i++) out += HEX_LUT[u8[i]];
             return out;
         }
 
@@ -1131,7 +1356,33 @@
             return (b / 1048576).toFixed(2) + " MB";
         }
 
-        // --- EMPAQUETADO Y FRAGMENTACIÓN CON BARRA ASÍNCRONA ---
+        function indicesToRangesString(indicesArr) {
+            if (!indicesArr || indicesArr.length === 0) return "";
+            const sorted = Array.from(new Set(indicesArr)).sort((a, b) => a - b);
+            const ranges = [];
+            let start = sorted[0], prev = sorted[0];
+            for (let i = 1; i <= sorted.length; i++) {
+                if (sorted[i] === prev + 1) {
+                    prev = sorted[i];
+                } else {
+                    ranges.push(start === prev ? `${start}` : `${start}-${prev}`);
+                    start = sorted[i];
+                    prev = sorted[i];
+                }
+            }
+            return ranges.join(', ');
+        }
+
+        function syncCustomFramesInput() {
+            const input = document.getElementById('custom-frames');
+            if (sys.txMode === 'full' || sys.activeIndices.length === sys.totalChunks) {
+                input.value = "";
+            } else {
+                const rle = indicesToRangesString(sys.activeIndices);
+                input.value = rle.length <= 120 ? rle : `[${sys.activeIndices.length} bloques activos: ${rle.substring(0, 85)}...]`;
+            }
+        }
+
         async function handleBuffer(blob, filename) {
             if (sys.running) togglePlay();
 
@@ -1149,7 +1400,6 @@
             loaderLbl.innerText = "Calculando firma criptográfica SHA-256...";
             document.getElementById('status').innerText = "● PROCESANDO...";
 
-            // Ceder un frame para que el navegador pinte la barra de progreso indeterminada
             await new Promise(r => setTimeout(r, 25));
 
             try {
@@ -1232,13 +1482,358 @@
             }
         }
 
-        // --- MAPA DE CALOR LINEAL BAJO LA LÍNEA DE TIEMPO ---
+        // =========================================================================
+        // 3. MATRIZ 2D GEMELA CON SELECCIÓN RECTANGULAR VISUAL (MARQUEE BOX SELECT)
+        // =========================================================================
+        function getGridGeometry() {
+            const total = Math.max(1, sys.totalChunks || 100);
+            const cols = Math.ceil(Math.sqrt(total * 1.6)); // Exactamente la misma fórmula que ChunkMap en el móvil
+            const rows = Math.ceil(total / cols);
+            return { total, cols, rows };
+        }
+
+        function setRectSelectMode(mode) {
+            sys.rectMode = mode;
+            document.getElementById('rect-mode-replace').classList.toggle('active', mode === 'replace');
+            document.getElementById('rect-mode-add').classList.toggle('active', mode === 'add');
+            document.getElementById('rect-mode-sub').classList.toggle('active', mode === 'sub');
+        }
+
+        function draw2DGridSelector() {
+            const canvas = document.getElementById('grid-2d-selector');
+            if (!canvas) return;
+            const dpr = window.devicePixelRatio || 1;
+            const w = (canvas.clientWidth || 440) * dpr;
+            const h = (canvas.clientHeight || 155) * dpr;
+            if (canvas.width !== w || canvas.height !== h) {
+                canvas.width = w;
+                canvas.height = h;
+            }
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, w, h);
+
+            const { total, cols, rows } = getGridGeometry();
+            const cellW = w / cols;
+            const cellH = h / rows;
+            const pad = total > 2500 ? 0 : 0.5;
+            const currentChunk = sys.activeIndices.length > 0 ? sys.activeIndices[sys.activeIdx] : -1;
+
+            for (let i = 0; i < total; i++) {
+                const c = i % cols;
+                const r = Math.floor(i / cols);
+                const x = c * cellW;
+                const y = r * cellH;
+                const isActive = sys.totalChunks > 0 ? sys.activeSet.has(i) : false;
+
+                if (i === currentChunk) {
+                    ctx.fillStyle = '#ffffff';
+                } else if (sys.txMode === 'priority') {
+                    // Ámbar brillante = zona seleccionada para transmitir (huecos); Verde oscuro = omitido/confirmado
+                    ctx.fillStyle = isActive ? '#ff9e00' : '#0b381a';
+                } else {
+                    ctx.fillStyle = isActive ? '#00b82d' : '#161b22';
+                }
+
+                ctx.fillRect(
+                    x + pad,
+                    y + pad,
+                    Math.max(1, cellW - pad * 2),
+                    Math.max(1, cellH - pad * 2)
+                );
+            }
+
+            // Guías de referencia espacial 4x4 (idénticas a las del receptor móvil)
+            ctx.strokeStyle = 'rgba(47, 129, 247, 0.32)';
+            ctx.lineWidth = 1;
+            for (let g = 1; g < 4; g++) {
+                const gx = (w / 4) * g;
+                const gy = (h / 4) * g;
+                ctx.beginPath();
+                ctx.moveTo(gx, 0);
+                ctx.lineTo(gx, h);
+                ctx.moveTo(0, gy);
+                ctx.lineTo(w, gy);
+                ctx.stroke();
+            }
+
+            // Si el usuario está arrastrando un rectángulo de selección (Marquee), dibujarlo encima
+            if (sys.isDraggingRect && sys.rectStart && sys.rectCurrent) {
+                const x1 = Math.min(sys.rectStart.x, sys.rectCurrent.x) * dpr;
+                const y1 = Math.min(sys.rectStart.y, sys.rectCurrent.y) * dpr;
+                const rw = Math.abs(sys.rectCurrent.x - sys.rectStart.x) * dpr;
+                const rh = Math.abs(sys.rectCurrent.y - sys.rectStart.y) * dpr;
+
+                ctx.fillStyle = sys.rectMode === 'sub' ? 'rgba(248, 81, 73, 0.28)' : 'rgba(255, 158, 0, 0.30)';
+                ctx.fillRect(x1, y1, rw, rh);
+                ctx.strokeStyle = sys.rectMode === 'sub' ? '#f85149' : '#ffea00';
+                ctx.lineWidth = 2 * dpr;
+                ctx.strokeRect(x1, y1, rw, rh);
+            }
+        }
+
+        !function init2DRectangularSelector() {
+            const canvas = document.getElementById('grid-2d-selector');
+            const tooltip = document.getElementById('grid2d-tooltip');
+
+            function pointerToGridCoords(clientX, clientY) {
+                const rect = canvas.getBoundingClientRect();
+                const { cols, rows } = getGridGeometry();
+                const relX = Math.max(0, Math.min(rect.width - 0.01, clientX - rect.left));
+                const relY = Math.max(0, Math.min(rect.height - 0.01, clientY - rect.top));
+                const col = Math.floor((relX / rect.width) * cols);
+                const row = Math.floor((relY / rect.height) * rows);
+                return { col, row, x: relX, y: relY };
+            }
+
+            canvas.addEventListener('pointerdown', (e) => {
+                if (!sys.totalChunks) return;
+                canvas.setPointerCapture(e.pointerId);
+                sys.isDraggingRect = true;
+                sys.rectStart = pointerToGridCoords(e.clientX, e.clientY);
+                sys.rectCurrent = sys.rectStart;
+                draw2DGridSelector();
+            });
+
+            canvas.addEventListener('pointermove', (e) => {
+                if (!sys.totalChunks) return;
+                const coords = pointerToGridCoords(e.clientX, e.clientY);
+                const { cols, total } = getGridGeometry();
+                const idx = Math.min(total - 1, coords.row * cols + coords.col);
+
+                tooltip.style.display = 'block';
+                if (sys.isDraggingRect && sys.rectStart) {
+                    sys.rectCurrent = coords;
+                    const c1 = Math.min(sys.rectStart.col, coords.col) + 1;
+                    const c2 = Math.max(sys.rectStart.col, coords.col) + 1;
+                    const r1 = Math.min(sys.rectStart.row, coords.row) + 1;
+                    const r2 = Math.max(sys.rectStart.row, coords.row) + 1;
+                    tooltip.innerText = `Rectángulo: Filas ${r1}-${r2}, Cols ${c1}-${c2}`;
+                    draw2DGridSelector();
+                } else {
+                    tooltip.innerText = `Fila ${coords.row + 1}, Col ${coords.col + 1} (Blk #${idx})`;
+                }
+            });
+
+            canvas.addEventListener('pointerup', (e) => {
+                if (!sys.isDraggingRect || !sys.rectStart || !sys.totalChunks) return;
+                sys.isDraggingRect = false;
+                const endCoords = pointerToGridCoords(e.clientX, e.clientY);
+                const { cols, total } = getGridGeometry();
+
+                const minCol = Math.min(sys.rectStart.col, endCoords.col);
+                const maxCol = Math.max(sys.rectStart.col, endCoords.col);
+                const minRow = Math.min(sys.rectStart.row, endCoords.row);
+                const maxRow = Math.max(sys.rectStart.row, endCoords.row);
+
+                // Determinar modo efectivo (teclas modificadoras o botón activo)
+                let effectiveMode = sys.rectMode;
+                if (e.shiftKey || e.ctrlKey) effectiveMode = 'add';
+                if (e.altKey) effectiveMode = 'sub';
+
+                const nextSet = (effectiveMode === 'replace') ? new Set() : new Set(sys.activeSet);
+
+                for (let r = minRow; r <= maxRow; r++) {
+                    for (let c = minCol; c <= maxCol; c++) {
+                        const idx = r * cols + c;
+                        if (idx >= 0 && idx < total) {
+                            if (effectiveMode === 'sub') {
+                                nextSet.delete(idx);
+                            } else {
+                                nextSet.add(idx);
+                            }
+                        }
+                    }
+                }
+
+                if (nextSet.size === 0) {
+                    // Evitar cola vacía
+                    nextSet.add(Math.min(total - 1, minRow * cols + minCol));
+                }
+
+                sys.activeIndices = Array.from(nextSet).sort((a, b) => a - b);
+                sys.activeIdx = 0;
+                setTxMode('priority', true);
+                updateTimelineBounds();
+                syncCustomFramesInput();
+                renderCurrentActiveFrame();
+
+                // Si estaba en pausa, iniciar transmisión automáticamente sobre el área 2D seleccionada
+                if (!sys.running) {
+                    togglePlay();
+                }
+                document.getElementById('status').innerText = `● ÁREA 2D EN TRANSMISIÓN (${sys.activeIndices.length} BLKS)`;
+            });
+
+            canvas.addEventListener('pointerleave', () => {
+                if (!sys.isDraggingRect) tooltip.style.display = 'none';
+            });
+        }();
+
+        // =========================================================================
+        // 4. ESCUCHA ACÚSTICA WEB AUDIO API + FFT (DETECTOR BEEP-BOOP DEL MÓVIL)
+        // =========================================================================
+        async function toggleAcousticListener() {
+            const btn = document.getElementById('btn-audio-listen');
+            const lbl = document.getElementById('fft-freq-lbl');
+
+            if (sys.audioListening) {
+                stopAcousticListener();
+                btn.classList.remove('listening');
+                btn.innerText = "🎙️ ACTIVAR ESCUCHA AUDIO ACK";
+                lbl.innerText = "MIC OFF";
+                return;
+            }
+
+            try {
+                sys.audioStream = await navigator.mediaDevices.getUserMedia({
+                    audio: {
+                        echoCancellation: false,
+                        noiseSuppression: false,
+                        autoGainControl: false
+                    }
+                });
+                const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+                sys.audioCtx = new AudioContextClass();
+                const source = sys.audioCtx.createMediaStreamSource(sys.audioStream);
+                sys.analyser = sys.audioCtx.createAnalyser();
+                sys.analyser.fftSize = 2048;
+                sys.analyser.smoothingTimeConstant = 0.25;
+                source.connect(sys.analyser);
+
+                sys.audioListening = true;
+                sys.toneHistory = [];
+                btn.classList.add('listening');
+                btn.innerText = "🛑 DETENER ESCUCHA AUDIO ACK";
+                lbl.innerText = "ESCUCHANDO...";
+                scanAcousticFFTLoop();
+            } catch (err) {
+                alert("No se pudo acceder al micrófono para Audio ACK: " + err.message);
+            }
+        }
+
+        function stopAcousticListener() {
+            sys.audioListening = false;
+            cancelAnimationFrame(sys.fftLoopId);
+            if (sys.audioStream) {
+                sys.audioStream.getTracks().forEach(t => t.stop());
+                sys.audioStream = null;
+            }
+            if (sys.audioCtx) {
+                sys.audioCtx.close().catch(() => { });
+                sys.audioCtx = null;
+            }
+        }
+
+        function scanAcousticFFTLoop() {
+            if (!sys.audioListening || !sys.analyser) return;
+
+            const bufferLen = sys.analyser.frequencyBinCount;
+            const data = new Uint8Array(bufferLen);
+            sys.analyser.getByteFrequencyData(data);
+
+            const sampleRate = sys.audioCtx.sampleRate;
+            const binHz = sampleRate / sys.analyser.fftSize;
+
+            // Buscar pico dominante en la banda de señalización acústica (1100 Hz - 3600 Hz)
+            const minBin = Math.floor(1100 / binHz);
+            const maxBin = Math.min(bufferLen - 1, Math.ceil(3600 / binHz));
+
+            let peakVal = 0;
+            let peakBin = minBin;
+            let sumVal = 0;
+            for (let b = minBin; b <= maxBin; b++) {
+                const v = data[b];
+                sumVal += v;
+                if (v > peakVal) {
+                    peakVal = v;
+                    peakBin = b;
+                }
+            }
+            const avgNoise = sumVal / (maxBin - minBin + 1);
+            const dominantFreq = Math.round(peakBin * binHz);
+
+            // Dibujar espectrograma compacto
+            const canvas = document.getElementById('audio-fft-canvas');
+            const ctx = canvas.getContext('2d');
+            const w = canvas.width = canvas.clientWidth || 160;
+            const h = canvas.height = canvas.clientHeight || 36;
+            ctx.clearRect(0, 0, w, h);
+
+            const bars = 32;
+            const step = Math.max(1, Math.floor((maxBin - minBin) / bars));
+            for (let i = 0; i < bars; i++) {
+                const val = data[minBin + i * step] / 255;
+                ctx.fillStyle = val > 0.6 ? '#00ff41' : '#2f81f7';
+                const bh = val * h;
+                ctx.fillRect(i * (w / bars), h - bh, (w / bars) - 1, bh);
+            }
+
+            // Si el pico supera claramente el piso de ruido ambiental (SNR alto)
+            const now = performance.now();
+            if (peakVal > 145 && peakVal > avgNoise * 2.2) {
+                document.getElementById('fft-freq-lbl').innerText = `${dominantFreq} Hz`;
+                sys.toneHistory.push({ f: dominantFreq, t: now });
+                sys.toneHistory = sys.toneHistory.filter(item => (now - item.t) <= 1400);
+                evaluateAcousticSignatures();
+            }
+
+            sys.fftLoopId = requestAnimationFrame(scanAcousticFFTLoop);
+        }
+
+        function evaluateAcousticSignatures() {
+            const tones = sys.toneHistory;
+            if (tones.length < 4) return;
+
+            const hasFreqNear = (target, tol = 75) => tones.some(x => Math.abs(x.f - target) <= tol);
+
+            // 1. Firma Acústica de ÉXITO 100% (2400 Hz + 3200 Hz)
+            if (hasFreqNear(2400) && hasFreqNear(3200)) {
+                sys.toneHistory = [];
+                if (sys.running) togglePlay();
+                triggerFlashAck(0, "🔊 100% COMPLETADO (AUDIO ACK)");
+                document.getElementById('status').innerText = "● COMPLETADO VÍA AUDIO ACK";
+                return;
+            }
+
+            // 2. Firma Acústica de ESTANCAMIENTO / ABRIR CÁMARA QR (1800 Hz + 1350 Hz)
+            if (hasFreqNear(1800) && hasFreqNear(1350)) {
+                sys.toneHistory = [];
+                const modalOpen = document.getElementById('ack-modal').classList.contains('open');
+                if (!modalOpen) {
+                    openAckScanner();
+                }
+                return;
+            }
+
+            // 3. Firma Acústica de SECTOR FALTANTE (Preámbulo 2100 Hz + Sector Q1..Q4: 1500, 1700, 1900, 2250 Hz)
+            if (hasFreqNear(2100)) {
+                const sectorMap = [
+                    { f: 1500, start: 0.0, end: 0.25, name: "Q1 (0-25%)" },
+                    { f: 1700, start: 0.25, end: 0.50, name: "Q2 (25-50%)" },
+                    { f: 1900, start: 0.50, end: 0.75, name: "Q3 (50-75%)" },
+                    { f: 2250, start: 0.75, end: 1.0, name: "Q4 (75-100%)" }
+                ];
+                for (const sec of sectorMap) {
+                    if (hasFreqNear(sec.f, 65)) {
+                        sys.toneHistory = [];
+                        selectFractionRange(sec.start, sec.end);
+                        triggerFlashAck(sys.activeIndices.length, `🎵 AUDIO ACK: SECTOR ${sec.name}`);
+                        if (!sys.running) togglePlay();
+                        break;
+                    }
+                }
+            }
+        }
+
+        // =========================================================================
+        // 5. MAPA DE CALOR LINEAL INTERACTIVO Y HERRAMIENTAS DE CUADRATURA
+        // =========================================================================
         function drawTimelineHeatmap() {
             const canvas = document.getElementById('timeline-heatmap');
             if (!canvas) return;
             const dpr = window.devicePixelRatio || 1;
             const w = (canvas.clientWidth || 400) * dpr;
-            const h = (canvas.clientHeight || 10) * dpr;
+            const h = (canvas.clientHeight || 22) * dpr;
             if (canvas.width !== w || canvas.height !== h) {
                 canvas.width = w;
                 canvas.height = h;
@@ -1262,21 +1857,193 @@
                     }
                 }
                 if (sys.txMode === 'priority') {
-                    // En modo prioritario: Ámbar = pendiente en cola prioritaria, Verde oscuro = ya recibido/confirmado
                     ctx.fillStyle = hasActive ? '#ff9e00' : '#0b4f22';
                 } else {
-                    ctx.fillStyle = '#008f26';
+                    ctx.fillStyle = '#00a82d';
                 }
-                ctx.fillRect(c * sliceW, 0, Math.ceil(sliceW), h);
+                ctx.fillRect(c * sliceW, 0, Math.ceil(sliceW - (cols < 120 ? 1 : 0)), h);
             }
 
-            // Cursor del bloque actual sobre el espectro total
             if (sys.activeIndices.length > 0) {
                 const currentChunk = sys.activeIndices[sys.activeIdx] || 0;
                 const cx = (currentChunk / sys.totalChunks) * w;
                 ctx.fillStyle = '#ffffff';
                 ctx.fillRect(Math.max(0, cx - 2 * dpr), 0, 4 * dpr, h);
             }
+        }
+
+        !function initInteractiveHeatmap() {
+            const canvas = document.getElementById('timeline-heatmap');
+            const tooltip = document.getElementById('heatmap-tooltip');
+
+            function clientXToChunkIndex(clientX) {
+                const rect = canvas.getBoundingClientRect();
+                const ratio = Math.max(0, Math.min(0.9999, (clientX - rect.left) / rect.width));
+                return Math.floor(ratio * sys.totalChunks);
+            }
+
+            function applyBrushAt(idx) {
+                if (!sys.totalChunks || idx < 0 || idx >= sys.totalChunks) return;
+                if (sys.txMode === 'full') {
+                    sys.txMode = 'priority';
+                    document.getElementById('tx-mode-full').classList.remove('active');
+                    document.getElementById('tx-mode-priority').classList.add('active');
+                }
+
+                const radius = sys.totalChunks > 500 ? Math.ceil(sys.totalChunks / 200) : 0;
+                for (let k = Math.max(0, idx - radius); k <= Math.min(sys.totalChunks - 1, idx + radius); k++) {
+                    if (sys.paintAction) {
+                        sys.activeSet.add(k);
+                    } else if (sys.activeSet.size > 1) {
+                        sys.activeSet.delete(k);
+                    }
+                }
+
+                sys.activeIndices = Array.from(sys.activeSet).sort((a, b) => a - b);
+                sys.activeIdx = Math.min(sys.activeIdx, Math.max(0, sys.activeIndices.length - 1));
+                updateTimelineBounds();
+                syncCustomFramesInput();
+                renderCurrentActiveFrame();
+            }
+
+            canvas.addEventListener('pointerdown', (e) => {
+                if (!sys.totalChunks) return;
+                const idx = clientXToChunkIndex(e.clientX);
+
+                if (e.shiftKey) {
+                    if (!sys.activeSet.has(idx)) {
+                        sys.activeSet.add(idx);
+                        sys.activeIndices = Array.from(sys.activeSet).sort((a, b) => a - b);
+                    }
+                    sys.activeIdx = sys.activeIndices.indexOf(idx);
+                    updateTimelineBounds();
+                    renderCurrentActiveFrame();
+                    return;
+                }
+
+                sys.isPaintingHeatmap = true;
+                if (sys.txMode === 'full') {
+                    sys.activeSet.clear();
+                    sys.paintAction = true;
+                } else {
+                    sys.paintAction = !sys.activeSet.has(idx);
+                }
+                applyBrushAt(idx);
+            });
+
+            canvas.addEventListener('pointermove', (e) => {
+                if (!sys.totalChunks) return;
+                const rect = canvas.getBoundingClientRect();
+                const idx = clientXToChunkIndex(e.clientX);
+                const isPriority = sys.activeSet.has(idx);
+
+                tooltip.style.display = 'block';
+                tooltip.style.left = `${Math.max(45, Math.min(rect.width - 45, e.clientX - rect.left))}px`;
+                tooltip.innerText = `Blk #${idx} [${isPriority ? (sys.txMode === 'priority' ? 'En Cola Prioritaria' : 'Activo') : 'Confirmado'}]`;
+
+                if (sys.isPaintingHeatmap) {
+                    applyBrushAt(idx);
+                }
+            });
+
+            window.addEventListener('pointerup', () => {
+                sys.isPaintingHeatmap = false;
+            });
+
+            canvas.addEventListener('pointerleave', () => {
+                tooltip.style.display = 'none';
+            });
+        }();
+
+        function squareToStart() {
+            if (!sys.totalChunks) return;
+            sys.activeIdx = 0;
+            sys.tickCount = 0;
+            updateTimelineBounds();
+            renderHeaderFrame();
+            document.getElementById('status').innerText = "● COLA CUADRADA AL INICIO [SYN]";
+        }
+
+        function fillSmallGaps(maxGap = 3) {
+            if (!sys.totalChunks || sys.activeIndices.length < 2) return;
+            const sorted = [...sys.activeIndices].sort((a, b) => a - b);
+            const filled = new Set(sorted);
+
+            for (let i = 0; i < sorted.length - 1; i++) {
+                const gap = sorted[i + 1] - sorted[i] - 1;
+                if (gap > 0 && gap <= maxGap) {
+                    for (let k = sorted[i] + 1; k < sorted[i + 1]; k++) {
+                        filled.add(k);
+                    }
+                }
+            }
+
+            sys.activeIndices = Array.from(filled).sort((a, b) => a - b);
+            sys.activeIdx = 0;
+            setTxMode('priority', true);
+            updateTimelineBounds();
+            syncCustomFramesInput();
+            renderCurrentActiveFrame();
+            document.getElementById('status').innerText = `● HUECOS RELLENADOS (${sys.activeIndices.length} BLKS)`;
+        }
+
+        function expandActiveIntervals(padding = 2) {
+            if (!sys.totalChunks || sys.activeIndices.length === 0) return;
+            const expanded = new Set(sys.activeIndices);
+            for (const idx of sys.activeIndices) {
+                for (let d = -padding; d <= padding; d++) {
+                    const target = idx + d;
+                    if (target >= 0 && target < sys.totalChunks) {
+                        expanded.add(target);
+                    }
+                }
+            }
+            sys.activeIndices = Array.from(expanded).sort((a, b) => a - b);
+            setTxMode('priority', true);
+            updateTimelineBounds();
+            syncCustomFramesInput();
+            renderCurrentActiveFrame();
+            document.getElementById('status').innerText = `● BORDES EXPANDIDOS ±${padding} (${sys.activeIndices.length} BLKS)`;
+        }
+
+        function shiftActiveQueue(offset) {
+            if (!sys.totalChunks || sys.activeIndices.length === 0) return;
+
+            if (sys.txMode === 'full' || sys.activeIndices.length === sys.totalChunks) {
+                sys.activeIdx = (sys.activeIdx + offset + sys.activeIndices.length * 10) % sys.activeIndices.length;
+                updateTimelineBounds();
+                renderCurrentActiveFrame();
+                return;
+            }
+
+            const shifted = new Set();
+            for (const idx of sys.activeIndices) {
+                const nextIdx = (idx + offset + sys.totalChunks * 10) % sys.totalChunks;
+                shifted.add(nextIdx);
+            }
+            sys.activeIndices = Array.from(shifted).sort((a, b) => a - b);
+            sys.activeIdx = Math.min(sys.activeIdx, sys.activeIndices.length - 1);
+            updateTimelineBounds();
+            syncCustomFramesInput();
+            renderCurrentActiveFrame();
+            document.getElementById('status').innerText = `● COLA DESPLAZADA (${offset > 0 ? '+' : ''}${offset} FRAMES)`;
+        }
+
+        function selectFractionRange(startRatio, endRatio) {
+            if (!sys.totalChunks) return;
+            const startIdx = Math.max(0, Math.floor(sys.totalChunks * startRatio));
+            const endIdx = Math.min(sys.totalChunks - 1, Math.ceil(sys.totalChunks * endRatio) - 1);
+            const sub = [];
+            for (let i = startIdx; i <= endIdx; i++) sub.push(i);
+            if (sub.length === 0) sub.push(0);
+
+            sys.activeIndices = sub;
+            sys.activeIdx = 0;
+            setTxMode('priority', true);
+            updateTimelineBounds();
+            syncCustomFramesInput();
+            renderCurrentActiveFrame();
+            document.getElementById('status').innerText = `● TRAMO ${startIdx}-${endIdx} SELECCIONADO`;
         }
 
         function updateTimelineBounds() {
@@ -1286,9 +2053,9 @@
             sys.activeSet = new Set(sys.activeIndices);
             document.getElementById('mt-active').innerText = `${sys.activeIndices.length} / ${sys.totalChunks}`;
             drawTimelineHeatmap();
+            draw2DGridSelector();
         }
 
-        // --- TESTIGO DE PULSO LED ---
         function triggerPulseLed() {
             const led = document.getElementById('pulse-led');
             sys.pulseToggle = !sys.pulseToggle;
@@ -1304,6 +2071,7 @@
             document.getElementById('lbl-chunk-idx').innerText = "HEADER";
             updateZenHud("HEADER");
             drawTimelineHeatmap();
+            draw2DGridSelector();
         }
 
         function renderCurrentActiveFrame() {
@@ -1317,6 +2085,7 @@
             document.getElementById('timeline-scrubber').value = sys.activeIdx;
             updateZenHud(`BLK #${chunkIdx}`);
             drawTimelineHeatmap();
+            draw2DGridSelector();
         }
 
         function updateZenHud(frameLabel) {
@@ -1325,7 +2094,6 @@
                 `${frameLabel} | COLA ${sys.activeIdx + 1}/${sys.activeIndices.length} | ${sys.fps} FPS | ${modeLabel}`;
         }
 
-        // --- CONTROL DE CADENCIA Y REPRODUCCIÓN ---
         function setFPS(fpsVal, fromSlider = false) {
             const fps = Math.max(2, Math.min(30, parseInt(fpsVal, 10) || 10));
             sys.fps = fps;
@@ -1414,23 +2182,27 @@
                 sys.activeIndices = Array.from({ length: sys.totalChunks }, (_, i) => i);
                 sys.activeIdx = 0;
                 updateTimelineBounds();
+                syncCustomFramesInput();
                 renderCurrentActiveFrame();
             } else {
                 drawTimelineHeatmap();
+                draw2DGridSelector();
             }
         }
 
         // =========================================================================
-        // 3. PROTOCOLO DE HANDSHAKE INVERSO + FLASH ACK A PANTALLA COMPLETA
+        // 6. PROTOCOLO DE HANDSHAKE INVERSO + FLASH ACK A PANTALLA COMPLETA
         // =========================================================================
-        function triggerFlashAck(missingCount) {
+        function triggerFlashAck(missingCount, customTitle = "✅ ACK SINCRONIZADO") {
             const flash = document.getElementById('flash-ack-overlay');
-            document.getElementById('flash-ack-detail').innerText =
-                `Retransmitiendo exclusivamente ${missingCount} bloques faltantes en bucle rápido`;
+            document.getElementById('flash-ack-title').innerText = customTitle;
+            document.getElementById('flash-ack-detail').innerText = missingCount > 0
+                ? `Retransmitiendo exclusivamente ${missingCount} bloques faltantes en bucle rápido`
+                : `Recepción confirmada al 100% — Emisión finalizada`;
             flash.classList.add('trigger');
             setTimeout(() => {
                 flash.classList.remove('trigger');
-            }, 950);
+            }, 1050);
         }
 
         function applyMissingBitmap(b64Bitmap, total) {
@@ -1502,7 +2274,7 @@
             sys.activeIdx = 0;
             setTxMode('priority', true);
             updateTimelineBounds();
-            document.getElementById('custom-frames').value = missing.length <= 40 ? missing.join(',') : `[BITMAP: ${missing.length} bloques faltantes]`;
+            syncCustomFramesInput();
             renderCurrentActiveFrame();
             triggerFlashAck(missing.length);
             return true;
@@ -1558,7 +2330,7 @@
         }
 
         // =========================================================================
-        // 4. MODO ZEN Y OCULTAMIENTO AUTOMÁTICO POR INACTIVIDAD (3 SEGUNDOS)
+        // 7. MODO ZEN Y OCULTAMIENTO AUTOMÁTICO POR INACTIVIDAD (3 SEGUNDOS)
         // =========================================================================
         function resetZenIdleTimer() {
             if (!document.body.classList.contains('zen-mode')) return;
@@ -1603,6 +2375,14 @@
                 document.body.classList.remove('zen-idle');
                 document.body.classList.remove('zen-mode');
             }
+        });
+
+        window.addEventListener('resize', () => {
+            drawTimelineHeatmap();
+            draw2DGridSelector();
+        });
+        window.addEventListener('DOMContentLoaded', () => {
+            draw2DGridSelector();
         });
     </script>
 </body>
