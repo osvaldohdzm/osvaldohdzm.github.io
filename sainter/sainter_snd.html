@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SAINTER V3.5 - OPTICAL & ACOUSTIC DATA CASTER (EMISOR)</title>
+    <title>SAINTER V4.5 - EMISOR FOUNTAIN XOR & MÓDEM ACÚSTICO</title>
     <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
     <style>
         :root {
@@ -269,7 +269,7 @@
             width: 100%;
         }
 
-        /* --- PROTOCOL CONFIG (MTU + GZIP) --- */
+        /* --- PROTOCOL CONFIG (MTU + GZIP/ZSTD) --- */
         .config-row {
             display: flex;
             flex-direction: column;
@@ -389,8 +389,14 @@
             z-index: 15;
         }
 
-        /* --- RECEPCIÓN ACÚSTICA FFT (AUDIO ACK) --- */
-        .acoustic-panel {
+        /* --- RUTAS DE RETORNO AISLADAS (ÓPTICO Y ACÚSTICO AUTÓNOMO) --- */
+        .channels-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        .channel-card {
             background: #070a0f;
             border: 1px solid var(--border);
             border-radius: 6px;
@@ -400,20 +406,71 @@
             gap: 8px;
         }
 
-        .acoustic-row {
-            display: grid;
-            grid-template-columns: 1.2fr 1fr;
-            gap: 8px;
-            align-items: center;
+        .channel-card.optical-route {
+            border-color: rgba(240, 173, 78, 0.35);
+        }
+
+        .channel-card.acoustic-route {
+            border-color: rgba(47, 129, 247, 0.45);
         }
 
         #audio-fft-canvas {
             width: 100%;
-            height: 36px;
+            height: 34px;
             background: #010409;
             border: 1px solid var(--border);
             border-radius: 4px;
             display: block;
+        }
+
+        /* Indicadores progresivos de estado acústico (Fase 1, Fase 2, Fase 3) */
+        .sync-phases-box {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            margin-top: 2px;
+        }
+
+        .sync-phase-row {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            font-size: 0.65rem;
+            color: var(--dim);
+            padding: 4px 7px;
+            border-radius: 4px;
+            background: #04070b;
+            border: 1px solid #161c26;
+        }
+
+        .sync-phase-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: #263042;
+            flex-shrink: 0;
+        }
+
+        .sync-phase-row.current {
+            color: #fff;
+            border-color: var(--blue);
+            background: rgba(47, 129, 247, 0.16);
+            font-weight: bold;
+        }
+
+        .sync-phase-row.current .sync-phase-dot {
+            background: var(--blue);
+            box-shadow: 0 0 6px var(--blue);
+        }
+
+        .sync-phase-row.done {
+            color: var(--accent);
+            border-color: rgba(0, 255, 65, 0.35);
+            background: rgba(0, 255, 65, 0.06);
+        }
+
+        .sync-phase-row.done .sync-phase-dot {
+            background: var(--accent);
         }
 
         /* --- HERRAMIENTAS DE CUADRATURA, RELLENO Y DESPLAZAMIENTO --- */
@@ -818,15 +875,15 @@
             SUELTA EL ARCHIVO EN CUALQUIER LUGAR
         </div>
         <div style="font-size: 0.85rem; color: var(--text); margin-top: 6px;">
-            Empaquetado automático con compresión GZIP y verificación SHA-256
+            Empaquetado binario 8-bit con Códigos Fountain (XOR) y SHA-256
         </div>
     </div>
 
     <!-- FLASH VERDE DE CONFIRMACIÓN A PANTALLA COMPLETA (FLASH ACK) -->
     <div id="flash-ack-overlay">
-        <div style="font-size: 3.5rem; font-weight: 900;" id="flash-ack-title">✅ ACK SINCRONIZADO</div>
+        <div style="font-size: 3.5rem; font-weight: 900;" id="flash-ack-title">✅ COLA RECONFIGURADA</div>
         <div id="flash-ack-detail" style="font-size: 1.15rem; font-weight: bold; margin-top: 8px;">
-            Cola prioritaria reconfigurada
+            Cola prioritaria sincronizada
         </div>
     </div>
 
@@ -837,7 +894,7 @@
         <button class="btn" onclick="stepFrame(1)" title="Bloque Siguiente (Flecha Der)">⏭</button>
         <button class="btn" onclick="adjustFPS(2)" title="Incrementar Cadencia (FPS +)">+FPS</button>
         <button class="btn" onclick="adjustFPS(-2)" title="Decrementar Cadencia (FPS -)">-FPS</button>
-        <button class="btn btn-reverse" onclick="exitZen(); openAckScanner();" title="Escanear ACK (Tecla A)">📷</button>
+        <button class="btn btn-reverse" onclick="exitZen(); openAckScanner();" title="Retorno Óptico (Tecla A)">📷</button>
         <button class="btn" onclick="exitZen()" style="color: var(--danger);" title="Salir Modo Zen (Z / Esc)">✖</button>
     </div>
     <div class="zen-hud" id="zen-hud">FRAME 0 / 0 | 10 FPS | CARRUSEL COMPLETO</div>
@@ -845,18 +902,18 @@
     <!-- HEADER -->
     <div class="header">
         <div class="brand">
-            SAINTER//V3.5 <span class="badge">2D BOX SELECT + AUDIO ACK + QR</span>
+            SAINTER//V4.5 <span class="badge">8-BIT BYTE MODE + FOUNTAIN XOR</span>
         </div>
-        <div id="status" style="font-size: 0.7rem; color: var(--accent);">● READY_FOR_PAYLOAD</div>
+        <div id="status" style="font-size: 0.7rem; color: var(--accent);">● LISTO PARA CARGA</div>
     </div>
 
     <!-- DASHBOARD PRINCIPAL -->
     <div class="dashboard">
-        <!-- COLUMNA IZQUIERDA: ORIGEN, PROTOCOLO, RETORNO ACÚSTICO Y ÓPTICO -->
+        <!-- COLUMNA IZQUIERDA: ORIGEN, PROTOCOLO Y CANALES DE RETORNO AISLADOS -->
         <div class="card">
             <h3 class="card-title">
-                <span>1. Ingesta & Empaquetado Óptico</span>
-                <span id="comp-badge" style="color: var(--dim); font-size: 0.65rem;">GZIP: AUTO</span>
+                <span>1. Ingesta & Empaquetado Binario 8-Bit</span>
+                <span id="comp-badge" style="color: var(--dim); font-size: 0.65rem;">8-BIT + COMP: AUTO</span>
             </h3>
 
             <div class="selector">
@@ -868,7 +925,7 @@
                 <div id="area-file" onclick="document.getElementById('file-input').click()">
                     <span style="font-size: 1.5rem; margin-bottom: 3px;">📦</span>
                     <span style="font-weight: bold; font-size: 0.75rem;">ARRASTRA EN CUALQUIER PARTE DE LA VENTANA O HAZ CLIC</span>
-                    <span style="font-size: 0.64rem; color: var(--dim); margin-top: 2px;">Compresión GZIP nativa + codificación Hex sin Base64</span>
+                    <span style="font-size: 0.64rem; color: var(--dim); margin-top: 2px;">Encabezado binario de 4 bytes + Códigos Fountain (LT XOR) sin Hex</span>
                 </div>
                 <div id="area-text-wrap">
                     <textarea id="area-text" placeholder="Pega aquí el contenido o código para transmitir por canal óptico..."></textarea>
@@ -877,11 +934,11 @@
             </div>
             <input type="file" id="file-input" style="display: none">
 
-            <!-- BARRA DE PROGRESO INDETERMINADA PARA GZIP Y SHA-256 -->
+            <!-- BARRA DE PROGRESO INDETERMINADA PARA COMPRESIÓN Y SHA-256 -->
             <div class="async-loader-wrap" id="async-loader">
                 <div style="display: flex; justify-content: space-between; font-size: 0.68rem; color: var(--accent);">
-                    <span id="async-loader-lbl">Calculando SHA-256 y comprimiendo GZIP...</span>
-                    <span>ASYNC WORKER</span>
+                    <span id="async-loader-lbl">Calculando SHA-256 y comprimiendo...</span>
+                    <span>PROCESANDO</span>
                 </div>
                 <div class="async-loader-track">
                     <div class="async-loader-bar"></div>
@@ -891,18 +948,18 @@
             <!-- CONFIGURACIÓN DE MTU DINÁMICO Y COMPRESIÓN -->
             <div class="config-row">
                 <div class="config-label">
-                    <span>MTU DINÁMICO (PAYLOAD POR FRAME)</span>
-                    <b id="mtu-lbl" style="color: var(--accent);">350 Bytes (Estándar)</b>
+                    <span>MTU DINÁMICO (MODO 8-BIT SIN PENALIZACIÓN HEX)</span>
+                    <b id="mtu-lbl" style="color: var(--accent);">500 Bytes (Óptimo 8-Bit)</b>
                 </div>
                 <div class="preset-group">
-                    <button class="preset-btn" id="mtu-150" onclick="setMTU(150)">150B Resiliente</button>
-                    <button class="preset-btn active" id="mtu-350" onclick="setMTU(350)">350B Estándar</button>
-                    <button class="preset-btn" id="mtu-600" onclick="setMTU(600)">600B Alta Densidad</button>
+                    <button class="preset-btn" id="mtu-250" onclick="setMTU(250)">250B Resiliente</button>
+                    <button class="preset-btn active" id="mtu-500" onclick="setMTU(500)">500B Óptimo</button>
+                    <button class="preset-btn" id="mtu-700" onclick="setMTU(700)">700B Alta Densidad</button>
                 </div>
             </div>
 
             <div class="toggle-row">
-                <span>Compresión Previa <b>CompressionStream (GZIP)</b></span>
+                <span>Pre-compresión Estructurada + <b>Gotas Fountain XOR</b></span>
                 <input type="checkbox" id="chk-gzip" checked onchange="reprocessCurrentSource()" style="accent-color: var(--accent); width: 17px; height: 17px; cursor: pointer;">
             </div>
 
@@ -916,30 +973,58 @@
                 <div>ACTIVOS: <b id="mt-active">0 blks</b></div>
             </div>
 
-            <!-- CANAL DE RETORNO HÍBRIDO: ÓPTICO (WEBCAM QR) + ACÚSTICO (MICRÓFONO FFT) -->
+            <!-- MODOS DE FLUJO (CARRUSEL, FOUNTAIN XOR SIN ESTADO, PRIORITARIO) -->
             <h3 class="card-title" style="margin-top: 2px;">
-                <span>2. Retorno Híbrido: Óptico (QR) + Acústico (Audio ACK)</span>
+                <span>2. Algoritmo de Flujo & Vías de Sincronización</span>
             </h3>
 
             <div class="preset-group">
-                <button class="preset-btn active" id="tx-mode-full" onclick="setTxMode('full')">🔄 Carrusel Completo</button>
-                <button class="preset-btn" id="tx-mode-priority" onclick="setTxMode('priority')">⚡ Bucle Faltantes (Priority)</button>
+                <button class="preset-btn active" id="tx-mode-full" onclick="setTxMode('full')" title="Emite bloques secuenciales intercalando gotas de paridad XOR">🔄 Sistemático + XOR</button>
+                <button class="preset-btn" id="tx-mode-fountain" onclick="setTxMode('fountain')" title="Proyecta un flujo infinito sin estado de combinaciones lineales XOR (resuelve el problema del coleccionista de cupones)">🌊 Fountain Puro (XOR)</button>
+                <button class="preset-btn" id="tx-mode-priority" onclick="setTxMode('priority')" title="Retransmite únicamente los bloques o macro-sectores faltantes">⚡ Bucle Prioritario</button>
             </div>
 
-            <div class="acoustic-panel">
-                <div class="config-label">
-                    <span>ESCUCHA ACÚSTICA FFT (DETECTA BEEP-BOOP DEL MÓVIL)</span>
-                    <b id="fft-freq-lbl" style="color: #79c0ff;">MIC OFF</b>
-                </div>
-                <div class="acoustic-row">
-                    <button class="btn btn-mic" id="btn-audio-listen" onclick="toggleAcousticListener()">
-                        🎙️ ACTIVAR ESCUCHA AUDIO ACK
+            <div class="channels-grid">
+                <!-- CANAL 1: RETORNO ÓPTICO (BITMAP PLANO 664B) -->
+                <div class="channel-card optical-route">
+                    <div class="config-label">
+                        <b style="color: var(--warn);">📷 Retorno Óptico (Cámara QR)</b>
+                    </div>
+                    <div style="font-size: 0.65rem; color: var(--dim); line-height: 1.3;">
+                        Decodifica el Bitmap Plano proyectado en la pantalla del teléfono en una sola lectura.
+                    </div>
+                    <button class="btn btn-reverse" onclick="openAckScanner()" id="btn-scan-ack" disabled style="margin-top: auto;">
+                        📷 Abrir Lector QR [A]
                     </button>
-                    <canvas id="audio-fft-canvas" title="Espectrograma FFT en tiempo real (1350 Hz - 3200 Hz)"></canvas>
                 </div>
-                <button class="btn btn-reverse" onclick="openAckScanner()" id="btn-scan-ack" disabled>
-                    📷 ESCANEAR QR DE FALTANTES POR WEBCAM [A]
-                </button>
+
+                <!-- CANAL 2: RETORNO ACÚSTICO AUTÓNOMO (MACRO-SECTORES S00..S31) -->
+                <div class="channel-card acoustic-route">
+                    <div class="config-label">
+                        <b style="color: #79c0ff;">🔊 Retorno Acústico (Sonido)</b>
+                        <span id="fft-freq-lbl" style="color: #79c0ff; font-weight: bold;">PASIVO</span>
+                    </div>
+                    <canvas id="audio-fft-canvas" title="Analizador de espectro acústico continuo"></canvas>
+                    <button class="btn btn-mic" id="btn-audio-listen" onclick="toggleAcousticListener()">
+                        🎙️ Escucha Continua Activa
+                    </button>
+                </div>
+            </div>
+
+            <!-- ESTADOS VISUALES PROGRESIVOS UNIFICADOS DURANTE TRANSFERENCIA ACÚSTICA -->
+            <div class="sync-phases-box" id="sender-acoustic-phases">
+                <div class="sync-phase-row" id="snd-phase-1">
+                    <span class="sync-phase-dot"></span>
+                    <span>Fase 1: «Negociando conexión...»</span>
+                </div>
+                <div class="sync-phase-row" id="snd-phase-2">
+                    <span class="sync-phase-dot"></span>
+                    <span id="snd-phase-2-txt">Fase 2: «Transmitiendo bloques faltantes...»</span>
+                </div>
+                <div class="sync-phase-row" id="snd-phase-3">
+                    <span class="sync-phase-dot"></span>
+                    <span>Fase 3: «Confirmación recibida de la laptop»</span>
+                </div>
             </div>
 
             <!-- PANEL DE ACCIONES RÁPIDAS (CUADRATURA, RELLENO Y DESPLAZAMIENTO) -->
@@ -962,7 +1047,7 @@
             </div>
 
             <div style="display: flex; gap: 8px; align-items: center;">
-                <input type="text" id="custom-frames" placeholder="Rangos sincronizados (ej. 0, 4-12)"
+                <input type="text" id="custom-frames" placeholder="Macro-sectores (ej. S04,09,12) o rangos (0, 4-12)"
                     style="flex: 1; padding: 8px; background: #010409; border: 1px solid var(--border); color: var(--text); border-radius: 4px; font-family: inherit; font-size: 0.72rem;">
                 <button class="btn" onclick="applyCustomFrames()">APLICAR</button>
             </div>
@@ -1017,15 +1102,15 @@
             <div class="config-row">
                 <div class="config-label">
                     <span>CADENCIA DE EMISIÓN ÓPTICA</span>
-                    <b id="speed-lbl" style="color: var(--accent);">10 FPS (100 ms)</b>
+                    <b id="speed-lbl" style="color: var(--accent);">12 FPS (83 ms)</b>
                 </div>
                 <div class="preset-group">
-                    <button class="preset-btn" onclick="setFPS(5)">5 FPS</button>
-                    <button class="preset-btn active" id="fps-10" onclick="setFPS(10)">10 FPS</button>
-                    <button class="preset-btn" onclick="setFPS(15)">15 FPS</button>
-                    <button class="preset-btn" onclick="setFPS(25)">25 FPS</button>
+                    <button class="preset-btn" onclick="setFPS(8)">8 FPS</button>
+                    <button class="preset-btn active" id="fps-12" onclick="setFPS(12)">12 FPS</button>
+                    <button class="preset-btn" onclick="setFPS(16)">16 FPS</button>
+                    <button class="preset-btn" onclick="setFPS(22)">22 FPS</button>
                 </div>
-                <input type="range" id="fps-range" min="2" max="30" step="1" value="10"
+                <input type="range" id="fps-range" min="2" max="30" step="1" value="12"
                     style="width:100%; accent-color: var(--accent);" oninput="setFPS(this.value, true)">
             </div>
 
@@ -1043,31 +1128,31 @@
                 <span><b class="kbd">←</b> <b class="kbd">→</b> Paso</span>
                 <span><b class="kbd">[</b> <b class="kbd">]</b> Desplazar ±1</span>
                 <span><b class="kbd">Z</b> Zen</span>
-                <span><b class="kbd">A</b> ACK</span>
+                <span><b class="kbd">A</b> Retorno Óptico</span>
             </div>
         </div>
     </div>
 
-    <!-- MODAL ESCÁNER DE RETORNO ÓPTICO (REVERSE HANDSHAKE) -->
+    <!-- MODAL EXCLUSIVO DE RETORNO ÓPTICO (CÁMARA QR) -->
     <div class="modal-backdrop" id="ack-modal">
         <div class="modal-box">
             <div style="display: flex; justify-content: space-between; align-items: center;">
-                <b style="color: var(--accent); font-size: 0.85rem;">📷 ESCÁNER DE HANDSHAKE INVERSO (ACK/NACK)</b>
+                <b style="color: var(--accent); font-size: 0.85rem;">📷 Retorno Óptico (Bitmap Plano / QR)</b>
                 <button class="btn" onclick="closeAckScanner()" style="padding: 4px 10px; color: var(--danger);">✖ CERRAR</button>
             </div>
             <div style="font-size: 0.72rem; color: var(--dim);">
-                Apunta la pantalla del móvil con el <b>QR de Faltantes (fondo oscuro)</b> hacia la webcam de esta laptop para reconfigurar automáticamente la cola de retransmisión.
+                Apunta la pantalla del móvil con el <b>código QR de Bitmap Plano</b> hacia la cámara de esta laptop para reconfigurar todos los bloques pendientes en una sola lectura.
             </div>
             <div id="ack-reader"></div>
             <div id="ack-status" style="font-size: 0.75rem; color: var(--warn); text-align: center;">
-                Buscando código QR de retorno óptico...
+                Buscando código QR en cámara...
             </div>
         </div>
     </div>
 
     <script>
         // =========================================================================
-        // 1. MOTOR GENERADOR QR (VANILLA JS SIN DEPENDENCIAS EXTERNAS)
+        // 1. MOTOR GENERADOR QR MODO 8-BIT PURO (SIN BOM NI EXPANSIÓN UTF-8)
         // =========================================================================
         var QRCode;
         !function () {
@@ -1075,21 +1160,16 @@
                 this.mode = c.MODE_8BIT_BYTE;
                 this.data = a;
                 this.parsedData = [];
-                for (var b = [], d = 0, e = this.data.length; e > d; d++) {
-                    var f = this.data.charCodeAt(d);
-                    f > 65536 ? (b[0] = 240 | (1835008 & f) >>> 18, b[1] = 128 | (258048 & f) >>> 12, b[2] = 128 | (4032 & f) >>> 6, b[3] = 128 | 63 & f) :
-                        f > 2048 ? (b[0] = 224 | (61440 & f) >>> 12, b[1] = 128 | (4032 & f) >>> 6, b[2] = 128 | 63 & f) :
-                            f > 128 ? (b[0] = 192 | (1984 & f) >>> 6, b[1] = 128 | 63 & f) : b[0] = f;
-                    this.parsedData = this.parsedData.concat(b);
+                for (var d = 0, e = this.data.length; e > d; d++) {
+                    this.parsedData.push(this.data.charCodeAt(d) & 0xff);
                 }
-                this.parsedData.length != this.data.length && (this.parsedData.unshift(191), this.parsedData.unshift(187), this.parsedData.unshift(239));
             }
             function b(a, b) { this.typeNumber = a, this.errorCorrectLevel = b, this.modules = null, this.moduleCount = 0, this.dataCache = null, this.dataList = [] }
             function i(a, b) { if (void 0 == a.length) throw new Error(a.length + "/" + b); for (var c = 0; c < a.length && 0 == a[c];)c++; this.num = new Array(a.length - c + b); for (var d = 0; d < a.length - c; d++)this.num[d] = a[d + c] }
             function j(a, b) { this.totalCount = a, this.dataCount = b }
             function k() { this.buffer = [], this.length = 0 }
             function r(a, b) {
-                for (var c = 1, e = s(a), f = 0, g = l.length; g >= f; f++) {
+                for (var c = 1, e = a.length, f = 0, g = l.length; g > f; f++) {
                     var h = 0;
                     switch (b) { case d.L: h = l[f][0]; break; case d.M: h = l[f][1]; break; case d.Q: h = l[f][2]; break; case d.H: h = l[f][3] }
                     if (h >= e) break;
@@ -1098,7 +1178,6 @@
                 if (c > l.length) throw new Error("Payload excede capacidad QR");
                 return c;
             }
-            function s(a) { var b = encodeURI(a).toString().replace(/\%[0-9a-fA-F]{2}/g, "a"); return b.length + (b.length != a ? 3 : 0) }
             a.prototype = { getLength: function () { return this.parsedData.length }, write: function (a) { for (var b = 0, c = this.parsedData.length; c > b; b++)a.put(this.parsedData[b], 8) } };
             b.prototype = {
                 addData: function (b) { var c = new a(b); this.dataList.push(c), this.dataCache = null },
@@ -1183,17 +1262,123 @@
         }();
 
         // =========================================================================
-        // 2. ARQUITECTURA DEL SISTEMA EMISOR SAINTER V3.5
+        // 2. EMPAQUETADO BINARIO 8-BIT (4-BYTE HEADER + Z85) Y CÓDIGOS FOUNTAIN (LT XOR)
+        // =========================================================================
+        const Z85_ENC = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ.-:+=^!/*?&<>()[]{}@%$#";
+        const Z85_DEC = new Uint8Array(256);
+        for (let i = 0; i < Z85_ENC.length; i++) {
+            Z85_DEC[Z85_ENC.charCodeAt(i)] = i;
+        }
+
+        function encodeBytesToZ85(u8) {
+            const pad = (4 - (u8.length % 4)) % 4;
+            const buf = new Uint8Array(u8.length + pad);
+            buf.set(u8);
+            let out = "";
+            for (let i = 0; i < buf.length; i += 4) {
+                let v = ((buf[i] << 24) | (buf[i + 1] << 16) | (buf[i + 2] << 8) | buf[i + 3]) >>> 0;
+                const c4 = v % 85; v = Math.floor(v / 85);
+                const c3 = v % 85; v = Math.floor(v / 85);
+                const c2 = v % 85; v = Math.floor(v / 85);
+                const c1 = v % 85; v = Math.floor(v / 85);
+                const c0 = v % 85;
+                out += Z85_ENC[c0] + Z85_ENC[c1] + Z85_ENC[c2] + Z85_ENC[c3] + Z85_ENC[c4];
+            }
+            return out;
+        }
+
+        function decodeZ85ToBytes(str, exactByteLen) {
+            const groups = Math.floor(str.length / 5);
+            const out = new Uint8Array(groups * 4);
+            let outIdx = 0;
+            for (let i = 0; i < groups * 5; i += 5) {
+                const v = (
+                    Z85_DEC[str.charCodeAt(i)] * 52200625 +
+                    Z85_DEC[str.charCodeAt(i + 1)] * 614125 +
+                    Z85_DEC[str.charCodeAt(i + 2)] * 7225 +
+                    Z85_DEC[str.charCodeAt(i + 3)] * 85 +
+                    Z85_DEC[str.charCodeAt(i + 4)]
+                ) >>> 0;
+                out[outIdx++] = (v >>> 24) & 0xff;
+                out[outIdx++] = (v >>> 16) & 0xff;
+                out[outIdx++] = (v >>> 8) & 0xff;
+                out[outIdx++] = v & 0xff;
+            }
+            return exactByteLen !== undefined ? out.subarray(0, exactByteLen) : out;
+        }
+
+        // Empaqueta un encabezado binario de 4 bytes [id_hi, id_lo, lenFlags_hi, lenFlags_lo] seguido del payload binario puro
+        function packBinaryDroplet(dropletId, sliceBytes, isFountainParity = false) {
+            const len = sliceBytes.byteLength;
+            const flagsAndLen = (isFountainParity ? 0x8000 : 0x0000) | (len & 0x7FFF);
+            const frame = new Uint8Array(4 + len);
+            frame[0] = (dropletId >>> 8) & 0xff;
+            frame[1] = dropletId & 0xff;
+            frame[2] = (flagsAndLen >>> 8) & 0xff;
+            frame[3] = flagsAndLen & 0xff;
+            frame.set(sliceBytes, 4);
+            return "~" + encodeBytesToZ85(frame);
+        }
+
+        // PRNG determinista Mulberry32 idéntico al del Receptor para Códigos Fountain (LT XOR)
+        function mulberry32(seed) {
+            let a = seed >>> 0;
+            return function () {
+                let t = a += 0x6D2B79F5;
+                t = Math.imul(t ^ (t >>> 15), t | 1);
+                t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+                return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+            };
+        }
+
+        function getFountainRecipe(dropletId, totalChunks) {
+            const rng = mulberry32(dropletId);
+            const r = rng();
+            let degree = 2;
+            if (r < 0.50) degree = 2;
+            else if (r < 0.75) degree = 3;
+            else if (r < 0.90) degree = 4;
+            else degree = 6;
+
+            degree = Math.min(degree, totalChunks);
+            const chosen = new Set();
+            while (chosen.size < degree) {
+                chosen.add(Math.floor(rng() * totalChunks));
+            }
+            return Array.from(chosen);
+        }
+
+        function generateFountainParityFrame(seed) {
+            const recipe = getFountainRecipe(seed, sys.totalChunks);
+            const xorBuf = new Uint8Array(sys.mtu);
+            for (const idx of recipe) {
+                const src = sys.rawSlices[idx];
+                if (src) {
+                    for (let b = 0; b < src.length; b++) {
+                        xorBuf[b] ^= src[b];
+                    }
+                }
+            }
+            return {
+                payload: packBinaryDroplet(seed, xorBuf, true),
+                recipe
+            };
+        }
+
+        // =========================================================================
+        // 3. ESTADO DEL SISTEMA EMISOR SAINTER V4.5
         // =========================================================================
         const sys = {
             sourceBlob: null,
             sourceName: "",
-            mtu: 350,
-            fps: 10,
-            txMode: 'full',
+            mtu: 500,
+            fps: 12,
+            txMode: 'full', // 'full' | 'fountain' | 'priority'
             headerPayload: "",
+            rawSlices: [],
             chunksPayloads: [],
             totalChunks: 0,
+            fountainSeed: 10000,
             activeIndices: [],
             activeSet: new Set(),
             activeIdx: 0,
@@ -1204,21 +1389,28 @@
             running: false,
             ackScanner: null,
             zenIdleTimer: null,
-            // Heatmap lineal
             isPaintingHeatmap: false,
             paintAction: true,
-            // Selección Rectangular 2D (Marquee sobre la misma cuadrícula del móvil)
-            rectMode: 'replace', // 'replace' | 'add' | 'sub'
+            // Selección Rectangular 2D
+            rectMode: 'replace',
             isDraggingRect: false,
-            rectStart: null, // { col, row, x, y }
+            rectStart: null,
             rectCurrent: null,
-            // Escucha Acústica FFT (Audio ACK)
+            // Módem Acústico Bidireccional y Escucha Pasiva Continua
             audioListening: false,
             audioCtx: null,
             audioStream: null,
             analyser: null,
             fftLoopId: null,
-            toneHistory: [] // ventana de frecuencias detectadas recientemente
+            isEmittingTone: false,
+            acousticPhase: 0,
+            rxRleBuffer: "",
+            lastDecodedSymbol: null,
+            lastSymbolChar: "",
+            candidateSymbol: null,
+            candidateHits: 0,
+            silenceFrames: 0,
+            rxSessionTimeout: null
         };
 
         // --- DRAG & DROP GLOBAL EN TODA LA VENTANA ---
@@ -1311,10 +1503,10 @@
 
         function setMTU(bytes) {
             sys.mtu = bytes;
-            document.getElementById('mtu-150').classList.toggle('active', bytes === 150);
-            document.getElementById('mtu-350').classList.toggle('active', bytes === 350);
-            document.getElementById('mtu-600').classList.toggle('active', bytes === 600);
-            const names = { 150: "150 Bytes (Resiliente)", 350: "350 Bytes (Estándar)", 600: "600 Bytes (Alta Densidad)" };
+            document.getElementById('mtu-250').classList.toggle('active', bytes === 250);
+            document.getElementById('mtu-500').classList.toggle('active', bytes === 500);
+            document.getElementById('mtu-700').classList.toggle('active', bytes === 700);
+            const names = { 250: "250 Bytes (Resiliente)", 500: "500 Bytes (Óptimo 8-Bit)", 700: "700 Bytes (Alta Densidad)" };
             document.getElementById('mtu-lbl').innerText = names[bytes] || (bytes + " Bytes");
             reprocessCurrentSource();
         }
@@ -1343,13 +1535,6 @@
             }
         }
 
-        const HEX_LUT = Array.from({ length: 256 }, (_, i) => i.toString(16).padStart(2, '0'));
-        function uint8ToHex(u8) {
-            let out = "";
-            for (let i = 0; i < u8.length; i++) out += HEX_LUT[u8[i]];
-            return out;
-        }
-
         function formatBytes(b) {
             if (b < 1024) return b + " B";
             if (b < 1048576) return (b / 1024).toFixed(2) + " KB";
@@ -1375,7 +1560,7 @@
 
         function syncCustomFramesInput() {
             const input = document.getElementById('custom-frames');
-            if (sys.txMode === 'full' || sys.activeIndices.length === sys.totalChunks) {
+            if (sys.txMode === 'full' || sys.txMode === 'fountain' || sys.activeIndices.length === sys.totalChunks) {
                 input.value = "";
             } else {
                 const rle = indicesToRangesString(sys.activeIndices);
@@ -1389,6 +1574,10 @@
             if (blob.size === 0) {
                 alert("El archivo o texto está vacío.");
                 return;
+            }
+
+            if (!sys.audioListening) {
+                ensurePassiveAcousticListener();
             }
 
             sys.sourceBlob = blob;
@@ -1411,42 +1600,47 @@
                     .map(b => b.toString(16).padStart(2, '0'))
                     .join('').substring(0, 12);
 
-                const useGzip = document.getElementById('chk-gzip').checked;
+                const useComp = document.getElementById('chk-gzip').checked;
                 let finalU8 = origU8;
-                let isGzipped = 0;
+                let compFlag = 0;
 
-                if (useGzip) {
-                    loaderLbl.innerText = "Comprimiendo flujo con CompressionStream (GZIP)...";
+                if (useComp) {
+                    loaderLbl.innerText = "Comprimiendo flujo estructurado...";
                     await new Promise(r => setTimeout(r, 20));
                     const res = await compressGzip(origU8);
                     finalU8 = res.data;
-                    isGzipped = res.compressed;
+                    compFlag = res.compressed;
                 }
 
-                loaderLbl.innerText = "Fragmentando bloques ópticos sin Base64...";
+                loaderLbl.innerText = "Empaquetando tramas binarias 8-bit con encabezado de 4 bytes...";
                 await new Promise(r => setTimeout(r, 15));
 
                 const ratio = ((1 - finalU8.byteLength / origU8.byteLength) * 100).toFixed(1);
-                document.getElementById('comp-badge').innerText = isGzipped
-                    ? `GZIP ACTIVO (-${ratio}%)`
-                    : `RAW (SIN COMPRESIÓN)`;
+                document.getElementById('comp-badge').innerText = compFlag
+                    ? `8-BIT + COMP (-${ratio}%)`
+                    : `8-BIT DIRECTO`;
 
                 const total = Math.ceil(finalU8.byteLength / sys.mtu);
                 sys.totalChunks = total;
+                sys.fountainSeed = Math.max(total + 100, 10000);
 
                 sys.headerPayload = JSON.stringify({
                     t: "H",
                     c: total,
+                    m: sys.mtu,
+                    cl: finalU8.byteLength,
                     n: filename,
                     h: hash,
                     s: origU8.byteLength,
-                    z: isGzipped
+                    z: compFlag
                 });
 
+                sys.rawSlices = new Array(total);
                 sys.chunksPayloads = new Array(total);
                 for (let i = 0; i < total; i++) {
                     const slice = finalU8.subarray(i * sys.mtu, (i + 1) * sys.mtu);
-                    sys.chunksPayloads[i] = JSON.stringify([i, uint8ToHex(slice)]);
+                    sys.rawSlices[i] = slice;
+                    sys.chunksPayloads[i] = packBinaryDroplet(i, slice, false);
                 }
 
                 document.getElementById('mt-name').innerText = filename;
@@ -1473,7 +1667,7 @@
 
                 updateTimelineBounds();
                 renderHeaderFrame();
-                document.getElementById('status').innerText = "● PAYLOAD LISTO";
+                document.getElementById('status').innerText = "● PAYLOAD 8-BIT LISTO";
             } catch (err) {
                 console.error("Error procesando buffer:", err);
                 alert("Error al empaquetar datos: " + err.message);
@@ -1483,11 +1677,11 @@
         }
 
         // =========================================================================
-        // 3. MATRIZ 2D GEMELA CON SELECCIÓN RECTANGULAR VISUAL (MARQUEE BOX SELECT)
+        // 4. MATRIZ 2D GEMELA CON SELECCIÓN RECTANGULAR VISUAL (MARQUEE BOX SELECT)
         // =========================================================================
         function getGridGeometry() {
             const total = Math.max(1, sys.totalChunks || 100);
-            const cols = Math.ceil(Math.sqrt(total * 1.6)); // Exactamente la misma fórmula que ChunkMap en el móvil
+            const cols = Math.ceil(Math.sqrt(total * 1.6));
             const rows = Math.ceil(total / cols);
             return { total, cols, rows };
         }
@@ -1528,8 +1722,9 @@
                 if (i === currentChunk) {
                     ctx.fillStyle = '#ffffff';
                 } else if (sys.txMode === 'priority') {
-                    // Ámbar brillante = zona seleccionada para transmitir (huecos); Verde oscuro = omitido/confirmado
                     ctx.fillStyle = isActive ? '#ff9e00' : '#0b381a';
+                } else if (sys.txMode === 'fountain') {
+                    ctx.fillStyle = '#2f81f7';
                 } else {
                     ctx.fillStyle = isActive ? '#00b82d' : '#161b22';
                 }
@@ -1542,7 +1737,6 @@
                 );
             }
 
-            // Guías de referencia espacial 4x4 (idénticas a las del receptor móvil)
             ctx.strokeStyle = 'rgba(47, 129, 247, 0.32)';
             ctx.lineWidth = 1;
             for (let g = 1; g < 4; g++) {
@@ -1556,7 +1750,6 @@
                 ctx.stroke();
             }
 
-            // Si el usuario está arrastrando un rectángulo de selección (Marquee), dibujarlo encima
             if (sys.isDraggingRect && sys.rectStart && sys.rectCurrent) {
                 const x1 = Math.min(sys.rectStart.x, sys.rectCurrent.x) * dpr;
                 const y1 = Math.min(sys.rectStart.y, sys.rectCurrent.y) * dpr;
@@ -1625,7 +1818,6 @@
                 const minRow = Math.min(sys.rectStart.row, endCoords.row);
                 const maxRow = Math.max(sys.rectStart.row, endCoords.row);
 
-                // Determinar modo efectivo (teclas modificadoras o botón activo)
                 let effectiveMode = sys.rectMode;
                 if (e.shiftKey || e.ctrlKey) effectiveMode = 'add';
                 if (e.altKey) effectiveMode = 'sub';
@@ -1646,7 +1838,6 @@
                 }
 
                 if (nextSet.size === 0) {
-                    // Evitar cola vacía
                     nextSet.add(Math.min(total - 1, minRow * cols + minCol));
                 }
 
@@ -1657,7 +1848,6 @@
                 syncCustomFramesInput();
                 renderCurrentActiveFrame();
 
-                // Si estaba en pausa, iniciar transmisión automáticamente sobre el área 2D seleccionada
                 if (!sys.running) {
                     togglePlay();
                 }
@@ -1670,20 +1860,97 @@
         }();
 
         // =========================================================================
-        // 4. ESCUCHA ACÚSTICA WEB AUDIO API + FFT (DETECTOR BEEP-BOOP DEL MÓVIL)
+        // 5. MÓDEM ACÚSTICO BIDIRECCIONAL CON DECODIFICACIÓN DE MACRO-SECTORES (S00..S31)
         // =========================================================================
-        async function toggleAcousticListener() {
-            const btn = document.getElementById('btn-audio-listen');
-            const lbl = document.getElementById('fft-freq-lbl');
+        const ACOUSTIC_PROTOCOL = {
+            HELLO: 1720,   // Celular -> Laptop
+            READY: 1820,   // Laptop -> Celular
+            REPEAT: 1920,  // Separador de símbolo repetido
+            FREQ_TO_CHAR: [
+                { f: 1620, ch: 'S' },
+                { f: 2020, ch: '0' },
+                { f: 2120, ch: '1' },
+                { f: 2220, ch: '2' },
+                { f: 2320, ch: '3' },
+                { f: 2420, ch: '4' },
+                { f: 2520, ch: '5' },
+                { f: 2620, ch: '6' },
+                { f: 2720, ch: '7' },
+                { f: 2820, ch: '8' },
+                { f: 2920, ch: '9' },
+                { f: 3020, ch: '-' },
+                { f: 3120, ch: ',' }
+            ],
+            EOF: 3220,
+            ACK_OK: 3320,
+            FIN_100: 3420,
+            TOLERANCE_HZ: 38
+        };
 
-            if (sys.audioListening) {
-                stopAcousticListener();
-                btn.classList.remove('listening');
-                btn.innerText = "🎙️ ACTIVAR ESCUCHA AUDIO ACK";
-                lbl.innerText = "MIC OFF";
+        function setSenderAcousticPhaseUI(phase, extraText = "") {
+            sys.acousticPhase = phase;
+            const p1 = document.getElementById('snd-phase-1');
+            const p2 = document.getElementById('snd-phase-2');
+            const p3 = document.getElementById('snd-phase-3');
+            const p2Txt = document.getElementById('snd-phase-2-txt');
+
+            if (phase === 0) {
+                [p1, p2, p3].forEach(el => el.className = 'sync-phase-row');
+                p2Txt.innerText = 'Fase 2: «Transmitiendo bloques faltantes...»';
                 return;
             }
 
+            p1.className = 'sync-phase-row ' + (phase === 1 ? 'current' : (phase > 1 ? 'done' : ''));
+            p2.className = 'sync-phase-row ' + (phase === 2 ? 'current' : (phase > 2 ? 'done' : ''));
+            p3.className = 'sync-phase-row ' + (phase === 3 ? 'done current' : '');
+
+            if (phase === 2 && extraText) {
+                p2Txt.innerText = `Fase 2: «Transmitiendo bloques faltantes...» (${extraText})`;
+            } else if (phase !== 2) {
+                p2Txt.innerText = 'Fase 2: «Transmitiendo bloques faltantes...»';
+            }
+        }
+
+        function emitLaptopTone(freq, durationMs = 260) {
+            return new Promise((resolve) => {
+                if (!sys.audioCtx) {
+                    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+                    sys.audioCtx = new AudioContextClass();
+                }
+                if (sys.audioCtx.state === 'suspended') {
+                    sys.audioCtx.resume();
+                }
+
+                sys.isEmittingTone = true;
+                const now = sys.audioCtx.currentTime + 0.01;
+                const durSec = durationMs / 1000;
+
+                const osc = sys.audioCtx.createOscillator();
+                const gain = sys.audioCtx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(freq, now);
+
+                gain.gain.setValueAtTime(0.001, now);
+                gain.gain.linearRampToValueAtTime(0.4, now + 0.015);
+                gain.gain.setValueAtTime(0.4, now + Math.max(0.02, durSec - 0.015));
+                gain.gain.linearRampToValueAtTime(0.001, now + durSec);
+
+                osc.connect(gain);
+                gain.connect(sys.audioCtx.destination);
+                osc.start(now);
+                osc.stop(now + durSec);
+
+                setTimeout(() => {
+                    sys.isEmittingTone = false;
+                    resolve();
+                }, durationMs + 35);
+            });
+        }
+
+        async function ensurePassiveAcousticListener() {
+            if (sys.audioListening) return;
+            const btn = document.getElementById('btn-audio-listen');
+            const lbl = document.getElementById('fft-freq-lbl');
             try {
                 sys.audioStream = await navigator.mediaDevices.getUserMedia({
                     audio: {
@@ -1693,22 +1960,38 @@
                     }
                 });
                 const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-                sys.audioCtx = new AudioContextClass();
+                if (!sys.audioCtx) sys.audioCtx = new AudioContextClass();
+                if (sys.audioCtx.state === 'suspended') await sys.audioCtx.resume();
+
                 const source = sys.audioCtx.createMediaStreamSource(sys.audioStream);
                 sys.analyser = sys.audioCtx.createAnalyser();
-                sys.analyser.fftSize = 2048;
-                sys.analyser.smoothingTimeConstant = 0.25;
+                sys.analyser.fftSize = 4096;
+                sys.analyser.smoothingTimeConstant = 0.15;
                 source.connect(sys.analyser);
 
                 sys.audioListening = true;
-                sys.toneHistory = [];
                 btn.classList.add('listening');
-                btn.innerText = "🛑 DETENER ESCUCHA AUDIO ACK";
-                lbl.innerText = "ESCUCHANDO...";
+                btn.innerText = "🎙️ Escucha Pasiva Activa";
+                lbl.innerText = "EN ESCUCHA";
                 scanAcousticFFTLoop();
             } catch (err) {
-                alert("No se pudo acceder al micrófono para Audio ACK: " + err.message);
+                lbl.innerText = "CLICK P/ ACTIVAR";
             }
+        }
+
+        async function toggleAcousticListener() {
+            const btn = document.getElementById('btn-audio-listen');
+            const lbl = document.getElementById('fft-freq-lbl');
+
+            if (sys.audioListening) {
+                stopAcousticListener();
+                btn.classList.remove('listening');
+                btn.innerText = "🎙️ Activar Escucha Continua";
+                lbl.innerText = "PAUSADO";
+                setSenderAcousticPhaseUI(0);
+                return;
+            }
+            await ensurePassiveAcousticListener();
         }
 
         function stopAcousticListener() {
@@ -1718,10 +2001,21 @@
                 sys.audioStream.getTracks().forEach(t => t.stop());
                 sys.audioStream = null;
             }
-            if (sys.audioCtx) {
-                sys.audioCtx.close().catch(() => { });
-                sys.audioCtx = null;
+        }
+
+        function classifyFrequencySymbol(freqHz) {
+            const tol = ACOUSTIC_PROTOCOL.TOLERANCE_HZ;
+            if (Math.abs(freqHz - ACOUSTIC_PROTOCOL.HELLO) <= tol) return { type: 'HELLO' };
+            if (Math.abs(freqHz - ACOUSTIC_PROTOCOL.REPEAT) <= tol) return { type: 'REPEAT' };
+            if (Math.abs(freqHz - ACOUSTIC_PROTOCOL.EOF) <= tol) return { type: 'EOF' };
+            if (Math.abs(freqHz - ACOUSTIC_PROTOCOL.FIN_100) <= tol) return { type: 'FIN_100' };
+
+            for (const item of ACOUSTIC_PROTOCOL.FREQ_TO_CHAR) {
+                if (Math.abs(freqHz - item.f) <= tol) {
+                    return { type: 'DATA', ch: item.ch };
+                }
             }
+            return null;
         }
 
         function scanAcousticFFTLoop() {
@@ -1734,9 +2028,8 @@
             const sampleRate = sys.audioCtx.sampleRate;
             const binHz = sampleRate / sys.analyser.fftSize;
 
-            // Buscar pico dominante en la banda de señalización acústica (1100 Hz - 3600 Hz)
-            const minBin = Math.floor(1100 / binHz);
-            const maxBin = Math.min(bufferLen - 1, Math.ceil(3600 / binHz));
+            const minBin = Math.floor(1550 / binHz);
+            const maxBin = Math.min(bufferLen - 1, Math.ceil(3500 / binHz));
 
             let peakVal = 0;
             let peakBin = minBin;
@@ -1749,84 +2042,155 @@
                     peakBin = b;
                 }
             }
-            const avgNoise = sumVal / (maxBin - minBin + 1);
+            const avgNoise = sumVal / Math.max(1, maxBin - minBin + 1);
             const dominantFreq = Math.round(peakBin * binHz);
 
-            // Dibujar espectrograma compacto
             const canvas = document.getElementById('audio-fft-canvas');
             const ctx = canvas.getContext('2d');
             const w = canvas.width = canvas.clientWidth || 160;
-            const h = canvas.height = canvas.clientHeight || 36;
+            const h = canvas.height = canvas.clientHeight || 34;
             ctx.clearRect(0, 0, w, h);
 
             const bars = 32;
             const step = Math.max(1, Math.floor((maxBin - minBin) / bars));
             for (let i = 0; i < bars; i++) {
                 const val = data[minBin + i * step] / 255;
-                ctx.fillStyle = val > 0.6 ? '#00ff41' : '#2f81f7';
+                ctx.fillStyle = val > 0.55 ? '#00ff41' : '#2f81f7';
                 const bh = val * h;
                 ctx.fillRect(i * (w / bars), h - bh, (w / bars) - 1, bh);
             }
 
-            // Si el pico supera claramente el piso de ruido ambiental (SNR alto)
-            const now = performance.now();
-            if (peakVal > 145 && peakVal > avgNoise * 2.2) {
-                document.getElementById('fft-freq-lbl').innerText = `${dominantFreq} Hz`;
-                sys.toneHistory.push({ f: dominantFreq, t: now });
-                sys.toneHistory = sys.toneHistory.filter(item => (now - item.t) <= 1400);
-                evaluateAcousticSignatures();
+            if (!sys.isEmittingTone) {
+                const isStrongSignal = (peakVal > 135 && peakVal > avgNoise * 2.15);
+                if (isStrongSignal) {
+                    sys.silenceFrames = 0;
+                    document.getElementById('fft-freq-lbl').innerText = `${dominantFreq} Hz`;
+                    const sym = classifyFrequencySymbol(dominantFreq);
+                    if (sym) {
+                        const symKey = sym.type === 'DATA' ? `D_${sym.ch}` : sym.type;
+                        if (sys.candidateSymbol === symKey) {
+                            sys.candidateHits++;
+                        } else {
+                            sys.candidateSymbol = symKey;
+                            sys.candidateHits = 1;
+                        }
+
+                        if (sys.candidateHits >= 2 && sys.lastDecodedSymbol !== symKey) {
+                            sys.lastDecodedSymbol = symKey;
+                            handleDemodulatedSymbol(sym);
+                        }
+                    }
+                } else {
+                    sys.silenceFrames++;
+                    if (sys.silenceFrames >= 2) {
+                        sys.candidateSymbol = null;
+                        sys.candidateHits = 0;
+                        if (sys.silenceFrames >= 3) {
+                            sys.lastDecodedSymbol = null;
+                        }
+                    }
+                }
             }
 
             sys.fftLoopId = requestAnimationFrame(scanAcousticFFTLoop);
         }
 
-        function evaluateAcousticSignatures() {
-            const tones = sys.toneHistory;
-            if (tones.length < 4) return;
-
-            const hasFreqNear = (target, tol = 75) => tones.some(x => Math.abs(x.f - target) <= tol);
-
-            // 1. Firma Acústica de ÉXITO 100% (2400 Hz + 3200 Hz)
-            if (hasFreqNear(2400) && hasFreqNear(3200)) {
-                sys.toneHistory = [];
+        async function handleDemodulatedSymbol(sym) {
+            if (sym.type === 'FIN_100') {
                 if (sys.running) togglePlay();
-                triggerFlashAck(0, "🔊 100% COMPLETADO (AUDIO ACK)");
-                document.getElementById('status').innerText = "● COMPLETADO VÍA AUDIO ACK";
+                setSenderAcousticPhaseUI(0);
+                triggerFlashAck(0, "✅ TRANSFERENCIA 100% VERIFICADA (SHA-256)");
+                document.getElementById('status').innerText = "● TRANSFERENCIA COMPLETADA Y VERIFICADA";
                 return;
             }
 
-            // 2. Firma Acústica de ESTANCAMIENTO / ABRIR CÁMARA QR (1800 Hz + 1350 Hz)
-            if (hasFreqNear(1800) && hasFreqNear(1350)) {
-                sys.toneHistory = [];
-                const modalOpen = document.getElementById('ack-modal').classList.contains('open');
-                if (!modalOpen) {
-                    openAckScanner();
-                }
-                return;
-            }
+            if (sym.type === 'HELLO') {
+                if (sys.running) togglePlay();
+                sys.rxRleBuffer = "";
+                sys.lastSymbolChar = "";
+                setSenderAcousticPhaseUI(1);
+                document.getElementById('status').innerText = "● NEGOCIANDO CONEXIÓN ACÚSTICA...";
 
-            // 3. Firma Acústica de SECTOR FALTANTE (Preámbulo 2100 Hz + Sector Q1..Q4: 1500, 1700, 1900, 2250 Hz)
-            if (hasFreqNear(2100)) {
-                const sectorMap = [
-                    { f: 1500, start: 0.0, end: 0.25, name: "Q1 (0-25%)" },
-                    { f: 1700, start: 0.25, end: 0.50, name: "Q2 (25-50%)" },
-                    { f: 1900, start: 0.50, end: 0.75, name: "Q3 (50-75%)" },
-                    { f: 2250, start: 0.75, end: 1.0, name: "Q4 (75-100%)" }
-                ];
-                for (const sec of sectorMap) {
-                    if (hasFreqNear(sec.f, 65)) {
-                        sys.toneHistory = [];
-                        selectFractionRange(sec.start, sec.end);
-                        triggerFlashAck(sys.activeIndices.length, `🎵 AUDIO ACK: SECTOR ${sec.name}`);
-                        if (!sys.running) togglePlay();
-                        break;
+                clearTimeout(sys.rxSessionTimeout);
+                sys.rxSessionTimeout = setTimeout(() => {
+                    if (sys.acousticPhase === 2 && sys.rxRleBuffer.length > 0) {
+                        finalizeAcousticRleReception();
+                    } else if (sys.acousticPhase === 1) {
+                        setSenderAcousticPhaseUI(0);
                     }
+                }, 9000);
+
+                await emitLaptopTone(ACOUSTIC_PROTOCOL.READY, 260);
+                return;
+            }
+
+            if (sym.type === 'DATA' || sym.type === 'REPEAT') {
+                if (sys.acousticPhase === 0 || sys.acousticPhase === 3) {
+                    sys.rxRleBuffer = "";
+                    sys.lastSymbolChar = "";
                 }
+                const ch = (sym.type === 'REPEAT') ? sys.lastSymbolChar : sym.ch;
+                if (ch) {
+                    sys.rxRleBuffer += ch;
+                    sys.lastSymbolChar = ch;
+                    setSenderAcousticPhaseUI(2, sys.rxRleBuffer);
+                    document.getElementById('status').innerText = `● RECIBIENDO TRAMA ACÚSTICA: ${sys.rxRleBuffer}`;
+                }
+
+                clearTimeout(sys.rxSessionTimeout);
+                sys.rxSessionTimeout = setTimeout(() => {
+                    if (sys.rxRleBuffer.length > 0) {
+                        finalizeAcousticRleReception();
+                    }
+                }, 1600);
+                return;
+            }
+
+            if (sym.type === 'EOF') {
+                clearTimeout(sys.rxSessionTimeout);
+                await finalizeAcousticRleReception();
+            }
+        }
+
+        async function finalizeAcousticRleReception() {
+            const rawStr = sys.rxRleBuffer.replace(/^[, -]+|[, -]+$/g, '');
+            sys.rxRleBuffer = "";
+            sys.lastSymbolChar = "";
+
+            if (!rawStr || !sys.totalChunks) {
+                setSenderAcousticPhaseUI(0);
+                return;
+            }
+
+            const decodedMissing = parseMacroSectorsOrRanges(rawStr, sys.totalChunks);
+            if (decodedMissing.length > 0) {
+                sys.activeIndices = decodedMissing;
+                sys.activeIdx = 0;
+                setTxMode('priority', true);
+                updateTimelineBounds();
+                syncCustomFramesInput();
+                renderCurrentActiveFrame();
+
+                setSenderAcousticPhaseUI(3);
+                await emitLaptopTone(ACOUSTIC_PROTOCOL.ACK_OK, 300);
+
+                triggerFlashAck(decodedMissing.length, "✅ MACRO-SECTORES RECONFIGURADOS POR SONIDO");
+                document.getElementById('status').innerText = `● BUCLE PRIORITARIO ACTIVO (${decodedMissing.length} FALTANTES)`;
+
+                if (!sys.running) {
+                    togglePlay();
+                }
+
+                setTimeout(() => {
+                    if (sys.acousticPhase === 3) setSenderAcousticPhaseUI(0);
+                }, 4000);
+            } else {
+                setSenderAcousticPhaseUI(0);
             }
         }
 
         // =========================================================================
-        // 5. MAPA DE CALOR LINEAL INTERACTIVO Y HERRAMIENTAS DE CUADRATURA
+        // 6. MAPA DE CALOR LINEAL INTERACTIVO Y HERRAMIENTAS DE CUADRATURA
         // =========================================================================
         function drawTimelineHeatmap() {
             const canvas = document.getElementById('timeline-heatmap');
@@ -1858,13 +2222,15 @@
                 }
                 if (sys.txMode === 'priority') {
                     ctx.fillStyle = hasActive ? '#ff9e00' : '#0b4f22';
+                } else if (sys.txMode === 'fountain') {
+                    ctx.fillStyle = '#2f81f7';
                 } else {
                     ctx.fillStyle = '#00a82d';
                 }
                 ctx.fillRect(c * sliceW, 0, Math.ceil(sliceW - (cols < 120 ? 1 : 0)), h);
             }
 
-            if (sys.activeIndices.length > 0) {
+            if (sys.activeIndices.length > 0 && sys.txMode !== 'fountain') {
                 const currentChunk = sys.activeIndices[sys.activeIdx] || 0;
                 const cx = (currentChunk / sys.totalChunks) * w;
                 ctx.fillStyle = '#ffffff';
@@ -1884,10 +2250,8 @@
 
             function applyBrushAt(idx) {
                 if (!sys.totalChunks || idx < 0 || idx >= sys.totalChunks) return;
-                if (sys.txMode === 'full') {
-                    sys.txMode = 'priority';
-                    document.getElementById('tx-mode-full').classList.remove('active');
-                    document.getElementById('tx-mode-priority').classList.add('active');
+                if (sys.txMode !== 'priority') {
+                    setTxMode('priority', true);
                 }
 
                 const radius = sys.totalChunks > 500 ? Math.ceil(sys.totalChunks / 200) : 0;
@@ -1922,7 +2286,7 @@
                 }
 
                 sys.isPaintingHeatmap = true;
-                if (sys.txMode === 'full') {
+                if (sys.txMode !== 'priority') {
                     sys.activeSet.clear();
                     sys.paintAction = true;
                 } else {
@@ -2029,23 +2393,6 @@
             document.getElementById('status').innerText = `● COLA DESPLAZADA (${offset > 0 ? '+' : ''}${offset} FRAMES)`;
         }
 
-        function selectFractionRange(startRatio, endRatio) {
-            if (!sys.totalChunks) return;
-            const startIdx = Math.max(0, Math.floor(sys.totalChunks * startRatio));
-            const endIdx = Math.min(sys.totalChunks - 1, Math.ceil(sys.totalChunks * endRatio) - 1);
-            const sub = [];
-            for (let i = startIdx; i <= endIdx; i++) sub.push(i);
-            if (sub.length === 0) sub.push(0);
-
-            sys.activeIndices = sub;
-            sys.activeIdx = 0;
-            setTxMode('priority', true);
-            updateTimelineBounds();
-            syncCustomFramesInput();
-            renderCurrentActiveFrame();
-            document.getElementById('status').innerText = `● TRAMO ${startIdx}-${endIdx} SELECCIONADO`;
-        }
-
         function updateTimelineBounds() {
             const scrubber = document.getElementById('timeline-scrubber');
             scrubber.max = Math.max(0, sys.activeIndices.length - 1);
@@ -2074,6 +2421,20 @@
             draw2DGridSelector();
         }
 
+        function renderFountainParityFrame() {
+            if (!sys.qr || !sys.totalChunks) return;
+            sys.fountainSeed = (sys.fountainSeed + 1) % 65000;
+            if (sys.fountainSeed < sys.totalChunks + 10) sys.fountainSeed = sys.totalChunks + 10;
+
+            const { payload, recipe } = generateFountainParityFrame(sys.fountainSeed);
+            sys.qr.makeCode(payload);
+            triggerPulseLed();
+            document.getElementById('frame-badge').innerText = `⚡XOR #${sys.fountainSeed}`;
+            document.getElementById('lbl-queue-pos').innerText = `FOUNTAIN (${recipe.length}d)`;
+            document.getElementById('lbl-chunk-idx').innerText = `XOR[${recipe.slice(0, 3).join(',')}${recipe.length > 3 ? '..' : ''}]`;
+            updateZenHud(`⚡XOR #${sys.fountainSeed}`);
+        }
+
         function renderCurrentActiveFrame() {
             if (!sys.qr || sys.activeIndices.length === 0) return;
             const chunkIdx = sys.activeIndices[sys.activeIdx];
@@ -2089,13 +2450,17 @@
         }
 
         function updateZenHud(frameLabel) {
-            const modeLabel = sys.txMode === 'priority' ? 'PRIORITY LOOP' : 'CARRUSEL COMPLETO';
+            const modeLabels = {
+                full: 'SISTEMÁTICO + XOR',
+                fountain: 'FOUNTAIN PURO (XOR)',
+                priority: 'PRIORITY LOOP'
+            };
             document.getElementById('zen-hud').innerText =
-                `${frameLabel} | COLA ${sys.activeIdx + 1}/${sys.activeIndices.length} | ${sys.fps} FPS | ${modeLabel}`;
+                `${frameLabel} | COLA ${sys.activeIdx + 1}/${sys.activeIndices.length} | ${sys.fps} FPS | ${modeLabels[sys.txMode] || ''}`;
         }
 
         function setFPS(fpsVal, fromSlider = false) {
-            const fps = Math.max(2, Math.min(30, parseInt(fpsVal, 10) || 10));
+            const fps = Math.max(2, Math.min(30, parseInt(fpsVal, 10) || 12));
             sys.fps = fps;
             const ms = Math.round(1000 / fps);
             document.getElementById('speed-lbl').innerText = `${fps} FPS (${ms} ms)`;
@@ -2121,8 +2486,14 @@
             sys.timer = setInterval(() => {
                 if (sys.activeIndices.length === 0) return;
                 sys.tickCount++;
-                if (sys.tickCount % 25 === 0) {
+                // Emitir cabecera [SYN] periódicamente cada 30 frames
+                if (sys.tickCount % 30 === 0) {
                     renderHeaderFrame();
+                    return;
+                }
+                // Si está en modo Fountain puro, o cada 5º frame en modo Sistemático+XOR, proyectar gota de paridad XOR
+                if (sys.txMode === 'fountain' || (sys.txMode === 'full' && sys.tickCount % 5 === 0)) {
+                    renderFountainParityFrame();
                     return;
                 }
                 renderCurrentActiveFrame();
@@ -2176,14 +2547,16 @@
         function setTxMode(mode, silent = false) {
             sys.txMode = mode;
             document.getElementById('tx-mode-full').classList.toggle('active', mode === 'full');
+            document.getElementById('tx-mode-fountain').classList.toggle('active', mode === 'fountain');
             document.getElementById('tx-mode-priority').classList.toggle('active', mode === 'priority');
 
-            if (mode === 'full' && sys.totalChunks > 0 && !silent) {
+            if ((mode === 'full' || mode === 'fountain') && sys.totalChunks > 0 && !silent) {
                 sys.activeIndices = Array.from({ length: sys.totalChunks }, (_, i) => i);
                 sys.activeIdx = 0;
                 updateTimelineBounds();
                 syncCustomFramesInput();
-                renderCurrentActiveFrame();
+                if (mode === 'fountain') renderFountainParityFrame();
+                else renderCurrentActiveFrame();
             } else {
                 drawTimelineHeatmap();
                 draw2DGridSelector();
@@ -2191,9 +2564,9 @@
         }
 
         // =========================================================================
-        // 6. PROTOCOLO DE HANDSHAKE INVERSO + FLASH ACK A PANTALLA COMPLETA
+        // 7. DECODIFICACIÓN DE BITMAP PLANO (664 B) Y BISECCIÓN POR MACRO-SECTORES (S00..S31)
         // =========================================================================
-        function triggerFlashAck(missingCount, customTitle = "✅ ACK SINCRONIZADO") {
+        function triggerFlashAck(missingCount, customTitle = "✅ COLA RECONFIGURADA") {
             const flash = document.getElementById('flash-ack-overlay');
             document.getElementById('flash-ack-title').innerText = customTitle;
             document.getElementById('flash-ack-detail').innerText = missingCount > 0
@@ -2205,20 +2578,43 @@
             }, 1050);
         }
 
-        function applyMissingBitmap(b64Bitmap, total) {
-            const raw = atob(b64Bitmap);
+        function applyMissingBitmapBytes(rawBytes, total) {
             const missingIndices = [];
             for (let i = 0; i < total; i++) {
-                const byte = raw.charCodeAt(Math.floor(i / 8));
+                const byte = rawBytes[Math.floor(i / 8)] || 0;
                 const bit = (byte >> (i % 8)) & 1;
                 if (bit === 0) missingIndices.push(i);
             }
             return missingIndices;
         }
 
-        function parseRangesString(rangeStr, total) {
+        function applyMissingBitmapBase64(b64Bitmap, total) {
+            const raw = atob(b64Bitmap);
+            const bytes = new Uint8Array(raw.length);
+            for (let i = 0; i < raw.length; i++) bytes[i] = raw.charCodeAt(i);
+            return applyMissingBitmapBytes(bytes, total);
+        }
+
+        // Interpreta identificadores de Macro-Sectores (ej. "S04,09,12" sobre 32 sectores) o rangos RLE ("4-12,18")
+        function parseMacroSectorsOrRanges(str, total) {
+            const trimmed = str.trim().toUpperCase();
+            if (trimmed.startsWith('S')) {
+                const numSectors = Math.min(32, Math.max(4, total));
+                const sectorSize = Math.ceil(total / numSectors);
+                const sectorIds = trimmed.substring(1).split(',').map(s => parseInt(s.replace(/[^0-9]/g, ''), 10)).filter(n => !isNaN(n));
+                const indices = new Set();
+                for (const sId of sectorIds) {
+                    if (sId >= 0 && sId < numSectors) {
+                        const start = sId * sectorSize;
+                        const end = Math.min(total - 1, (sId + 1) * sectorSize - 1);
+                        for (let i = start; i <= end; i++) indices.add(i);
+                    }
+                }
+                return Array.from(indices).sort((a, b) => a - b);
+            }
+
             const indices = new Set();
-            const parts = rangeStr.split(',');
+            const parts = trimmed.split(',');
             for (let part of parts) {
                 part = part.trim();
                 if (!part) continue;
@@ -2248,16 +2644,19 @@
                 if (trimmed.startsWith('{')) {
                     const obj = JSON.parse(trimmed);
                     if (obj.t === "ACK") {
-                        if (typeof obj.b === "string") {
-                            missing = applyMissingBitmap(obj.b, sys.totalChunks);
+                        if (typeof obj.z85 === "string") {
+                            const bmpBytes = decodeZ85ToBytes(obj.z85, obj.len);
+                            missing = applyMissingBitmapBytes(bmpBytes, sys.totalChunks);
+                        } else if (typeof obj.b === "string") {
+                            missing = applyMissingBitmapBase64(obj.b, sys.totalChunks);
                         } else if (typeof obj.r === "string") {
-                            missing = parseRangesString(obj.r, sys.totalChunks);
+                            missing = parseMacroSectorsOrRanges(obj.r, sys.totalChunks);
                         }
                     }
-                } else if (/^[0-9,\-\s]+$/.test(trimmed)) {
-                    missing = parseRangesString(trimmed, sys.totalChunks);
+                } else if (/^[S0-9,\-\s]+$/i.test(trimmed)) {
+                    missing = parseMacroSectorsOrRanges(trimmed, sys.totalChunks);
                 } else {
-                    missing = applyMissingBitmap(trimmed, sys.totalChunks);
+                    missing = applyMissingBitmapBase64(trimmed, sys.totalChunks);
                 }
             } catch (e) {
                 console.warn("Formato ACK no reconocido:", e);
@@ -2290,7 +2689,7 @@
             if (processReverseAckPayload(input)) {
                 document.getElementById('status').innerText = `● PRIORITY LOOP (${sys.activeIndices.length} FALTANTES)`;
             } else {
-                alert("Formato de selección o bitmap inválido.");
+                alert("Formato de macro-sector, rango o bitmap inválido.");
             }
         }
 
@@ -2299,7 +2698,7 @@
             if (sys.running) togglePlay();
 
             document.getElementById('ack-modal').classList.add('open');
-            document.getElementById('ack-status').innerText = "Iniciando cámara para lectura de QR de retorno...";
+            document.getElementById('ack-status').innerText = "Iniciando cámara para lectura de Bitmap Plano QR...";
 
             try {
                 if (!sys.ackScanner) {
@@ -2310,7 +2709,7 @@
                     { fps: 20, qrbox: { width: 250, height: 250 } },
                     (decodedText) => {
                         if (processReverseAckPayload(decodedText)) {
-                            document.getElementById('ack-status').innerText = `✅ ¡Sincronizado! Retransmitiendo ${sys.activeIndices.length} bloques faltantes.`;
+                            document.getElementById('ack-status').innerText = `✅ ¡Bitmap Plano Sincronizado! Retransmitiendo ${sys.activeIndices.length} bloques faltantes.`;
                             closeAckScanner();
                             if (!sys.running) togglePlay();
                         }
@@ -2330,7 +2729,7 @@
         }
 
         // =========================================================================
-        // 7. MODO ZEN Y OCULTAMIENTO AUTOMÁTICO POR INACTIVIDAD (3 SEGUNDOS)
+        // 8. MODO ZEN Y OCULTAMIENTO AUTOMÁTICO POR INACTIVIDAD (3 SEGUNDOS)
         // =========================================================================
         function resetZenIdleTimer() {
             if (!document.body.classList.contains('zen-mode')) return;
@@ -2377,12 +2776,41 @@
             }
         });
 
+        // =========================================================================
+        // 9. WAKE LOCK PERMANENTE EN EMISOR (EVITAR SUSPENSIÓN DE PANTALLA)
+        // =========================================================================
+        let senderWakeLock = null;
+        async function ensureSenderWakeLock() {
+            if ('wakeLock' in navigator) {
+                try {
+                    if (!senderWakeLock || senderWakeLock.released) {
+                        senderWakeLock = await navigator.wakeLock.request('screen');
+                        senderWakeLock.addEventListener('release', () => {
+                            if (document.visibilityState === 'visible') {
+                                setTimeout(ensureSenderWakeLock, 300);
+                            }
+                        });
+                    }
+                } catch (e) { }
+            }
+        }
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible') ensureSenderWakeLock();
+        });
+        ['click', 'keydown', 'pointerdown'].forEach(evt => {
+            document.addEventListener(evt, () => {
+                if (!senderWakeLock || senderWakeLock.released) ensureSenderWakeLock();
+            }, { passive: true });
+        });
+
         window.addEventListener('resize', () => {
             drawTimelineHeatmap();
             draw2DGridSelector();
         });
         window.addEventListener('DOMContentLoaded', () => {
             draw2DGridSelector();
+            ensurePassiveAcousticListener();
+            ensureSenderWakeLock();
         });
     </script>
 </body>
