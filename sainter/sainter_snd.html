@@ -27,9 +27,9 @@
         }
 
         body {
-            background: var(--bg);
+            background: radial-gradient(circle at top, #0b111b 0%, var(--bg) 70%);
             color: var(--text);
-            font-family: 'Courier New', Consolas, monospace;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
             margin: 0;
             display: flex;
             flex-direction: column;
@@ -153,41 +153,136 @@
         /* --- LAYOUT --- */
         .dashboard {
             width: 96%;
-            max-width: 1020px;
+            max-width: 1120px;
             padding: 18px 0 50px;
             display: grid;
             grid-template-columns: 1.05fr 0.95fr;
-            gap: 18px;
+            gap: 20px;
+            align-items: start;
         }
 
-        @media (max-width: 840px) {
+        @media (max-width: 860px) {
             .dashboard {
                 grid-template-columns: 1fr;
             }
         }
 
         .card {
-            background: var(--panel);
-            border: 1px solid var(--border);
-            padding: 18px;
-            border-radius: 6px;
+            background: linear-gradient(180deg, #0f151e 0%, #0b0f16 100%);
+            border: 1px solid #242c37;
+            padding: 20px;
+            border-radius: 12px;
             position: relative;
             display: flex;
             flex-direction: column;
-            gap: 12px;
+            gap: 14px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
         }
 
         .card-title {
-            font-size: 0.74rem;
-            color: var(--accent);
+            font-size: 0.82rem;
+            font-weight: 800;
+            color: #fff;
             text-transform: uppercase;
-            letter-spacing: 1.5px;
+            letter-spacing: 0.8px;
             border-bottom: 1px solid var(--border);
-            padding-bottom: 6px;
+            padding-bottom: 8px;
             margin: 0;
             display: flex;
             justify-content: space-between;
             align-items: center;
+        }
+
+        .step-pill {
+            background: var(--accent-dim);
+            color: var(--accent);
+            border: 1px solid rgba(0, 255, 65, 0.45);
+            padding: 2px 8px;
+            border-radius: 6px;
+            font-size: 0.68rem;
+            font-weight: 800;
+            margin-right: 6px;
+        }
+
+        .section-hint {
+            font-size: 0.74rem;
+            color: var(--dim);
+            margin: -6px 0 2px 0;
+            line-height: 1.35;
+        }
+
+        /* --- PESTAÑAS DE LAS 3 VÍAS DE RECUPERACIÓN --- */
+        .recovery-tabs {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 6px;
+            background: #05080d;
+            padding: 5px;
+            border-radius: 8px;
+            border: 1px solid #242c37;
+        }
+
+        .rec-tab-btn {
+            background: transparent;
+            border: 1px solid transparent;
+            color: var(--dim);
+            padding: 8px 6px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 0.72rem;
+            font-weight: 700;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 3px;
+            transition: 0.18s;
+            text-align: center;
+        }
+
+        .rec-tab-btn small {
+            font-size: 0.60rem;
+            font-weight: 500;
+            opacity: 0.8;
+        }
+
+        .rec-tab-btn:hover {
+            color: var(--text);
+            background: rgba(255, 255, 255, 0.04);
+        }
+
+        .rec-tab-btn.active.tab-opt {
+            background: rgba(240, 173, 78, 0.15);
+            border-color: var(--warn);
+            color: var(--warn);
+        }
+
+        .rec-tab-btn.active.tab-ac {
+            background: rgba(47, 129, 247, 0.16);
+            border-color: var(--blue);
+            color: #79c0ff;
+        }
+
+        .rec-tab-btn.active.tab-csv {
+            background: rgba(0, 255, 65, 0.12);
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        .recovery-pane {
+            display: none;
+            flex-direction: column;
+            gap: 10px;
+            animation: fadeInPane 0.18s ease;
+        }
+
+        .recovery-pane.active {
+            display: flex;
+        }
+
+        @keyframes fadeInPane {
+            from { opacity: 0; transform: translateY(2px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
         /* --- SELECTOR TABS --- */
@@ -955,9 +1050,12 @@
         <!-- COLUMNA IZQUIERDA: ORIGEN, PROTOCOLO Y CANALES DE RETORNO AISLADOS -->
         <div class="card">
             <h3 class="card-title">
-                <span>1. Ingesta & Empaquetado Binario 8-Bit</span>
+                <span><span class="step-pill">PASO 1</span>Carga de Archivo & Empaquetado</span>
                 <span id="comp-badge" style="color: var(--dim); font-size: 0.65rem;">8-BIT + COMP: AUTO</span>
             </h3>
+            <p class="section-hint">
+                Selecciona o arrastra el archivo a transmitir. El emisor lo comprime y genera tramas QR binarias con paridad Fountain XOR.
+            </p>
 
             <div class="selector">
                 <button id="btn-mode-f" class="sel-btn active" onclick="changeInput('file')">📂 ARCHIVO BINARIO</button>
@@ -966,9 +1064,9 @@
 
             <div class="input-box">
                 <div id="area-file" onclick="document.getElementById('file-input').click()">
-                    <span style="font-size: 1.5rem; margin-bottom: 3px;">📦</span>
-                    <span style="font-weight: bold; font-size: 0.75rem;">ARRASTRA EN CUALQUIER PARTE DE LA VENTANA O HAZ CLIC</span>
-                    <span style="font-size: 0.64rem; color: var(--dim); margin-top: 2px;">Encabezado binario de 4 bytes + Códigos Fountain (LT XOR) sin Hex</span>
+                    <span style="font-size: 1.6rem; margin-bottom: 3px;">📦</span>
+                    <span style="font-weight: bold; font-size: 0.78rem; color: #fff;">ARRASTRA TU ARCHIVO AQUÍ O HAZ CLIC PARA ELEGIR</span>
+                    <span style="font-size: 0.66rem; color: var(--dim); margin-top: 2px;">Transmisión principal por QR (Modo 8-Bit + Códigos Fountain XOR)</span>
                 </div>
                 <div id="area-text-wrap">
                     <textarea id="area-text" placeholder="Pega aquí el contenido o código para transmitir por canal óptico..."></textarea>
@@ -991,7 +1089,7 @@
             <!-- CONFIGURACIÓN DE MTU DINÁMICO Y COMPRESIÓN -->
             <div class="config-row">
                 <div class="config-label">
-                    <span>MTU DINÁMICO (MODO 8-BIT SIN PENALIZACIÓN HEX)</span>
+                    <span>TAMAÑO DE BLOQUE QR (MTU DINÁMICO)</span>
                     <b id="mtu-lbl" style="color: var(--accent);">500 Bytes (Óptimo 8-Bit)</b>
                 </div>
                 <div class="preset-group">
@@ -1002,7 +1100,7 @@
             </div>
 
             <div class="toggle-row">
-                <span>Pre-compresión Estructurada + <b>Gotas Fountain XOR</b></span>
+                <span>Compresión Automática + <b>Gotas de Paridad Fountain XOR</b></span>
                 <input type="checkbox" id="chk-gzip" checked onchange="reprocessCurrentSource()" style="accent-color: var(--accent); width: 17px; height: 17px; cursor: pointer;">
             </div>
 
@@ -1016,41 +1114,111 @@
                 <div>ACTIVOS: <b id="mt-active">0 blks</b></div>
             </div>
 
-            <!-- MODOS DE FLUJO (CARRUSEL, FOUNTAIN XOR SIN ESTADO, PRIORITARIO) -->
-            <h3 class="card-title" style="margin-top: 2px;">
-                <span>2. Algoritmo de Flujo & Vías de Sincronización</span>
+            <!-- PASO 2: RECUPERACIÓN DE FALTANTES (SOLO SI QUEDAN PENDIENTES) -->
+            <h3 class="card-title" style="margin-top: 6px;">
+                <span><span class="step-pill">PASO 2</span>Sincronizar Bloques Faltantes (Si Faltan)</span>
+                <span style="font-size: 0.64rem; color: var(--dim); font-weight: normal;">OPCIONAL</span>
             </h3>
+            <p class="section-hint">
+                La transmisión por QR es el flujo principal. <b>Solo si al celular le faltan bloques al final</b>, elige cómo retransmitirlos:
+            </p>
 
             <div class="preset-group">
-                <button class="preset-btn active" id="tx-mode-full" onclick="setTxMode('full')" title="Emite bloques secuenciales intercalando gotas de paridad XOR">🔄 Sistemático + XOR</button>
-                <button class="preset-btn" id="tx-mode-fountain" onclick="setTxMode('fountain')" title="Proyecta un flujo infinito sin estado de combinaciones lineales XOR (resuelve el problema del coleccionista de cupones)">🌊 Fountain Puro (XOR)</button>
-                <button class="preset-btn" id="tx-mode-priority" onclick="setTxMode('priority')" title="Retransmite únicamente los bloques o macro-sectores faltantes">⚡ Bucle Prioritario</button>
+                <button class="preset-btn active" id="tx-mode-full" onclick="setTxMode('full')" title="Emite bloques secuenciales intercalando gotas de paridad XOR">🔄 Carrusel + XOR</button>
+                <button class="preset-btn" id="tx-mode-fountain" onclick="setTxMode('fountain')" title="Proyecta un flujo infinito sin estado de combinaciones lineales XOR">🌊 Fountain Puro (XOR)</button>
+                <button class="preset-btn" id="tx-mode-priority" onclick="setTxMode('priority')" title="Retransmite únicamente los bloques o macro-sectores faltantes">⚡ Solo Faltantes</button>
             </div>
 
-            <div class="channels-grid">
-                <!-- CANAL 1: RETORNO ÓPTICO (BITMAP PLANO 664B) -->
-                <div class="channel-card optical-route">
-                    <div style="display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 180px;">
-                        <b style="color: var(--warn); font-size: 0.72rem;">📷 Retorno Óptico (Cámara QR)</b>
-                        <span style="font-size: 0.64rem; color: var(--dim);">Decodifica el Bitmap Plano del celular en una sola lectura</span>
+            <!-- PESTAÑAS CLARAS PARA ELEGIR ENTRE LAS 3 VÍAS DE REINTENTO -->
+            <div class="recovery-tabs">
+                <button class="rec-tab-btn active tab-opt" id="tab-btn-optical" onclick="switchRecoveryTab('optical')">
+                    <span>📷 1. Por QR Inverso</span>
+                    <small>Principal (Cámara)</small>
+                </button>
+                <button class="rec-tab-btn tab-csv" id="tab-btn-csv" onclick="switchRecoveryTab('csv')">
+                    <span>📋 2. Lista / Comas</span>
+                    <small>Pegar ACK Manual</small>
+                </button>
+                <button class="rec-tab-btn tab-ac" id="tab-btn-acoustic" onclick="switchRecoveryTab('acoustic')">
+                    <span>🔊 3. Beep-Boop Audio</span>
+                    <small>Apagado por defecto</small>
+                </button>
+            </div>
+
+            <!-- VÍA 1 (PRINCIPAL): ESCANEAR QR DE RETORNO DESDE EL CELULAR -->
+            <div class="recovery-pane active" id="pane-optical">
+                <div class="channel-card optical-route" style="padding: 14px;">
+                    <div style="display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 190px;">
+                        <b style="color: var(--warn); font-size: 0.80rem;">📷 Vía 1: Escanear QR de Faltantes del Celular</b>
+                        <span style="font-size: 0.70rem; color: var(--dim); line-height: 1.35;">
+                            En el celular toca <b>"1. Retorno Óptico"</b> y apunta su pantalla hacia la cámara de esta laptop. Sincroniza miles de bloques en 1 segundo.
+                        </span>
                     </div>
-                    <button class="btn btn-reverse" onclick="openAckScanner()" id="btn-scan-ack" disabled>
+                    <button class="btn btn-reverse" onclick="openAckScanner()" id="btn-scan-ack" disabled style="padding: 12px 16px; font-size: 0.78rem;">
                         📷 Abrir Lector QR [A]
                     </button>
                 </div>
+            </div>
 
-                <!-- CANAL 2: RETORNO ACÚSTICO AUTÓNOMO CON ESPECTROGRAMA WATERFALL + SELECTOR DE MICRÓFONO -->
-                <div class="channel-card acoustic-route">
+            <!-- VÍA 2 (COPIA DE RESTANTES POR COMAS / RANGOS / PORTAPAPELES) -->
+            <div class="recovery-pane" id="pane-csv">
+                <div class="channel-card" style="border-color: rgba(0, 255, 65, 0.35);">
                     <div class="config-label">
-                        <b style="color: #79c0ff;">🔊 Espectrograma & Módem Acústico (1620–3420 Hz)</b>
-                        <span id="fft-freq-lbl" style="color: var(--accent); font-weight: bold;">INICIANDO MIC...</span>
+                        <b style="color: var(--accent); font-size: 0.76rem;">📋 Vía 2: Pegar Bloques Faltantes (Comas, Rangos o Macro-Sectores)</b>
+                    </div>
+                    <div style="font-size: 0.69rem; color: var(--dim); line-height: 1.35;">
+                        Pega la lista copiada desde el celular (ej. <code>0, 1, 5, 9</code> o <code>0-12, 45</code> o <code>S04,09</code>) y pulsa <b>Pegar & Reintentar</b>:
+                    </div>
+                    <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                        <input type="text" id="custom-frames" placeholder="Ej: 0, 1, 2, 5  ó  0-12, 18-24  ó  S04,09,12"
+                            style="flex: 1; min-width: 180px; padding: 9px 10px; background: #010409; border: 1px solid var(--border); color: var(--text); border-radius: 6px; font-family: Consolas, monospace; font-size: 0.75rem;">
+                        <button class="btn btn-reverse" onclick="pasteFromClipboardAndApply()" title="Lee automáticamente del portapapeles y aplica los bloques faltantes" style="border-color: var(--accent); color: var(--accent); background: rgba(0, 255, 65, 0.1);">
+                            📋 Pegar & Reintentar
+                        </button>
+                        <button class="btn" onclick="applyCustomFrames()">APLICAR</button>
                     </div>
 
+                    <!-- HERRAMIENTAS DE CUADRATURA, RELLENO Y DESFASE -->
+                    <div class="quick-tools-panel" style="margin-top: 4px;">
+                        <div class="config-label">
+                            <span>AJUSTE FINO DE COLA (CUADRATURA, RELLENO Y DESFASE)</span>
+                        </div>
+                        <div class="quick-tools-row three-cols">
+                            <button class="tool-chip" onclick="squareToStart()" title="Alinear cola al inicio del primer segmento y emitir cabecera SYN">⏮ Cuadrar Inicio</button>
+                            <button class="tool-chip amber" onclick="fillSmallGaps(3)" title="Unir huecos cortos (<=3 bloques) entre segmentos faltantes">🧩 Rellenar Huecos</button>
+                            <button class="tool-chip amber" onclick="expandActiveIntervals(2)" title="Añadir ±2 bloques en los bordes de cada intervalo">↔ Expandir ±2</button>
+                        </div>
+
+                        <div class="quick-tools-row">
+                            <button class="tool-chip" onclick="shiftActiveQueue(-10)">-10 Frames</button>
+                            <button class="tool-chip" onclick="shiftActiveQueue(-1)">-1 Frame</button>
+                            <button class="tool-chip" onclick="shiftActiveQueue(1)">+1 Frame</button>
+                            <button class="tool-chip" onclick="shiftActiveQueue(10)">+10 Frames</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- VÍA 3 (CONVERSACIÓN BEEP-BOOP ENTRE CELULAR Y LAPTOP - DESACTIVADA POR DEFECTO) -->
+            <div class="recovery-pane" id="pane-acoustic">
+                <div class="channel-card acoustic-route">
+                    <div class="config-label">
+                        <b style="color: #79c0ff; font-size: 0.76rem;">🔊 Vía 3: Conversación Acústica Beep-Boop (Celular ↔ Laptop)</b>
+                        <span id="fft-freq-lbl" style="color: var(--dim); font-weight: bold;">APAGADO POR DEFECTO</span>
+                    </div>
+                    <div style="font-size: 0.68rem; color: var(--dim); line-height: 1.3;">
+                        Desactivado al iniciar para no usar micrófono ni emitir sonidos. Pulsa el botón azul abajo solo cuando quieras escuchar al celular.
+                    </div>
+
+                    <button class="btn btn-mic" id="btn-audio-listen" onclick="toggleAcousticListener()" style="padding: 11px; font-size: 0.78rem;">
+                        🎙️ Activar Escucha Acústica (Encender Micrófono)
+                    </button>
+
                     <!-- Espectrograma Dual: Espectro FFT en vivo (arriba) + Cascada Waterfall 2D (abajo) -->
-                    <canvas id="audio-fft-canvas" onclick="forceActivateMicrophone()" title="Arriba: Espectro FFT (Voz 150-1500Hz / Módem FSK 1600-3450Hz) | Abajo: Cascada Waterfall en tiempo real. Haz clic para activar/recalibrar micrófono."></canvas>
+                    <canvas id="audio-fft-canvas" onclick="forceActivateMicrophone()" title="Haz clic para activar el micrófono y ver el espectrograma en tiempo real"></canvas>
 
                     <div class="rx-live-banner">
-                        <span>TRAMA ACÚSTICA RX: <b id="rx-live-buffer">ESPERANDO TONOS...</b></span>
+                        <span>TRAMA ACÚSTICA RX: <b id="rx-live-buffer">MICRÓFONO EN PAUSA</b></span>
                         <span id="rx-snr-lbl" style="color: #79c0ff; font-size: 0.64rem;">SNR: 0 dB | Gain: 2.5x</span>
                     </div>
 
@@ -1059,64 +1227,32 @@
                             <option value="">🎙️ Micrófono predeterminado del sistema...</option>
                         </select>
                         <button class="tool-chip" id="btn-mic-gain" onclick="cycleMicGain()" title="Aumentar ganancia digital del micrófono si el sonido del celular llega bajo">🎚️ Gain: 2.5x</button>
-                        <button class="tool-chip amber" onclick="runAcousticLoopbackTest()" title="Emite una ráfaga FSK de prueba por las bocinas de la laptop para verificar que el micrófono y el espectrograma decodifican correctamente">🔊 Probar Sonido</button>
+                        <button class="tool-chip amber" onclick="runAcousticLoopbackTest()" title="Emite una ráfaga FSK de prueba solo cuando tú lo pidas">🔊 Probar Sonido</button>
                     </div>
 
-                    <button class="btn btn-mic" id="btn-audio-listen" onclick="toggleAcousticListener()">
-                        🎙️ Escucha Continua Activa
-                    </button>
+                    <!-- ESTADOS VISUALES PROGRESIVOS UNIFICADOS DURANTE TRANSFERENCIA ACÚSTICA -->
+                    <div class="sync-phases-box" id="sender-acoustic-phases">
+                        <div class="sync-phase-row" id="snd-phase-1">
+                            <span class="sync-phase-dot"></span>
+                            <span>Fase 1: «Negociando conexión...»</span>
+                        </div>
+                        <div class="sync-phase-row" id="snd-phase-2">
+                            <span class="sync-phase-dot"></span>
+                            <span id="snd-phase-2-txt">Fase 2: «Transmitiendo bloques faltantes...»</span>
+                        </div>
+                        <div class="sync-phase-row" id="snd-phase-3">
+                            <span class="sync-phase-dot"></span>
+                            <span>Fase 3: «Confirmación recibida de la laptop»</span>
+                        </div>
+                    </div>
                 </div>
-            </div>
-
-            <!-- ESTADOS VISUALES PROGRESIVOS UNIFICADOS DURANTE TRANSFERENCIA ACÚSTICA -->
-            <div class="sync-phases-box" id="sender-acoustic-phases">
-                <div class="sync-phase-row" id="snd-phase-1">
-                    <span class="sync-phase-dot"></span>
-                    <span>Fase 1: «Negociando conexión...»</span>
-                </div>
-                <div class="sync-phase-row" id="snd-phase-2">
-                    <span class="sync-phase-dot"></span>
-                    <span id="snd-phase-2-txt">Fase 2: «Transmitiendo bloques faltantes...»</span>
-                </div>
-                <div class="sync-phase-row" id="snd-phase-3">
-                    <span class="sync-phase-dot"></span>
-                    <span>Fase 3: «Confirmación recibida de la laptop»</span>
-                </div>
-            </div>
-
-            <!-- PANEL DE ACCIONES RÁPIDAS (CUADRATURA, RELLENO Y DESPLAZAMIENTO) -->
-            <div class="quick-tools-panel">
-                <div class="config-label">
-                    <span>CUADRATURA AUTOMÁTICA, RELLENO Y DESFASE</span>
-                </div>
-                <div class="quick-tools-row three-cols">
-                    <button class="tool-chip" onclick="squareToStart()" title="Alinear cola al inicio del primer segmento y emitir cabecera SYN">⏮ Cuadrar Inicio</button>
-                    <button class="tool-chip amber" onclick="fillSmallGaps(3)" title="Unir huecos cortos (<=3 bloques) entre segmentos faltantes">🧩 Rellenar Huecos</button>
-                    <button class="tool-chip amber" onclick="expandActiveIntervals(2)" title="Añadir ±2 bloques en los bordes de cada intervalo">↔ Expandir ±2</button>
-                </div>
-
-                <div class="quick-tools-row">
-                    <button class="tool-chip" onclick="shiftActiveQueue(-10)">-10 Frames</button>
-                    <button class="tool-chip" onclick="shiftActiveQueue(-1)">-1 Frame</button>
-                    <button class="tool-chip" onclick="shiftActiveQueue(1)">+1 Frame</button>
-                    <button class="tool-chip" onclick="shiftActiveQueue(10)">+10 Frames</button>
-                </div>
-            </div>
-
-            <div style="display: flex; gap: 8px; align-items: center;">
-                <input type="text" id="custom-frames" placeholder="Macro-sectores (ej. S04,09,12), rangos (0, 4-12) o lista (0, 1, 2, 5)"
-                    style="flex: 1; padding: 8px; background: #010409; border: 1px solid var(--border); color: var(--text); border-radius: 4px; font-family: inherit; font-size: 0.72rem;">
-                <button class="btn" onclick="applyCustomFrames()">APLICAR</button>
-                <button class="btn btn-reverse" onclick="pasteFromClipboardAndApply()" title="Lee automáticamente del portapapeles y aplica los bloques faltantes">
-                    📋 Pegar & Reintentar
-                </button>
             </div>
         </div>
 
-        <!-- COLUMNA DERECHA: VISOR QR, MATRIZ 2D CON SELECCIÓN RECTANGULAR Y CADENCIA -->
+        <!-- COLUMNA DERECHA: VISOR QR PRINCIPAL, MATRIZ 2D CON SELECCIÓN RECTANGULAR Y CADENCIA -->
         <div class="card" id="qr-card">
             <h3 class="card-title">
-                <span>3. Emisor Óptico & Selección Rectangular 2D</span>
+                <span><span class="step-pill">PASO 3</span>Proyector QR Principal & Control de Flujo</span>
                 <span id="frame-badge" style="color: var(--accent);">STANDBY</span>
             </h3>
 
@@ -2065,6 +2201,38 @@
             if (btn) btn.innerText = `🎚️ Gain: ${sys.micGainLevel.toFixed(1)}x`;
         }
 
+        function switchRecoveryTab(tabName) {
+            document.getElementById('tab-btn-optical').classList.toggle('active', tabName === 'optical');
+            document.getElementById('tab-btn-csv').classList.toggle('active', tabName === 'csv');
+            document.getElementById('tab-btn-acoustic').classList.toggle('active', tabName === 'acoustic');
+
+            document.getElementById('pane-optical').classList.toggle('active', tabName === 'optical');
+            document.getElementById('pane-csv').classList.toggle('active', tabName === 'csv');
+            document.getElementById('pane-acoustic').classList.toggle('active', tabName === 'acoustic');
+
+            if (tabName === 'acoustic' && !sys.audioListening) {
+                drawStandbySpectrogram();
+            }
+        }
+
+        function drawStandbySpectrogram() {
+            const canvas = document.getElementById('audio-fft-canvas');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            const w = canvas.width = canvas.clientWidth || 340;
+            const h = canvas.height = canvas.clientHeight || 98;
+            ctx.clearRect(0, 0, w, h);
+            ctx.fillStyle = 'rgba(47, 129, 247, 0.06)';
+            ctx.fillRect(0, 0, w, h);
+            ctx.fillStyle = '#79c0ff';
+            ctx.font = 'bold 11px Consolas, monospace';
+            ctx.textAlign = 'center';
+            ctx.fillText('🔇 MÓDEM ACÚSTICO DESACTIVADO POR DEFECTO', w / 2, h / 2 - 5);
+            ctx.fillStyle = '#8b949e';
+            ctx.font = '10px Consolas, monospace';
+            ctx.fillText('Pulsa el botón "🎙️ Activar Escucha Acústica" arriba cuando lo necesites', w / 2, h / 2 + 12);
+        }
+
         async function forceActivateMicrophone() {
             if (sys.audioCtx && sys.audioCtx.state === 'suspended') {
                 try { await sys.audioCtx.resume(); } catch (e) { }
@@ -2169,9 +2337,12 @@
             if (sys.audioListening) {
                 stopAcousticListener();
                 btn.classList.remove('listening');
-                btn.innerText = "🎙️ Activar Escucha Continua";
-                lbl.innerText = "PAUSADO";
+                btn.innerText = "🎙️ Activar Escucha Acústica (Encender Micrófono)";
+                lbl.innerText = "APAGADO";
+                const liveBuf = document.getElementById('rx-live-buffer');
+                if (liveBuf) liveBuf.innerText = "MICRÓFONO EN PAUSA";
                 setSenderAcousticPhaseUI(0);
+                drawStandbySpectrogram();
                 return;
             }
             await ensurePassiveAcousticListener(true);
@@ -3202,7 +3373,7 @@
         });
         window.addEventListener('DOMContentLoaded', () => {
             draw2DGridSelector();
-            ensurePassiveAcousticListener();
+            drawStandbySpectrogram();
             ensureSenderWakeLock();
         });
     </script>
