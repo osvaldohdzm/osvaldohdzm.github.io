@@ -1821,16 +1821,6 @@
             setAcousticPhaseUI(0);
         }
 
-        async function emitFinalCompletionBeep() {
-            try {
-                await playSingleTone(ACOUSTIC_PROTOCOL.FIN_100, 180);
-                await new Promise(r => setTimeout(r, 40));
-                await playSingleTone(ACOUSTIC_PROTOCOL.ACK_OK, 140);
-                await new Promise(r => setTimeout(r, 40));
-                await playSingleTone(ACOUSTIC_PROTOCOL.FIN_100, 260);
-            } catch (e) { }
-        }
-
         // =========================================================================
         // 5. SUBSISTEMA ÓPTICO CON WEB WORKER DEDICADO Y OBTURACIÓN RÁPIDA (1/1000s)
         // =========================================================================
@@ -2746,8 +2736,6 @@
                     .join('');
 
                 if (hashHex.startsWith(sys.meta.h)) {
-                    await emitFinalCompletionBeep();
-
                     const blob = new Blob([fullStream], { type: "application/octet-stream" });
                     const a = document.createElement('a');
                     a.href = URL.createObjectURL(blob);
