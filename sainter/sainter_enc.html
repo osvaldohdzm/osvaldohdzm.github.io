@@ -1,0 +1,291 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>Encode &amp; Encrypt | Sainter</title>
+  <style>
+    :root{font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;color:#172033;background:#f3f6fb;font-synthesis:none;--blue:#315ee8;--border:#dce3ee;--muted:#64748b}
+    *{box-sizing:border-box}body{margin:0;min-height:100vh;padding:48px 20px}.page{width:min(920px,100%);margin:0 auto}header{margin-bottom:25px}.eyebrow{color:var(--blue);font-size:.76rem;font-weight:750;letter-spacing:.13em;text-transform:uppercase}h1{margin:8px 0;font-size:clamp(1.8rem,5vw,2.5rem);letter-spacing:-.045em}header p{margin:0;color:var(--muted);line-height:1.65}
+    .card{padding:clamp(18px,4vw,32px);border:1px solid var(--border);border-radius:18px;background:#fff;box-shadow:0 14px 40px rgb(26 42 74 / 7%)}.mode-row{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding-bottom:22px;border-bottom:1px solid #edf0f5}.mode-label{margin-right:7px;color:var(--muted);font-size:.9rem;font-weight:650}.mode-button{padding:9px 14px;border:1px solid var(--border);border-radius:9px;color:#475569;background:white;font:inherit;font-size:.9rem;font-weight:650;cursor:pointer}.mode-button[aria-pressed=true]{border-color:var(--blue);color:var(--blue);background:#eff4ff}.mode-note{width:100%;margin:4px 0 0;color:var(--muted);font-size:.86rem}
+    .fields{display:grid;grid-template-columns:1fr 1fr;gap:22px;padding-top:23px}.field{min-width:0}.field-heading{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:9px}label{color:#263248;font-size:.92rem;font-weight:700}.hint{color:var(--muted);font-size:.79rem}textarea{display:block;width:100%;min-height:235px;resize:vertical;padding:13px 14px;border:1px solid var(--border);border-radius:10px;color:#172033;background:#fbfcfe;font:14px/1.6 ui-monospace,SFMono-Regular,Consolas,monospace}textarea:focus,input:focus{outline:3px solid rgb(49 94 232 / 15%);border-color:var(--blue)}textarea[readonly]{background:#f7f9fc}
+    .file-row{margin-top:11px}.file-row input{width:100%;color:var(--muted);font:inherit;font-size:.84rem}.file-name{display:block;margin-top:7px;overflow:hidden;color:var(--muted);font-size:.82rem;text-overflow:ellipsis;white-space:nowrap}.passphrase{display:none;margin-top:17px}.passphrase.visible{display:block}input[type=password]{width:100%;margin-top:8px;padding:11px 12px;border:1px solid var(--border);border-radius:9px;font:inherit}.pass-hint{margin:7px 0 0;color:var(--muted);font-size:.8rem;line-height:1.5}
+    .actions{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-top:17px}.primary,.secondary{min-height:42px;padding:10px 15px;border:0;border-radius:9px;font:inherit;font-weight:700;cursor:pointer}.primary{color:white;background:var(--blue)}.primary:hover{background:#244bc4}.secondary{border:1px solid var(--border);color:#334155;background:white}button:disabled{opacity:.58;cursor:not-allowed}.download{display:none}.download.visible{display:inline-block}.status{min-height:1.5em;margin:11px 0 0;color:var(--muted);font-size:.86rem;line-height:1.5}.status.error{color:#b42318}.status.success{color:#18794e}
+    .info{margin-top:21px;padding:14px 16px;border-radius:10px;color:#475569;background:#f5f8ff;font-size:.85rem;line-height:1.65}.info strong{color:#25334b}footer{display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px;margin:19px 2px 0;color:var(--muted);font-size:.82rem}footer a,.info a{color:var(--blue);font-weight:650;text-decoration:none}footer a:hover,.info a:hover{text-decoration:underline}
+    @media(max-width:680px){body{padding:28px 14px}.fields{grid-template-columns:1fr;gap:21px}textarea{min-height:175px}.field-heading{align-items:flex-start}}
+  </style>
+</head>
+<body>
+  <main class="page">
+    <header>
+      <div class="eyebrow">Private, in-browser utility</div>
+      <h1 id="pageTitle">Encode &amp; Encrypt</h1>
+      <p id="subtitle">Convert text or files to Base64, or protect them with a passphrase using AES-GCM.</p>
+    </header>
+    <section class="card" aria-label="Encoding and encryption tool">
+      <div class="mode-row" role="group" aria-label="Choose an operation">
+        <span class="mode-label">Operation</span>
+        <button class="mode-button" type="button" data-mode="base64" aria-pressed="true">Base64</button>
+        <button class="mode-button" type="button" data-mode="aes" aria-pressed="false">AES-GCM</button>
+        <p class="mode-note" id="modeNote">Base64 encodes data for storage or transport; it does not encrypt or protect it.</p>
+      </div>
+      <div class="fields">
+        <div class="field">
+          <div class="field-heading"><label for="input" id="inputLabel">Input</label><span class="hint" id="inputHint">Text or select a file</span></div>
+          <textarea id="input" placeholder="Type or paste text here…" spellcheck="false"></textarea>
+          <div class="file-row" id="fileRow">
+            <input id="fileInput" type="file" aria-label="Choose a file to encode or encrypt">
+            <span class="file-name" id="fileName">File selection replaces the text input.</span>
+          </div>
+          <div class="passphrase" id="passphraseWrap">
+            <label for="passphrase" id="passphraseLabel">Encryption passphrase</label>
+            <input id="passphrase" type="password" autocomplete="new-password" placeholder="Enter a strong passphrase">
+            <p class="pass-hint" id="passHint">Use the same passphrase to decrypt later. A random salt and IV are included in the output.</p>
+          </div>
+        </div>
+        <div class="field">
+          <div class="field-heading"><label for="output" id="outputLabel">Base64 output</label><span class="hint" id="outputHint">Ready to copy and store</span></div>
+          <textarea id="output" placeholder="Your Base64 output will appear here…" readonly spellcheck="false"></textarea>
+          <div class="actions">
+            <button class="primary" id="runButton" type="button">Encode Base64</button>
+            <button class="secondary" id="copyButton" type="button" disabled>Copy output</button>
+            <button class="secondary download" id="downloadButton" type="button">Download file</button>
+          </div>
+          <p class="status" id="status" role="status" aria-live="polite"></p>
+        </div>
+      </div>
+      <aside class="info" id="instructions">
+        <strong>How to use:</strong> Choose Base64 for reversible encoding, or AES-GCM to encrypt with a passphrase. Paste the result into the matching <a href="sainter_dec.html">decoder</a> to decode or decrypt it. Files are packaged with their name and type so the decoder can recreate a download.
+        <br><strong>Privacy:</strong> All processing stays in this browser; nothing is uploaded. AES requires Web Crypto in a secure context, typically HTTPS or localhost. If opened as a local file, AES may be unavailable in some browsers.
+      </aside>
+    </section>
+    <footer><span>Text and file data are processed locally.</span><a id="otherPage" href="sainter_dec.html">Go to Decode &amp; Decrypt →</a></footer>
+  </main>
+  <script>
+    "use strict";
+    const PAGE = "encode";
+    const FILE_MAGIC = "SAINTER_FILE_V1\n";
+    const AES_AAD = new TextEncoder().encode("SAINTER_AES_GCM_V1");
+    const ITERATIONS = 310000;
+    const encoder = new TextEncoder();
+    const decoder = new TextDecoder("utf-8", { fatal: true });
+    const el = id => document.getElementById(id);
+    const input = el("input"), output = el("output"), fileInput = el("fileInput");
+    const passphrase = el("passphrase"), runButton = el("runButton"), copyButton = el("copyButton");
+    const downloadButton = el("downloadButton"), status = el("status");
+    let mode = "base64", downloadData = null;
+
+    function bytesToBase64(bytes) {
+      let binary = "";
+      for (let offset = 0; offset < bytes.length; offset += 0x8000) {
+        binary += String.fromCharCode(...bytes.subarray(offset, offset + 0x8000));
+      }
+      return btoa(binary);
+    }
+    function base64ToBytes(value) {
+      const compact = value.replace(/\s/g, "");
+      if (!compact) return new Uint8Array();
+      if (!/^[A-Za-z0-9+/_-]*={0,2}$/.test(compact) || compact.length % 4 === 1) throw new Error("Enter valid Base64 data.");
+      try {
+        const binary = atob(compact.replace(/-/g, "+").replace(/_/g, "/") + "=".repeat((4 - compact.length % 4) % 4));
+        return Uint8Array.from(binary, character => character.charCodeAt(0));
+      } catch {
+        throw new Error("Enter valid Base64 data.");
+      }
+    }
+    function setStatus(message, kind = "") { status.textContent = message; status.className = `status${kind ? ` ${kind}` : ""}`; }
+    function clearResult() {
+      output.value = ""; copyButton.disabled = true; downloadButton.classList.remove("visible"); downloadData = null;
+    }
+    function safeFilename(name) {
+      const cleaned = typeof name === "string" ? name.replace(/[\\/:*?"<>|\u0000-\u001f]/g, "_").trim() : "";
+      return cleaned && cleaned !== "." && cleaned !== ".." ? cleaned.slice(0, 180) : "decoded-file";
+    }
+    function offerDownload(bytes, name, mime) {
+      downloadData = { bytes, name: safeFilename(name), mime: mime || "application/octet-stream" };
+      downloadButton.classList.add("visible");
+    }
+    function updatePage() {
+      const decoding = PAGE === "decode";
+      el("pageTitle").textContent = decoding ? "Decode & Decrypt" : "Encode & Encrypt";
+      el("subtitle").textContent = decoding
+        ? "Decode Base64 text or files, or decrypt AES-GCM data with its original passphrase."
+        : "Convert text or files to Base64, or protect them with a passphrase using AES-GCM.";
+      el("inputLabel").textContent = decoding ? "Base64 input" : "Input";
+      el("inputHint").textContent = decoding ? "Paste encoded data" : "Text or select a file";
+      input.placeholder = decoding ? "Paste Base64 data here…" : "Type or paste text here…";
+      el("outputLabel").textContent = decoding ? "Decoded result" : "Base64 output";
+      el("outputHint").textContent = decoding ? "Text appears here; files can be downloaded" : "Ready to copy and store";
+      output.placeholder = decoding ? "Your decoded result will appear here…" : "Your Base64 output will appear here…";
+      el("fileRow").hidden = decoding;
+      el("otherPage").href = decoding ? "sainter_enc.html" : "sainter_dec.html";
+      el("otherPage").textContent = decoding ? "Go to Encode & Encrypt →" : "Go to Decode & Decrypt →";
+      el("instructions").innerHTML = decoding
+        ? '<strong>How to use:</strong> Paste a Base64 result, choose Base64 to decode or AES-GCM to decrypt, then enter the passphrase if requested. Files encoded by the <a href="sainter_enc.html">encoder</a> retain their name and type and can be downloaded here.<br><strong>Privacy:</strong> All processing stays in this browser; nothing is uploaded. AES requires Web Crypto in a secure context, typically HTTPS or localhost. If opened as a local file, AES may be unavailable in some browsers.'
+        : '<strong>How to use:</strong> Choose Base64 for reversible encoding, or AES-GCM to encrypt with a passphrase. Paste the result into the matching <a href="sainter_dec.html">decoder</a> to decode or decrypt it. Files are packaged with their name and type so the decoder can recreate a download.<br><strong>Privacy:</strong> All processing stays in this browser; nothing is uploaded. AES requires Web Crypto in a secure context, typically HTTPS or localhost. If opened as a local file, AES may be unavailable in some browsers.';
+    }
+    function updateMode(nextMode) {
+      mode = nextMode;
+      document.querySelectorAll(".mode-button").forEach(button => button.setAttribute("aria-pressed", String(button.dataset.mode === mode)));
+      el("passphraseWrap").classList.toggle("visible", mode === "aes");
+      el("passphraseLabel").textContent = PAGE === "decode" ? "Decryption passphrase" : "Encryption passphrase";
+      el("passphrase").placeholder = PAGE === "decode" ? "Enter the original passphrase" : "Enter a strong passphrase";
+      el("passHint").textContent = PAGE === "decode"
+        ? "Use the same passphrase that was used to encrypt this data."
+        : "Use the same passphrase to decrypt later. A random salt and IV are included in the output.";
+      runButton.textContent = mode === "aes"
+        ? (PAGE === "decode" ? "Decrypt with AES-GCM" : "Encrypt with AES-GCM")
+        : (PAGE === "decode" ? "Decode Base64" : "Encode Base64");
+      el("modeNote").textContent = mode === "aes"
+        ? (PAGE === "decode" ? "AES-GCM verifies the data and decrypts it with the original passphrase." : "AES-GCM encrypts your data. Keep your passphrase safe; it cannot be recovered.")
+        : (PAGE === "decode" ? "Base64 decoding reverses encoding; it does not decrypt or protect data." : "Base64 encodes data for storage or transport; it does not encrypt or protect it.");
+      clearResult(); setStatus("");
+    }
+    async function getInput() {
+      if (fileInput.files.length) {
+        const file = fileInput.files[0];
+        return { bytes: new Uint8Array(await file.arrayBuffer()), kind: "file", name: file.name, mime: file.type || "application/octet-stream" };
+      }
+      return { bytes: encoder.encode(input.value), kind: "text", name: "", mime: "text/plain;charset=utf-8" };
+    }
+    function wrapFile(data) {
+      const prefix = encoder.encode(FILE_MAGIC);
+      const body = encoder.encode(JSON.stringify({ name: data.name, mime: data.mime, data: bytesToBase64(data.bytes) }));
+      const packet = new Uint8Array(prefix.length + body.length);
+      packet.set(prefix); packet.set(body, prefix.length);
+      return bytesToBase64(packet);
+    }
+    async function deriveKey(secret, salt, iterations, usage) {
+      const material = await crypto.subtle.importKey("raw", encoder.encode(secret), "PBKDF2", false, ["deriveKey"]);
+      return crypto.subtle.deriveKey(
+        { name: "PBKDF2", salt, iterations, hash: "SHA-256" }, material,
+        { name: "AES-GCM", length: 256 }, false, [usage]
+      );
+    }
+    function requireWebCrypto() {
+      if (!globalThis.crypto?.subtle || !globalThis.isSecureContext) {
+        throw new Error("AES requires Web Crypto in a secure context. Open this page over HTTPS or localhost.");
+      }
+    }
+    async function encryptData(data) {
+      requireWebCrypto();
+      if (!passphrase.value) throw new Error("Enter an encryption passphrase.");
+      const salt = crypto.getRandomValues(new Uint8Array(16));
+      const iv = crypto.getRandomValues(new Uint8Array(12));
+      const key = await deriveKey(passphrase.value, salt, ITERATIONS, "encrypt");
+      const ciphertext = new Uint8Array(await crypto.subtle.encrypt(
+        { name: "AES-GCM", iv, additionalData: AES_AAD, tagLength: 128 }, key, data.bytes
+      ));
+      return bytesToBase64(encoder.encode(JSON.stringify({
+        v: 1, alg: "AES-GCM", kdf: "PBKDF2-SHA-256", iterations: ITERATIONS,
+        salt: bytesToBase64(salt), iv: bytesToBase64(iv), kind: data.kind,
+        name: data.name, mime: data.mime, data: bytesToBase64(ciphertext)
+      })));
+    }
+    function unpackFile(bytes) {
+      const prefix = encoder.encode(FILE_MAGIC);
+      if (bytes.length < prefix.length || !prefix.every((byte, i) => bytes[i] === byte)) return null;
+      let packet;
+      try { packet = JSON.parse(decoder.decode(bytes.subarray(prefix.length))); }
+      catch { throw new Error("The encoded file metadata is invalid or damaged."); }
+      if (!packet || typeof packet.name !== "string" || typeof packet.mime !== "string" || typeof packet.data !== "string") {
+        throw new Error("The encoded file metadata is incomplete.");
+      }
+      return { bytes: base64ToBytes(packet.data), name: safeFilename(packet.name), mime: packet.mime };
+    }
+    async function decryptData() {
+      requireWebCrypto();
+      if (!passphrase.value) throw new Error("Enter the decryption passphrase.");
+      let payload;
+      try { payload = JSON.parse(decoder.decode(base64ToBytes(input.value))); }
+      catch { throw new Error("This is not a valid Sainter AES-GCM payload."); }
+      if (!payload || payload.v !== 1 || payload.alg !== "AES-GCM" || payload.kdf !== "PBKDF2-SHA-256" ||
+          payload.iterations !== ITERATIONS || !["text", "file"].includes(payload.kind) ||
+          typeof payload.salt !== "string" || typeof payload.iv !== "string" || typeof payload.data !== "string") {
+        throw new Error("This AES-GCM payload has an unsupported or invalid format.");
+      }
+      const salt = base64ToBytes(payload.salt), iv = base64ToBytes(payload.iv), ciphertext = base64ToBytes(payload.data);
+      if (salt.length !== 16 || iv.length !== 12 || ciphertext.length < 16) throw new Error("The AES-GCM payload is incomplete or damaged.");
+      const key = await deriveKey(passphrase.value, salt, payload.iterations, "decrypt");
+      let bytes;
+      try {
+        bytes = new Uint8Array(await crypto.subtle.decrypt(
+          { name: "AES-GCM", iv, additionalData: AES_AAD, tagLength: 128 }, key, ciphertext
+        ));
+      } catch {
+        throw new Error("Decryption failed. Check the passphrase and make sure the data has not been changed.");
+      }
+      return { bytes, kind: payload.kind, name: safeFilename(payload.name), mime: typeof payload.mime === "string" ? payload.mime : "application/octet-stream" };
+    }
+    function showText(bytes) {
+      try {
+        output.value = decoder.decode(bytes);
+        copyButton.disabled = !output.value;
+        setStatus("Decoded as UTF-8 text.", "success");
+      } catch {
+        output.value = `Decoded ${bytes.length.toLocaleString()} bytes of binary data. Download the file to save it.`;
+        offerDownload(bytes, "decoded.bin", "application/octet-stream");
+        setStatus("This data is binary rather than UTF-8 text. Download it to save the decoded bytes.", "success");
+      }
+    }
+    async function run() {
+      clearResult(); runButton.disabled = true;
+      setStatus(mode === "aes" ? (PAGE === "decode" ? "Decrypting locally…" : "Encrypting locally…") : (PAGE === "decode" ? "Decoding locally…" : "Encoding locally…"));
+      try {
+        if (PAGE === "encode") {
+          const data = await getInput();
+          output.value = mode === "aes" ? await encryptData(data) : (data.kind === "file" ? wrapFile(data) : bytesToBase64(data.bytes));
+          copyButton.disabled = !output.value;
+          setStatus(mode === "aes" ? "Encrypted. Save this Base64 output and remember your passphrase." : "Encoded successfully.", "success");
+        } else if (mode === "aes") {
+          const result = await decryptData();
+          if (result.kind === "file") {
+            output.value = `Decrypted file: ${result.name} (${result.bytes.length.toLocaleString()} bytes)`;
+            offerDownload(result.bytes, result.name, result.mime);
+            setStatus("File decrypted. Download it to recreate the original file.", "success");
+          } else showText(result.bytes);
+        } else {
+          const bytes = base64ToBytes(input.value);
+          const file = unpackFile(bytes);
+          if (file) {
+            output.value = `Decoded file: ${file.name} (${file.bytes.length.toLocaleString()} bytes)`;
+            offerDownload(file.bytes, file.name, file.mime);
+            setStatus("File decoded. Download it to recreate the original file.", "success");
+          } else showText(bytes);
+        }
+      } catch (error) {
+        setStatus(error instanceof Error ? error.message : "The operation could not be completed.", "error");
+      } finally { runButton.disabled = false; }
+    }
+    updatePage();
+    document.querySelectorAll(".mode-button").forEach(button => button.addEventListener("click", () => updateMode(button.dataset.mode)));
+    fileInput.addEventListener("change", () => {
+      const file = fileInput.files[0];
+      el("fileName").textContent = file ? `${file.name} (${file.size.toLocaleString()} bytes)` : "File selection replaces the text input.";
+      clearResult(); setStatus("");
+    });
+    input.addEventListener("input", () => {
+      if (fileInput.files.length) {
+        fileInput.value = "";
+        el("fileName").textContent = "File selection replaces the text input.";
+      }
+      clearResult(); setStatus("");
+    });
+    passphrase.addEventListener("input", clearResult);
+    runButton.addEventListener("click", run);
+    copyButton.addEventListener("click", async () => {
+      if (!output.value) return;
+      try { await navigator.clipboard.writeText(output.value); setStatus("Result copied to the clipboard.", "success"); }
+      catch { setStatus("Clipboard access was blocked. Select and copy the result manually.", "error"); }
+    });
+    downloadButton.addEventListener("click", () => {
+      if (!downloadData) return;
+      const url = URL.createObjectURL(new Blob([downloadData.bytes], { type: downloadData.mime }));
+      const anchor = document.createElement("a");
+      anchor.href = url; anchor.download = downloadData.name; document.body.append(anchor); anchor.click(); anchor.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    });
+  </script>
+</body>
+</html>
