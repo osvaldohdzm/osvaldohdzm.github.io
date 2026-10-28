@@ -1366,7 +1366,7 @@
             function j(a, b) { this.totalCount = a, this.dataCount = b }
             function k() { this.buffer = [], this.length = 0 }
             function r(a, b) {
-                for (var c = 1, e = a.length, f = 0, g = l.length; g > f; f++) {
+                for (var c = 1, e = a.length + 3, f = 0, g = l.length; g > f; f++) {
                     var h = 0;
                     switch (b) { case d.L: h = l[f][0]; break; case d.M: h = l[f][1]; break; case d.Q: h = l[f][2]; break; case d.H: h = l[f][3] }
                     if (h >= e) break;
@@ -1773,10 +1773,6 @@
                 return;
             }
 
-            if (!sys.audioListening) {
-                ensurePassiveAcousticListener();
-            }
-
             sys.sourceBlob = blob;
             sys.sourceName = filename;
 
@@ -2040,6 +2036,19 @@
                 let effectiveMode = sys.rectMode;
                 if (e.shiftKey || e.ctrlKey) effectiveMode = 'add';
                 if (e.altKey) effectiveMode = 'sub';
+
+                // Si fue un clic simple sin arrastrar rectángulo en modo 'replace', saltar el cursor a ese bloque en lugar de reducir la cola a 1 solo bloque
+                if (effectiveMode === 'replace' && minCol === maxCol && minRow === maxRow) {
+                    const clickedIdx = Math.min(total - 1, minRow * cols + minCol);
+                    const posInQueue = sys.activeIndices.indexOf(clickedIdx);
+                    if (posInQueue !== -1) {
+                        sys.activeIdx = posInQueue;
+                        updateTimelineBounds();
+                        renderCurrentActiveFrame();
+                        document.getElementById('status').innerText = `● CURSOR EN BLOQUE #${clickedIdx}`;
+                        return;
+                    }
+                }
 
                 const nextSet = (effectiveMode === 'replace') ? new Set() : new Set(sys.activeSet);
 
@@ -2615,29 +2624,23 @@
         }
 
         async function handleDemodulatedSymbol(sym) {
-            // El flujo de audio NUNCA detiene el envío de QR (togglePlay) ni hace sonidos desde la laptop
+            // 1. Ignorar cualquier tono si no ha habido un handshake HELLO previo
             if (sym.type === 'HELLO') {
                 sys.rxRleBuffer = "";
                 sys.lastSymbolChar = "";
                 setSenderAcousticPhaseUI(1);
-
                 clearTimeout(sys.rxSessionTimeout);
                 sys.rxSessionTimeout = setTimeout(() => {
-                    if (sys.rxRleBuffer.length > 0) {
-                        finalizeAcousticRleReception();
-                    } else if (sys.acousticPhase === 1) {
-                        setSenderAcousticPhaseUI(0);
-                    }
-                }, 10000);
+                    if (sys.rxRleBuffer.length >= 2) finalizeAcousticRleReception();
+                    else setSenderAcousticPhaseUI(0);
+                }, 8000);
                 return;
             }
 
-            // Solo aceptar símbolos de datos tras haber recibido explícitamente el tono HELLO (fase 1 o 2)
-            // para evitar que el ruido ambiente dispare caracteres aleatorios.
+            // 2. Solo aceptar datos si estamos formalmente en Fase 1 o 2 (no por ruido suelto)
             if (sym.type === 'DATA' || sym.type === 'REPEAT') {
-                if (sys.acousticPhase !== 1 && sys.acousticPhase !== 2) {
-                    return;
-                }
+                if (sys.acousticPhase !== 1 && sys.acousticPhase !== 2) return;
+
                 const ch = (sym.type === 'REPEAT') ? sys.lastSymbolChar : sym.ch;
                 if (ch) {
                     if (ch === 'S' && sys.rxRleBuffer.length >= 3) {
@@ -2648,13 +2651,6 @@
                     sys.lastSymbolChar = ch;
                     setSenderAcousticPhaseUI(2, sys.rxRleBuffer);
                 }
-
-                clearTimeout(sys.rxSessionTimeout);
-                sys.rxSessionTimeout = setTimeout(() => {
-                    if (sys.rxRleBuffer.length > 0) {
-                        finalizeAcousticRleReception();
-                    }
-                }, 1700);
                 return;
             }
 
@@ -2672,7 +2668,7 @@
             sys.lastSymbolChar = "";
 
             const liveBuf = document.getElementById('rx-live-buffer');
-            if (!rawStr) {
+            if (!rawStr || rawStr.length < 2) {
                 setSenderAcousticPhaseUI(0);
                 return;
             }
@@ -2792,28 +2788,22 @@
             }
 
             canvas.addEventListener('pointerdown', (e) => {
-                if (!sys.totalChunks) return;
+                if (!sys.totalChunks || sys.activeIndices.length === 0) return;
                 const idx = clientXToChunkIndex(e.clientX);
 
-                if (e.shiftKey) {
-                    if (!sys.activeSet.has(idx)) {
-                        sys.activeSet.add(idx);
-                        sys.activeIndices = Array.from(sys.activeSet).sort((a, b) => a - b);
+                // Saltar el cursor al bloque activo más cercano sin borrar la cola de transmisión
+                let bestPos = 0;
+                let bestDist = Infinity;
+                for (let i = 0; i < sys.activeIndices.length; i++) {
+                    const dist = Math.abs(sys.activeIndices[i] - idx);
+                    if (dist < bestDist) {
+                        bestDist = dist;
+                        bestPos = i;
                     }
-                    sys.activeIdx = sys.activeIndices.indexOf(idx);
-                    updateTimelineBounds();
-                    renderCurrentActiveFrame();
-                    return;
                 }
-
-                sys.isPaintingHeatmap = true;
-                if (sys.txMode !== 'priority') {
-                    sys.activeSet.clear();
-                    sys.paintAction = true;
-                } else {
-                    sys.paintAction = !sys.activeSet.has(idx);
-                }
-                applyBrushAt(idx);
+                sys.activeIdx = bestPos;
+                updateTimelineBounds();
+                renderCurrentActiveFrame();
             });
 
             canvas.addEventListener('pointermove', (e) => {
@@ -2932,7 +2922,9 @@
 
         function renderHeaderFrame() {
             if (!sys.qr || !sys.headerPayload) return;
-            sys.qr.makeCode(sys.headerPayload);
+            try {
+                sys.qr.makeCode(sys.headerPayload);
+            } catch (e) { console.error("Error renderHeaderFrame:", e); }
             triggerPulseLed();
             document.getElementById('frame-badge').innerText = "HEADER [SYN]";
             document.getElementById('lbl-queue-pos').innerText = `SYN / ${sys.activeIndices.length}`;
@@ -2948,7 +2940,9 @@
             if (sys.fountainSeed < sys.totalChunks + 10) sys.fountainSeed = sys.totalChunks + 10;
 
             const { payload, recipe } = generateFountainParityFrame(sys.fountainSeed);
-            sys.qr.makeCode(payload);
+            try {
+                sys.qr.makeCode(payload);
+            } catch (e) { console.error("Error renderFountainParityFrame:", e); }
             triggerPulseLed();
             document.getElementById('frame-badge').innerText = `⚡XOR #${sys.fountainSeed}`;
             document.getElementById('lbl-queue-pos').innerText = `FOUNTAIN (${recipe.length}d)`;
@@ -2959,7 +2953,9 @@
         function renderCurrentActiveFrame() {
             if (!sys.qr || sys.activeIndices.length === 0) return;
             const chunkIdx = sys.activeIndices[sys.activeIdx];
-            sys.qr.makeCode(sys.chunksPayloads[chunkIdx]);
+            try {
+                sys.qr.makeCode(sys.chunksPayloads[chunkIdx]);
+            } catch (e) { console.error("Error renderCurrentActiveFrame:", e); }
             triggerPulseLed();
             document.getElementById('frame-badge').innerText = `BLK #${chunkIdx}`;
             document.getElementById('lbl-queue-pos').innerText = `${sys.activeIdx + 1} / ${sys.activeIndices.length}`;
@@ -3007,16 +3003,20 @@
             sys.timer = setInterval(() => {
                 if (sys.activeIndices.length === 0) return;
                 sys.tickCount++;
-                // Emitir cabecera [SYN] periódicamente cada 30 frames
-                if (sys.tickCount % 30 === 0) {
+
+                // Cabecera SYN cada 40 ticks en lugar de 30 para reducir parpadeos
+                if (sys.tickCount % 40 === 0) {
                     renderHeaderFrame();
                     return;
                 }
-                // Si está en modo Fountain puro, o cada 5º frame en modo Sistemático+XOR, proyectar gota de paridad XOR
-                if (sys.txMode === 'fountain' || (sys.txMode === 'full' && sys.tickCount % 5 === 0)) {
+
+                // Si quedan muy pocos bloques (<= 3), intercalar paridad XOR cada 2 ticks
+                const fewBlocks = sys.activeIndices.length <= 3;
+                if (sys.txMode === 'fountain' || (sys.txMode === 'full' && sys.tickCount % 5 === 0) || (fewBlocks && sys.tickCount % 2 === 0)) {
                     renderFountainParityFrame();
                     return;
                 }
+
                 renderCurrentActiveFrame();
                 sys.activeIdx = (sys.activeIdx + 1) % sys.activeIndices.length;
             }, intervalMs);
