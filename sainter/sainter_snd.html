@@ -1267,12 +1267,13 @@
 
             <!-- MATRIZ 2D GEMELA CON SELECCIÓN RECTANGULAR VISUAL (IDÉNTICA AL GRID DEL MÓVIL) -->
             <div class="grid2d-panel">
-                <div class="config-label">
+                <div class="config-label" style="flex-wrap: wrap; gap: 6px;">
                     <span>📐 MATRIZ 2D GEMELA (ARRASTRA UN RECTÁNGULO SOBRE LA ZONA DE HUECOS)</span>
-                    <div style="display: flex; gap: 4px;">
+                    <div style="display: flex; gap: 4px; flex-wrap: wrap;">
                         <button class="tool-chip active" id="rect-mode-replace" onclick="setRectSelectMode('replace')" title="El rectángulo dibujado aísla exactamente esa región">Aislar Área</button>
                         <button class="tool-chip" id="rect-mode-add" onclick="setRectSelectMode('add')" title="Sumar varios rectángulos a la cola prioritaria">+ Sumar</button>
                         <button class="tool-chip" id="rect-mode-sub" onclick="setRectSelectMode('sub')" title="Desmarcar rectángulo">- Quitar</button>
+                        <button class="tool-chip" id="rect-mode-all" onclick="setRectSelectMode('all')" title="Restaurar y seleccionar todos los bloques de la matriz completa">Todo Completo</button>
                     </div>
                 </div>
                 <div class="grid2d-wrap">
@@ -1883,10 +1884,32 @@
         }
 
         function setRectSelectMode(mode) {
+            if (mode === 'all') {
+                document.getElementById('rect-mode-replace').classList.remove('active');
+                document.getElementById('rect-mode-add').classList.remove('active');
+                document.getElementById('rect-mode-sub').classList.remove('active');
+                const btnAll = document.getElementById('rect-mode-all');
+                if (btnAll) btnAll.classList.add('active');
+
+                if (sys.totalChunks > 0) {
+                    sys.activeIndices = Array.from({ length: sys.totalChunks }, (_, i) => i);
+                    sys.activeSet = new Set(sys.activeIndices);
+                    sys.activeIdx = 0;
+                    setTxMode('full', true);
+                    updateTimelineBounds();
+                    syncCustomFramesInput();
+                    renderCurrentActiveFrame();
+                    document.getElementById('status').innerText = `● MATRIZ 2D COMPLETA SELECCIONADA (${sys.totalChunks} BLKS)`;
+                }
+                return;
+            }
+
             sys.rectMode = mode;
             document.getElementById('rect-mode-replace').classList.toggle('active', mode === 'replace');
             document.getElementById('rect-mode-add').classList.toggle('active', mode === 'add');
             document.getElementById('rect-mode-sub').classList.toggle('active', mode === 'sub');
+            const btnAll = document.getElementById('rect-mode-all');
+            if (btnAll) btnAll.classList.remove('active');
         }
 
         function draw2DGridSelector() {
@@ -2039,6 +2062,7 @@
 
                 sys.activeIndices = Array.from(nextSet).sort((a, b) => a - b);
                 sys.activeIdx = 0;
+                setRectSelectMode(sys.rectMode || 'replace');
                 setTxMode('priority', true);
                 updateTimelineBounds();
                 syncCustomFramesInput();
@@ -2390,7 +2414,6 @@
             if (Math.abs(freqHz - ACOUSTIC_PROTOCOL.HELLO) <= tol) return { type: 'HELLO' };
             if (Math.abs(freqHz - ACOUSTIC_PROTOCOL.REPEAT) <= tol) return { type: 'REPEAT' };
             if (Math.abs(freqHz - ACOUSTIC_PROTOCOL.EOF) <= tol) return { type: 'EOF' };
-            if (Math.abs(freqHz - ACOUSTIC_PROTOCOL.FIN_100) <= tol) return { type: 'FIN_100' };
 
             for (const item of ACOUSTIC_PROTOCOL.FREQ_TO_CHAR) {
                 if (Math.abs(freqHz - item.f) <= tol) {
@@ -2548,9 +2571,9 @@
                 snrLbl.innerText = `Pico: ${peakVal}/255 | SNR: +${snrDiff} | Gain: ${sys.micGainLevel.toFixed(1)}x`;
             }
 
-            // Demodulación FSK con umbral adaptativo sensible (peakVal >= 45 y snrDiff >= 18)
+            // Demodulación FSK con umbral estricto contra ruido ambiental (peakVal >= 75 y snrDiff >= 24)
             if (!sys.isEmittingTone) {
-                const isStrongSignal = (peakVal >= 45 && snrDiff >= 18);
+                const isStrongSignal = (peakVal >= 75 && snrDiff >= 24);
                 if (isStrongSignal) {
                     sys.silenceFrames = 0;
                     const sym = classifyFrequencySymbol(dominantFreq);
@@ -2566,7 +2589,7 @@
                             sys.candidateHits = 1;
                         }
 
-                        if (sys.candidateHits >= 2 && sys.lastDecodedSymbol !== symKey) {
+                        if (sys.candidateHits >= 3 && sys.lastDecodedSymbol !== symKey) {
                             sys.lastDecodedSymbol = symKey;
                             handleDemodulatedSymbol(sym);
                         }
@@ -2592,23 +2615,11 @@
         }
 
         async function handleDemodulatedSymbol(sym) {
-            const liveBuf = document.getElementById('rx-live-buffer');
-
-            if (sym.type === 'FIN_100') {
-                if (sys.running) togglePlay();
-                setSenderAcousticPhaseUI(0);
-                if (liveBuf) liveBuf.innerText = "100% COMPLETADO (FIN_100)";
-                triggerFlashAck(0, "✅ TRANSFERENCIA 100% VERIFICADA (SHA-256)");
-                document.getElementById('status').innerText = "● TRANSFERENCIA COMPLETADA Y VERIFICADA";
-                return;
-            }
-
+            // El flujo de audio NUNCA detiene el envío de QR (togglePlay) ni hace sonidos desde la laptop
             if (sym.type === 'HELLO') {
-                if (sys.running) togglePlay();
                 sys.rxRleBuffer = "";
                 sys.lastSymbolChar = "";
                 setSenderAcousticPhaseUI(1);
-                document.getElementById('status').innerText = "● NEGOCIANDO CONEXIÓN ACÚSTICA [HELLO]...";
 
                 clearTimeout(sys.rxSessionTimeout);
                 sys.rxSessionTimeout = setTimeout(() => {
@@ -2618,22 +2629,17 @@
                         setSenderAcousticPhaseUI(0);
                     }
                 }, 10000);
-
-                // Emitir READY corto (150ms) sin bloquear recepción si estamos en prueba loopback
-                if (!sys.loopbackTesting) {
-                    await emitLaptopTone(ACOUSTIC_PROTOCOL.READY, 150, true);
-                }
                 return;
             }
 
+            // Solo aceptar símbolos de datos tras haber recibido explícitamente el tono HELLO (fase 1 o 2)
+            // para evitar que el ruido ambiente dispare caracteres aleatorios.
             if (sym.type === 'DATA' || sym.type === 'REPEAT') {
-                if (sys.acousticPhase === 0 || sys.acousticPhase === 3) {
-                    sys.rxRleBuffer = "";
-                    sys.lastSymbolChar = "";
+                if (sys.acousticPhase !== 1 && sys.acousticPhase !== 2) {
+                    return;
                 }
                 const ch = (sym.type === 'REPEAT') ? sys.lastSymbolChar : sym.ch;
                 if (ch) {
-                    // Si llega un nuevo 'S' al repetir la ráfaga y ya teníamos una trama completa previa, procesar o reiniciar limpio
                     if (ch === 'S' && sys.rxRleBuffer.length >= 3) {
                         await finalizeAcousticRleReception();
                         return;
@@ -2641,7 +2647,6 @@
                     sys.rxRleBuffer += ch;
                     sys.lastSymbolChar = ch;
                     setSenderAcousticPhaseUI(2, sys.rxRleBuffer);
-                    document.getElementById('status').innerText = `● RECIBIENDO TRAMA ACÚSTICA: ${sys.rxRleBuffer}`;
                 }
 
                 clearTimeout(sys.rxSessionTimeout);
@@ -2654,8 +2659,10 @@
             }
 
             if (sym.type === 'EOF') {
-                clearTimeout(sys.rxSessionTimeout);
-                await finalizeAcousticRleReception();
+                if (sys.acousticPhase === 1 || sys.acousticPhase === 2) {
+                    clearTimeout(sys.rxSessionTimeout);
+                    await finalizeAcousticRleReception();
+                }
             }
         }
 
@@ -2670,18 +2677,12 @@
                 return;
             }
 
-            // Mostrar siempre la trama recibida en el campo manual y en el monitor en vivo
+            // Mostrar la trama recibida en el monitor en vivo y en el campo manual sin interrumpir el QR
             document.getElementById('custom-frames').value = rawStr;
             if (liveBuf) liveBuf.innerText = `✅ RECIBIDO: ${rawStr}`;
 
-            // Si aún no hay un archivo cargado (ej. durante una prueba en vacío), confirmar recepción visual y sonora
             if (!sys.totalChunks) {
                 setSenderAcousticPhaseUI(3);
-                if (!sys.loopbackTesting) {
-                    await emitLaptopTone(ACOUSTIC_PROTOCOL.ACK_OK, 260, true);
-                }
-                triggerFlashAck(0, `✅ SONIDO RECIBIDO: ${rawStr}`);
-                document.getElementById('status').innerText = `● TRAMA ACÚSTICA RECIBIDA (${rawStr}) — CARGA UN ARCHIVO PARA APLICAR`;
                 setTimeout(() => {
                     if (sys.acousticPhase === 3) setSenderAcousticPhaseUI(0);
                 }, 4000);
@@ -2699,16 +2700,7 @@
                 renderCurrentActiveFrame();
 
                 setSenderAcousticPhaseUI(3);
-                if (!sys.loopbackTesting) {
-                    await emitLaptopTone(ACOUSTIC_PROTOCOL.ACK_OK, 260, true);
-                }
-
-                triggerFlashAck(decodedMissing.length, `✅ SECTORES SINCRONIZADOS (${rawStr})`);
-                document.getElementById('status').innerText = `● BUCLE PRIORITARIO ACTIVO (${decodedMissing.length} FALTANTES DE ${rawStr})`;
-
-                if (!sys.running) {
-                    togglePlay();
-                }
+                document.getElementById('status').innerText = `● BUCLE PRIORITARIO ACTUALIZADO (${decodedMissing.length} FALTANTES DE ${rawStr})`;
 
                 setTimeout(() => {
                     if (sys.acousticPhase === 3) setSenderAcousticPhaseUI(0);
@@ -3096,15 +3088,13 @@
         // 7. DECODIFICACIÓN DE BITMAP PLANO (664 B) Y BISECCIÓN POR MACRO-SECTORES (S00..S31)
         // =========================================================================
         function triggerFlashAck(missingCount, customTitle = "✅ COLA RECONFIGURADA") {
-            const flash = document.getElementById('flash-ack-overlay');
-            document.getElementById('flash-ack-title').innerText = customTitle;
-            document.getElementById('flash-ack-detail').innerText = missingCount > 0
-                ? `Retransmitiendo exclusivamente ${missingCount} bloques faltantes en bucle rápido`
-                : `Recepción confirmada al 100% — Emisión finalizada`;
-            flash.classList.add('trigger');
-            setTimeout(() => {
-                flash.classList.remove('trigger');
-            }, 1050);
+            // Actualización discreta en barra de estado superior sin mostrar pantallas verdes ni interrumpir el QR
+            const statusEl = document.getElementById('status');
+            if (statusEl) {
+                statusEl.innerText = missingCount > 0
+                    ? `● ${customTitle}: ${missingCount} BLOQUES EN COLA`
+                    : `● ${customTitle}`;
+            }
         }
 
         function applyMissingBitmapBytes(rawBytes, total) {
