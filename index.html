@@ -1,0 +1,423 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0b1020">
+  <meta name="description" content="Osvaldo's little corner of the internet: browser tools, experiments, and things made with care.">
+  <title>Osvaldo — Maker of useful things</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: #eef2ff;
+      background: #0b1020;
+      font-synthesis: none;
+      --muted: #a4aec5;
+      --line: rgb(191 204 255 / 13%);
+      --panel: rgb(19 27 49 / 78%);
+      --mint: #91f2c3;
+      --violet: #b7a3ff;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      min-width: 320px;
+      margin: 0;
+      background:
+        radial-gradient(ellipse at 9% 3%, rgb(101 74 190 / 22%), transparent 31rem),
+        radial-gradient(ellipse at 92% 23%, rgb(37 144 128 / 15%), transparent 30rem),
+        #0b1020;
+    }
+    a { color: inherit; }
+    button { font: inherit; }
+    .shell { width: min(1080px, calc(100% - 40px)); margin-inline: auto; }
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      min-height: 82px;
+      border-bottom: 1px solid var(--line);
+    }
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 11px;
+      color: #f7f8ff;
+      font-size: .96rem;
+      font-weight: 750;
+      text-decoration: none;
+      letter-spacing: -.02em;
+    }
+    .brand-mark {
+      display: grid;
+      width: 35px;
+      aspect-ratio: 1;
+      place-items: center;
+      border: 1px solid rgb(145 242 195 / 38%);
+      border-radius: 12px;
+      color: var(--mint);
+      background: rgb(145 242 195 / 8%);
+      font-size: .85rem;
+    }
+    nav { display: flex; align-items: center; gap: 27px; }
+    nav a, .text-link {
+      color: var(--muted);
+      font-size: .88rem;
+      text-decoration: none;
+      transition: color .18s ease;
+    }
+    nav a:hover, .text-link:hover { color: var(--mint); }
+    .hero {
+      position: relative;
+      display: grid;
+      min-height: 555px;
+      align-content: center;
+      padding-block: 80px 96px;
+    }
+    .hero::after {
+      position: absolute;
+      z-index: -1;
+      top: 50%;
+      right: 3%;
+      width: clamp(180px, 30vw, 330px);
+      aspect-ratio: 1;
+      border: 1px solid rgb(183 163 255 / 15%);
+      border-radius: 50%;
+      background: radial-gradient(circle at 35% 33%, rgb(183 163 255 / 18%), rgb(145 242 195 / 5%) 43%, transparent 70%);
+      box-shadow: 0 0 100px rgb(126 99 203 / 13%), inset 0 0 48px rgb(145 242 195 / 7%);
+      content: "";
+      transform: translateY(-45%);
+    }
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 9px;
+      width: fit-content;
+      color: var(--mint);
+      font-size: .76rem;
+      font-weight: 700;
+      letter-spacing: .13em;
+      text-transform: uppercase;
+    }
+    .eyebrow::before {
+      width: 7px;
+      aspect-ratio: 1;
+      border-radius: 50%;
+      background: var(--mint);
+      box-shadow: 0 0 15px rgb(145 242 195 / 75%);
+      content: "";
+    }
+    h1 {
+      max-width: 730px;
+      margin: 22px 0 20px;
+      font-size: clamp(3.2rem, 9vw, 6.7rem);
+      font-weight: 740;
+      letter-spacing: -.085em;
+      line-height: .98;
+    }
+    h1 span {
+      color: transparent;
+      background: linear-gradient(100deg, var(--mint) 3%, #c1e9d8 38%, var(--violet) 96%);
+      background-clip: text;
+      -webkit-background-clip: text;
+    }
+    .intro {
+      max-width: 510px;
+      margin: 0;
+      color: var(--muted);
+      font-size: clamp(1.02rem, 2vw, 1.16rem);
+      line-height: 1.75;
+    }
+    .hero-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 32px; }
+    .button {
+      display: inline-flex;
+      min-height: 47px;
+      align-items: center;
+      justify-content: center;
+      gap: 9px;
+      padding: 0 17px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      color: #f5f6ff;
+      background: rgb(255 255 255 / 4%);
+      font-size: .9rem;
+      font-weight: 650;
+      text-decoration: none;
+      transition: transform .18s ease, border-color .18s ease, background .18s ease;
+    }
+    .button:hover { transform: translateY(-2px); border-color: rgb(145 242 195 / 45%); }
+    .button.primary { border-color: transparent; color: #10251c; background: var(--mint); }
+    .button.primary:hover { background: #b0f6d2; }
+    .section { padding-block: 46px 78px; }
+    .section-heading {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 24px;
+      margin-bottom: 23px;
+    }
+    .section-kicker {
+      margin: 0 0 9px;
+      color: var(--violet);
+      font-size: .73rem;
+      font-weight: 750;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+    }
+    h2 { margin: 0; font-size: clamp(1.8rem, 4vw, 2.45rem); letter-spacing: -.055em; }
+    .section-note { max-width: 370px; margin: 0 0 3px; color: var(--muted); font-size: .92rem; line-height: 1.6; }
+    .projects {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 15px;
+    }
+    .project {
+      position: relative;
+      display: flex;
+      min-height: 214px;
+      flex-direction: column;
+      align-items: flex-start;
+      padding: 24px;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: linear-gradient(145deg, var(--panel), rgb(14 19 36 / 83%));
+      transition: transform .2s ease, border-color .2s ease;
+    }
+    .project:hover { transform: translateY(-3px); border-color: rgb(183 163 255 / 35%); }
+    .project-top { display: flex; width: 100%; align-items: center; justify-content: space-between; gap: 12px; }
+    .project-icon {
+      display: grid;
+      width: 41px;
+      aspect-ratio: 1;
+      place-items: center;
+      border: 1px solid rgb(183 163 255 / 20%);
+      border-radius: 13px;
+      color: var(--violet);
+      background: rgb(183 163 255 / 8%);
+      font-size: 1.15rem;
+    }
+    .tag {
+      padding: 6px 9px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      color: #bdc5d8;
+      font-size: .68rem;
+      font-weight: 650;
+      letter-spacing: .025em;
+    }
+    .project h3 { margin: 19px 0 7px; font-size: 1.08rem; letter-spacing: -.025em; }
+    .project p { max-width: 460px; margin: 0; color: var(--muted); font-size: .87rem; line-height: 1.65; }
+    .project-links { display: flex; flex-wrap: wrap; gap: 15px; margin-top: auto; padding-top: 17px; }
+    .project-links a { color: var(--mint); font-size: .82rem; font-weight: 650; text-decoration: none; }
+    .project-links a:hover { text-decoration: underline; text-underline-offset: 4px; }
+    .project.caution { background: linear-gradient(145deg, rgb(44 31 39 / 75%), rgb(19 20 34 / 88%)); }
+    .project.caution .project-icon { border-color: rgb(255 179 128 / 24%); color: #ffbf91; background: rgb(255 179 128 / 8%); }
+    .project.caution .tag { border-color: rgb(255 179 128 / 23%); color: #ffc49f; }
+    .project.caution .project-links a { color: #ffc49f; }
+    .about {
+      display: grid;
+      grid-template-columns: .8fr 1.2fr;
+      gap: 35px;
+      padding: 30px;
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      background: linear-gradient(115deg, rgb(145 242 195 / 6%), rgb(183 163 255 / 5%));
+    }
+    .about h2 { font-size: clamp(1.55rem, 3vw, 2rem); }
+    .about p { margin: 0; color: var(--muted); font-size: .94rem; line-height: 1.8; }
+    .about p + p { margin-top: 13px; }
+    footer {
+      display: flex;
+      min-height: 87px;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      font-size: .82rem;
+    }
+    footer a { color: #dce5f6; text-decoration: none; }
+    footer a:hover { color: var(--mint); }
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      clip-path: inset(50%);
+    }
+    dialog {
+      width: min(420px, calc(100% - 32px));
+      padding: 28px;
+      border: 1px solid rgb(183 163 255 / 38%);
+      border-radius: 22px;
+      color: #eef2ff;
+      background: #141a2d;
+      box-shadow: 0 24px 100px rgb(0 0 0 / 60%);
+      text-align: center;
+    }
+    dialog::backdrop { background: rgb(5 8 18 / 78%); backdrop-filter: blur(7px); }
+    .egg-art { margin: 2px 0 12px; font-size: 3.2rem; }
+    dialog h2 { font-size: 1.6rem; }
+    dialog p { margin: 12px 0 22px; color: var(--muted); line-height: 1.65; }
+    dialog button { cursor: pointer; }
+    :focus-visible { outline: 3px solid var(--mint); outline-offset: 4px; }
+
+    @media (max-width: 700px) {
+      .shell { width: min(100% - 32px, 560px); }
+      .topbar { min-height: 70px; }
+      nav { gap: 15px; }
+      nav a { font-size: .8rem; }
+      .hero { min-height: 510px; padding-block: 70px 82px; }
+      .hero::after { top: 24%; right: -9%; width: 190px; }
+      .section { padding-block: 33px 61px; }
+      .section-heading { align-items: flex-start; flex-direction: column; gap: 11px; }
+      .projects { grid-template-columns: 1fr; }
+      .project { min-height: 200px; }
+      .about { grid-template-columns: 1fr; gap: 15px; padding: 24px; }
+    }
+    @media (max-width: 420px) {
+      .brand { gap: 8px; font-size: .88rem; }
+      .brand-mark { width: 31px; border-radius: 10px; }
+      nav { gap: 11px; }
+      nav a { font-size: .74rem; }
+      .hero-actions { align-items: stretch; flex-direction: column; width: fit-content; }
+      footer { align-items: flex-start; flex-direction: column; justify-content: center; padding-block: 19px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar shell">
+    <a class="brand" href="#top" aria-label="Osvaldo, back to top">
+      <span class="brand-mark" aria-hidden="true">o.</span>
+      <span>osvaldohdzm</span>
+    </a>
+    <nav aria-label="Main navigation">
+      <a href="#work">Projects</a>
+      <a href="#about">About</a>
+      <a href="https://github.com/osvaldohdzm" target="_blank" rel="noreferrer">GitHub ↗</a>
+    </nav>
+  </header>
+
+  <main id="top" class="shell">
+    <section class="hero" aria-labelledby="hero-title">
+      <p class="eyebrow">A small corner of the internet</p>
+      <h1 id="hero-title">Hi, I'm Osvaldo.<br><span>I make useful things.</span></h1>
+      <p class="intro">I like building thoughtful little tools for the web — things that make tricky tasks feel simple, clear, and a little more fun.</p>
+      <div class="hero-actions">
+        <a class="button primary" href="#work">Explore my projects <span aria-hidden="true">↓</span></a>
+        <a class="button" href="https://github.com/osvaldohdzm" target="_blank" rel="noreferrer">Find me on GitHub <span aria-hidden="true">↗</span></a>
+      </div>
+    </section>
+
+    <section id="work" class="section" aria-labelledby="work-title">
+      <div class="section-heading">
+        <div>
+          <p class="section-kicker">Selected work</p>
+          <h2 id="work-title">Things I've made</h2>
+        </div>
+        <p class="section-note">A growing collection of browser tools, experiments, and ideas.</p>
+      </div>
+
+      <div class="projects">
+        <article class="project">
+          <div class="project-top"><span class="project-icon" aria-hidden="true">↗</span><span class="tag">TEXT &amp; FILES</span></div>
+          <h3>Sainter · Encode &amp; Encrypt</h3>
+          <p>Encode text or files with Base64, or encrypt them in your browser with AES-GCM.</p>
+          <div class="project-links"><a href="sainter/sainter_enc.html">Open encoder ↗</a></div>
+        </article>
+        <article class="project">
+          <div class="project-top"><span class="project-icon" aria-hidden="true">↙</span><span class="tag">TEXT &amp; FILES</span></div>
+          <h3>Sainter · Decode &amp; Decrypt</h3>
+          <p>Decode Base64 data or decrypt Sainter files locally in your browser.</p>
+          <div class="project-links"><a href="sainter/sainter_dec.html">Open decoder ↗</a></div>
+        </article>
+        <article class="project">
+          <div class="project-top"><span class="project-icon" aria-hidden="true">⌁</span><span class="tag">OPTICAL TRANSFER</span></div>
+          <h3>Sainter · Sender</h3>
+          <p>Explore the Sainter optical and acoustic data-sender experiment.</p>
+          <div class="project-links"><a href="sainter/sainter_snd.html">Open sender ↗</a></div>
+        </article>
+        <article class="project">
+          <div class="project-top"><span class="project-icon" aria-hidden="true">⌖</span><span class="tag">OPTICAL TRANSFER</span></div>
+          <h3>Sainter · Receiver</h3>
+          <p>Pair with the Sainter sender experiment to receive an optical transfer.</p>
+          <div class="project-links"><a href="sainter/sainter_rcpt.html">Open receiver ↗</a></div>
+        </article>
+        <article class="project caution">
+          <div class="project-top"><span class="project-icon" aria-hidden="true">!</span><span class="tag">SECURITY DEMO · SOURCE ONLY</span></div>
+          <h3>Sitio-malo</h3>
+          <p>A security-awareness experiment. Its current page runs intrusive demo behavior, so this portfolio links to the source for inspection instead of opening it as a live demo.</p>
+          <div class="project-links"><a href="https://github.com/osvaldohdzm/osvaldohdzm.github.io/blob/main/sitio-malo/index.html" target="_blank" rel="noreferrer">Inspect source on GitHub ↗</a></div>
+        </article>
+        <article class="project">
+          <div class="project-top"><span class="project-icon" aria-hidden="true">⌘</span><span class="tag">OPEN SOURCE</span></div>
+          <h3>More on GitHub</h3>
+          <p>Browse the code, follow along, or see what I'm working on next.</p>
+          <div class="project-links"><a href="https://github.com/osvaldohdzm/osvaldohdzm.github.io" target="_blank" rel="noreferrer">View this repository ↗</a></div>
+        </article>
+      </div>
+    </section>
+
+    <section id="about" class="section" aria-labelledby="about-title">
+      <div class="about">
+        <div><p class="section-kicker">A little about me</p><h2 id="about-title">Curious by default.</h2></div>
+        <div>
+          <p>I'm Osvaldo. I enjoy experimenting with the web, learning how things work, and turning ideas into small, practical projects.</p>
+          <p>This site is my home base — a place to share what I've built and keep making the next thing.</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="shell">
+    <span>Made with curiosity, one small project at a time.</span>
+    <a href="https://github.com/osvaldohdzm" target="_blank" rel="noreferrer">GitHub ↗</a>
+  </footer>
+
+  <p id="egg-announcement" class="sr-only" aria-live="polite"></p>
+  <dialog id="easter-egg" aria-labelledby="egg-title" aria-describedby="egg-copy">
+    <div class="egg-art" aria-hidden="true">🌱</div>
+    <h2 id="egg-title">You found the little secret!</h2>
+    <p id="egg-copy">Keep being curious. That's where the good ideas grow.</p>
+    <button class="button primary" id="close-egg" type="button">Back to exploring</button>
+  </dialog>
+
+  <script>
+    "use strict";
+    const secret = "sainter";
+    let typed = "";
+    const egg = document.getElementById("easter-egg");
+    const announcement = document.getElementById("egg-announcement");
+    const closeButton = document.getElementById("close-egg");
+
+    window.addEventListener("keydown", event => {
+      if (event.key === "Escape" && egg.open) {
+        egg.close();
+        return;
+      }
+      if (event.ctrlKey || event.altKey || event.metaKey || event.key.length !== 1) return;
+      if (event.target instanceof HTMLElement && (event.target.isContentEditable || /INPUT|TEXTAREA|SELECT/.test(event.target.tagName))) return;
+      typed = (typed + event.key.toLowerCase()).slice(-secret.length);
+      if (typed === secret && !egg.open) {
+        egg.showModal();
+        announcement.textContent = "You found the hidden Easter egg.";
+        typed = "";
+      }
+    });
+
+    closeButton.addEventListener("click", () => egg.close());
+    egg.addEventListener("click", event => {
+      if (event.target === egg) egg.close();
+    });
+  </script>
+</body>
+</html>
