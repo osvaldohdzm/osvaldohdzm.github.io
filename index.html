@@ -162,6 +162,25 @@
     }
     footer a { color: #dce5f6; text-decoration: none; }
     footer a:hover { color: var(--mint); }
+    [hidden] { display: none !important; }
+    .secret-menu { padding: 18px 0 52px; border-top: 1px solid var(--line); }
+    .secret-menu h2 { margin: 0 0 18px; font-size: 1.4rem; letter-spacing: -.04em; }
+    .secret-links { display: flex; flex-wrap: wrap; gap: 10px; }
+    .secret-links a {
+      display: inline-flex;
+      min-height: 42px;
+      align-items: center;
+      padding: 0 14px;
+      border: 1px solid var(--line);
+      border-radius: 11px;
+      color: var(--mint);
+      background: var(--panel);
+      font-size: .86rem;
+      font-weight: 650;
+      text-decoration: none;
+    }
+    .secret-links a:hover { border-color: rgb(145 242 195 / 45%); }
+    .secret-note { margin: 15px 0 0; color: var(--muted); font-size: .8rem; line-height: 1.6; }
     .sr-only {
       position: absolute;
       width: 1px;
@@ -230,6 +249,17 @@
         <a class="button" href="https://github.com/osvaldohdzm" target="_blank" rel="noreferrer">Find me on GitHub <span aria-hidden="true">↗</span></a>
       </div>
     </section>
+    <section id="secret-menu" class="secret-menu" aria-labelledby="secret-menu-title" hidden>
+      <h2 id="secret-menu-title">The secret menu</h2>
+      <nav class="secret-links" aria-label="Secret project menu">
+        <a href="sainter/sainter_enc.html">Sainter · Encode &amp; Encrypt ↗</a>
+        <a href="sainter/sainter_dec.html">Sainter · Decode &amp; Decrypt ↗</a>
+        <a href="sainter/sainter_snd.html">Sainter · Sender ↗</a>
+        <a href="sainter/sainter_rcpt.html">Sainter · Receiver ↗</a>
+        <a href="https://github.com/osvaldohdzm/osvaldohdzm.github.io/tree/main/sitio-malo" target="_blank" rel="noreferrer">Sitio-malo · View source ↗</a>
+      </nav>
+      <p class="secret-note">Sitio-malo is linked as source only; its live page runs intrusive demo behavior.</p>
+    </section>
   </main>
 
   <footer class="shell">
@@ -242,7 +272,7 @@
     <div class="egg-art" aria-hidden="true">🌱</div>
     <h2 id="egg-title">You found the little secret!</h2>
     <p id="egg-copy">Keep being curious. That's where the good ideas grow.</p>
-    <button class="button primary" id="close-egg" type="button">Back to exploring</button>
+    <button class="button primary" id="close-egg" type="button">Reveal the secret menu</button>
   </dialog>
 
   <script>
@@ -252,6 +282,7 @@
     const egg = document.getElementById("easter-egg");
     const announcement = document.getElementById("egg-announcement");
     const closeButton = document.getElementById("close-egg");
+    const secretMenu = document.getElementById("secret-menu");
 
     window.addEventListener("keydown", event => {
       if (event.key === "Escape" && egg.open) {
@@ -268,7 +299,11 @@
       }
     });
 
-    closeButton.addEventListener("click", () => egg.close());
+    closeButton.addEventListener("click", () => {
+      secretMenu.hidden = false;
+      egg.close();
+      secretMenu.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
     egg.addEventListener("click", event => {
       if (event.target === egg) egg.close();
     });
