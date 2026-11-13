@@ -2691,7 +2691,7 @@
                 }
 
                 const serializedPool = sys.fountainPool.map(eq => ({
-                    u: Array.from(eq.unknowns),
+                    u: Array.from(eq.indices),
                     x: uint8ToBase64(eq.xorData)
                 }));
 
@@ -2805,7 +2805,7 @@
                                 addedCount++;
                             }
                         } else if (unknowns.size > 1 && sys.fountainPool.length < 1800) {
-                            sys.fountainPool.push({ unknowns, xorData: workingXor });
+                            sys.fountainPool.push({ indices: unknowns, xorData: workingXor });
                         }
                     }
                 }
