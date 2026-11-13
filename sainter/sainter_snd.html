@@ -1219,14 +1219,14 @@
 
                     <div class="rx-live-banner">
                         <span>TRAMA ACÚSTICA RX: <b id="rx-live-buffer">MICRÓFONO EN PAUSA</b></span>
-                        <span id="rx-snr-lbl" style="color: #79c0ff; font-size: 0.64rem;">SNR: 0 dB | Gain: 2.5x</span>
+                        <span id="rx-snr-lbl" style="color: #79c0ff; font-size: 0.64rem;">SNR: 0 dB | Gain: 3.5x</span>
                     </div>
 
                     <div class="mic-controls-row">
                         <select id="mic-select" class="mic-select" onchange="switchMicrophoneDevice(this.value)" title="Seleccionar micrófono de la laptop">
                             <option value="">🎙️ Micrófono predeterminado del sistema...</option>
                         </select>
-                        <button class="tool-chip" id="btn-mic-gain" onclick="cycleMicGain()" title="Aumentar ganancia digital del micrófono si el sonido del celular llega bajo">🎚️ Gain: 2.5x</button>
+                        <button class="tool-chip" id="btn-mic-gain" onclick="cycleMicGain()" title="Aumentar ganancia digital del micrófono si el sonido del celular llega bajo">🎚️ Gain: 3.5x</button>
                         <button class="tool-chip amber" onclick="runAcousticLoopbackTest()" title="Emite una ráfaga FSK de prueba solo cuando tú lo pidas">🔊 Probar Sonido</button>
                     </div>
 
@@ -2089,34 +2089,34 @@
         }();
 
         // =========================================================================
-        // 5. MÓDEM ACÚSTICO BIDIRECCIONAL CON ESPECTROGRAMA WATERFALL 2D Y PREAMP
+        // 5. MÓDEM ACÚSTICO EN BANDA VOCAL HUMANA (680 Hz - 1880 Hz) + WATERFALL 2D
         // =========================================================================
         const ACOUSTIC_PROTOCOL = {
-            HELLO: 1720,   // Celular -> Laptop
-            READY: 1820,   // Laptop -> Celular
-            REPEAT: 1920,  // Separador de símbolo repetido
+            HELLO: 760,    // Tono de inicio en centro de banda vocal (Celular -> Laptop)
+            READY: 1960,   // Reservado
+            REPEAT: 840,   // Separador de símbolo repetido
             FREQ_TO_CHAR: [
-                { f: 1620, ch: 'S' },
-                { f: 2020, ch: '0' },
-                { f: 2120, ch: '1' },
-                { f: 2220, ch: '2' },
-                { f: 2320, ch: '3' },
-                { f: 2420, ch: '4' },
-                { f: 2520, ch: '5' },
-                { f: 2620, ch: '6' },
-                { f: 2720, ch: '7' },
-                { f: 2820, ch: '8' },
-                { f: 2920, ch: '9' },
-                { f: 3020, ch: '-' },
-                { f: 3120, ch: ',' }
+                { f: 680, ch: 'S' },
+                { f: 920, ch: '0' },
+                { f: 1000, ch: '1' },
+                { f: 1080, ch: '2' },
+                { f: 1160, ch: '3' },
+                { f: 1240, ch: '4' },
+                { f: 1320, ch: '5' },
+                { f: 1400, ch: '6' },
+                { f: 1480, ch: '7' },
+                { f: 1560, ch: '8' },
+                { f: 1640, ch: '9' },
+                { f: 1720, ch: '-' },
+                { f: 1800, ch: ',' }
             ],
-            EOF: 3220,
-            ACK_OK: 3320,
-            FIN_100: 3420,
-            TOLERANCE_HZ: 44
+            EOF: 1880,
+            ACK_OK: 2040,
+            FIN_100: 2120,
+            TOLERANCE_HZ: 36
         };
 
-        sys.micGainLevel = 2.5;
+        sys.micGainLevel = 3.5;
         sys.micGainNode = null;
         sys.selectedMicId = "";
         sys.loopbackTesting = false;
@@ -2146,7 +2146,7 @@
             p3.className = 'sync-phase-row ' + (phase === 3 ? 'done current' : '');
 
             if (phase === 1) {
-                if (liveBuf) liveBuf.innerText = "HANDSHAKE [HELLO 1720Hz]...";
+                if (liveBuf) liveBuf.innerText = "HANDSHAKE [HELLO 760Hz DETECTADO]...";
             } else if (phase === 2 && extraText) {
                 p2Txt.innerText = `Fase 2: «Transmitiendo bloques faltantes...» (${extraText})`;
                 if (liveBuf) liveBuf.innerText = extraText;
@@ -2224,7 +2224,7 @@
         }
 
         function cycleMicGain() {
-            const levels = [1.2, 2.5, 4.5, 7.0];
+            const levels = [1.8, 3.5, 6.0, 9.0];
             const idx = (levels.indexOf(sys.micGainLevel) + 1) % levels.length;
             sys.micGainLevel = levels[idx];
             if (sys.micGainNode && sys.audioCtx) {
@@ -2390,29 +2390,29 @@
             }
         }
 
-        // Autotest de Loopback Acústico: emite tonos FSK por las bocinas de la laptop y los decodifica por el micrófono
+        // Autotest de Loopback Acústico: emite tonos FSK en banda vocal por las bocinas de la laptop y los decodifica por el micrófono
         async function runAcousticLoopbackTest() {
             await forceActivateMicrophone();
             if (!sys.audioListening || sys.loopbackTesting) return;
             sys.loopbackTesting = true;
 
             const liveBuf = document.getElementById('rx-live-buffer');
-            if (liveBuf) liveBuf.innerText = "EMITIENDO TEST LOOPBACK...";
+            if (liveBuf) liveBuf.innerText = "EMITIENDO TEST LOOPBACK (BANDA VOCAL)...";
 
             const testSequence = [
-                ACOUSTIC_PROTOCOL.HELLO,
-                1620, // 'S'
-                2020, // '0'
-                2420, // '4'
-                3120, // ','
-                2020, // '0'
-                2920, // '9'
-                ACOUSTIC_PROTOCOL.EOF
+                ACOUSTIC_PROTOCOL.HELLO, // 760 Hz
+                680,  // 'S'
+                920,  // '0'
+                1240, // '4'
+                1800, // ','
+                920,  // '0'
+                1640, // '9'
+                ACOUSTIC_PROTOCOL.EOF    // 1880 Hz
             ];
 
             for (const f of testSequence) {
                 if (!sys.audioListening) break;
-                await emitLaptopTone(f, 145, false); // suppressRx = false para que el micrófono lo escuche y grafique
+                await emitLaptopTone(f, 185, false); // suppressRx = false para que el micrófono lo escuche y grafique
                 await new Promise(r => setTimeout(r, 55));
             }
             sys.loopbackTesting = false;
@@ -2472,13 +2472,13 @@
             const sampleRate = sys.audioCtx.sampleRate || 48000;
             const binHz = sampleRate / sys.analyser.fftSize;
 
-            // Rango visual completo (120 Hz a 3550 Hz) para ver tanto voz/ambiente como la banda FSK (1550-3450 Hz)
-            const visMinBin = Math.max(1, Math.floor(120 / binHz));
-            const visMaxBin = Math.min(bufferLen - 1, Math.ceil(3550 / binHz));
+            // Rango visual (200 Hz a 2400 Hz) centrado en la banda donde el micrófono de laptop tiene máxima sensibilidad
+            const visMinBin = Math.max(1, Math.floor(200 / binHz));
+            const visMaxBin = Math.min(bufferLen - 1, Math.ceil(2400 / binHz));
 
-            // Banda estricta del módem FSK (1560 Hz a 3460 Hz)
-            const fskMinBin = Math.floor(1560 / binHz);
-            const fskMaxBin = Math.min(bufferLen - 1, Math.ceil(3460 / binHz));
+            // Banda activa del módem FSK en frecuencia vocal humana (630 Hz a 1940 Hz)
+            const fskMinBin = Math.floor(630 / binHz);
+            const fskMaxBin = Math.min(bufferLen - 1, Math.ceil(1940 / binHz));
 
             let peakVal = 0;
             let peakBin = fskMinBin;
@@ -2512,10 +2512,10 @@
             const wfY = specH + 2;
             const wfH = h - wfY;
 
-            // Sombrear la zona activa del módem FSK (1560 Hz - 3460 Hz)
+            // Sombrear la zona activa del módem FSK (630 Hz - 1940 Hz)
             const fskStartX = ((fskMinBin - visMinBin) / (visMaxBin - visMinBin)) * w;
             const fskEndX = ((fskMaxBin - visMinBin) / (visMaxBin - visMinBin)) * w;
-            ctx.fillStyle = 'rgba(47, 129, 247, 0.10)';
+            ctx.fillStyle = 'rgba(47, 129, 247, 0.12)';
             ctx.fillRect(fskStartX, 0, Math.max(10, fskEndX - fskStartX), specH);
 
             const numBars = 64;
@@ -2530,9 +2530,9 @@
                 const norm = maxB / 255;
                 const isFskZone = bStart >= fskMinBin && bStart <= fskMaxBin;
                 if (isFskZone) {
-                    ctx.fillStyle = maxB > 65 ? '#00ff41' : '#2f81f7';
+                    ctx.fillStyle = maxB > 50 ? '#00ff41' : '#2f81f7';
                 } else {
-                    ctx.fillStyle = maxB > 80 ? '#39c5bb' : '#1f4468';
+                    ctx.fillStyle = maxB > 70 ? '#39c5bb' : '#1f4468';
                 }
                 const barH = Math.max(1, norm * (specH - 4));
                 const bx = (i / numBars) * w;
@@ -2550,10 +2550,10 @@
             ctx.fillStyle = 'rgba(201, 209, 217, 0.65)';
             ctx.font = '9px Consolas, monospace';
             ctx.textAlign = 'left';
-            ctx.fillText('VOZ/AMB (120-1500Hz)', 4, 10);
+            ctx.fillText('GRAVES (200-630Hz)', 4, 10);
             ctx.textAlign = 'right';
             ctx.fillStyle = '#79c0ff';
-            ctx.fillText(`BANDA MÓDEM FSK (1.6-3.4kHz) | PICO: ${dominantFreq}Hz`, w - 4, 10);
+            ctx.fillText(`BANDA VOCAL FSK (680-1880Hz) | PICO: ${dominantFreq}Hz`, w - 4, 10);
 
             // Mitad inferior (wfY .. h): Espectrograma Waterfall 2D en Cascada
             const wfW = waterfallCanvas.width;
@@ -2580,9 +2580,9 @@
                 snrLbl.innerText = `Pico: ${peakVal}/255 | SNR: +${snrDiff} | Gain: ${sys.micGainLevel.toFixed(1)}x`;
             }
 
-            // Demodulación FSK con umbral estricto contra ruido ambiental (peakVal >= 75 y snrDiff >= 24)
+            // Demodulación FSK en banda vocal (680-1880 Hz): sensible al celular pero protegida por preámbulo HELLO
             if (!sys.isEmittingTone) {
-                const isStrongSignal = (peakVal >= 75 && snrDiff >= 24);
+                const isStrongSignal = (peakVal >= 42 && snrDiff >= 14);
                 if (isStrongSignal) {
                     sys.silenceFrames = 0;
                     const sym = classifyFrequencySymbol(dominantFreq);
@@ -2598,7 +2598,7 @@
                             sys.candidateHits = 1;
                         }
 
-                        if (sys.candidateHits >= 3 && sys.lastDecodedSymbol !== symKey) {
+                        if (sys.candidateHits >= 2 && sys.lastDecodedSymbol !== symKey) {
                             sys.lastDecodedSymbol = symKey;
                             handleDemodulatedSymbol(sym);
                         }
@@ -2624,8 +2624,12 @@
         }
 
         async function handleDemodulatedSymbol(sym) {
-            // 1. Ignorar cualquier tono si no ha habido un handshake HELLO previo
+            // 1. Tono de inicio HELLO (760 Hz en banda vocal): abre o mantiene abierta la ventana de recepción
             if (sym.type === 'HELLO') {
+                if (sys.acousticPhase === 2 && sys.rxRleBuffer.length >= 3) {
+                    await finalizeAcousticRleReception();
+                    return;
+                }
                 sys.rxRleBuffer = "";
                 sys.lastSymbolChar = "";
                 setSenderAcousticPhaseUI(1);
@@ -2633,11 +2637,11 @@
                 sys.rxSessionTimeout = setTimeout(() => {
                     if (sys.rxRleBuffer.length >= 2) finalizeAcousticRleReception();
                     else setSenderAcousticPhaseUI(0);
-                }, 8000);
+                }, 9000);
                 return;
             }
 
-            // 2. Solo aceptar datos si estamos formalmente en Fase 1 o 2 (no por ruido suelto)
+            // 2. Solo aceptar datos si estamos formalmente en Fase 1 o 2 (tras haber escuchado HELLO 760Hz)
             if (sym.type === 'DATA' || sym.type === 'REPEAT') {
                 if (sys.acousticPhase !== 1 && sys.acousticPhase !== 2) return;
 
@@ -2651,6 +2655,12 @@
                     sys.lastSymbolChar = ch;
                     setSenderAcousticPhaseUI(2, sys.rxRleBuffer);
                 }
+
+                clearTimeout(sys.rxSessionTimeout);
+                sys.rxSessionTimeout = setTimeout(() => {
+                    if (sys.rxRleBuffer.length >= 2) finalizeAcousticRleReception();
+                    else setSenderAcousticPhaseUI(0);
+                }, 2200);
                 return;
             }
 

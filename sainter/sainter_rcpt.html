@@ -391,6 +391,64 @@
             max-width: 72%;
         }
 
+        /* --- PANEL DE ESTIMACIÓN MATEMÁTICA DE FINALIZACIÓN (ETA DINÁMICO + HORA FIN) --- */
+        .eta-estimator-banner {
+            background: linear-gradient(135deg, rgba(5, 10, 18, 0.96) 0%, rgba(16, 26, 44, 0.92) 100%);
+            border: 1px solid rgba(47, 129, 247, 0.38);
+            border-radius: 8px;
+            padding: 10px 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .eta-top-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .eta-main-val {
+            font-family: monospace;
+            font-size: 1.05rem;
+            font-weight: 900;
+            color: var(--neon);
+            letter-spacing: 0.5px;
+        }
+
+        .eta-sub-clock {
+            font-family: monospace;
+            font-size: 0.72rem;
+            color: #79c0ff;
+            font-weight: bold;
+        }
+
+        .eta-bar-track {
+            width: 100%;
+            height: 6px;
+            background: #05080e;
+            border-radius: 4px;
+            overflow: hidden;
+            border: 1px solid var(--border);
+        }
+
+        .eta-bar-fill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, var(--accent), var(--neon));
+            transition: width 0.25s ease;
+        }
+
+        .eta-math-meta {
+            display: flex;
+            justify-content: space-between;
+            font-family: monospace;
+            font-size: 0.65rem;
+            color: var(--dim);
+        }
+
         .canvas-wrap {
             position: relative;
             width: 100%;
@@ -821,6 +879,24 @@
                 <span id="lbl-count">0 / 0 Bloques</span>
             </div>
 
+            <!-- ESTIMACIÓN MATEMÁTICA DE TIEMPO DE FINALIZACIÓN (EWMA + PROYECCIÓN CONTINUA) -->
+            <div class="eta-estimator-banner" id="eta-estimator-banner">
+                <div class="eta-top-row">
+                    <div>
+                        <span style="font-size: 0.65rem; color: var(--dim); text-transform: uppercase;">⏱️ Tiempo Est. para Finalizar: </span>
+                        <span class="eta-main-val" id="eta-countdown-big">--:--</span>
+                    </div>
+                    <span class="eta-sub-clock" id="eta-finish-clock">Hora Fin: --:--:--</span>
+                </div>
+                <div class="eta-bar-track">
+                    <div class="eta-bar-fill" id="eta-progress-fill"></div>
+                </div>
+                <div class="eta-math-meta">
+                    <span id="eta-rate-lbl">Ritmo EWMA: 0.0 blks/s</span>
+                    <span id="eta-total-proj-lbl">Duración Total Est.: --:--</span>
+                </div>
+            </div>
+
             <!-- CANVAS 2D BITFIELD GRID CON BUFFER OFFSCREEN O(1) Y CUADRÍCULA 4x4 -->
             <div class="canvas-wrap">
                 <canvas id="chunk-map-canvas"></canvas>
@@ -866,6 +942,23 @@
                     <span class="tele-lbl">ÚLTIMO BLK</span>
                     <span class="tele-val" id="tele-last">-</span>
                 </div>
+            </div>
+
+            <!-- RESPALDO Y RESTAURACIÓN DE AVANCE (CHECKPOINT PORTABLE) -->
+            <div style="display: flex; flex-direction: column; gap: 6px; padding-top: 6px; border-top: 1px solid var(--border);">
+                <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.68rem; color: var(--dim);">
+                    <span>💾 RESPALDO DE SESIÓN (CONTINUAR MÁS TARDE)</span>
+                    <span id="checkpoint-status-lbl" style="color: #79c0ff; font-family: monospace;">LISTO</span>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                    <button class="btn-optic" id="btn-export-checkpoint" onclick="exportProgressCheckpoint()" disabled style="padding: 10px; font-size: 0.75rem; border-color: rgba(47, 129, 247, 0.5); color: #79c0ff;">
+                        💾 Descargar Avance
+                    </button>
+                    <button class="btn-optic" id="btn-import-checkpoint" onclick="document.getElementById('checkpoint-file-input').click()" style="padding: 10px; font-size: 0.75rem; border-color: rgba(0, 255, 65, 0.45); color: var(--neon);">
+                        📂 Importar Avance
+                    </button>
+                </div>
+                <input type="file" id="checkpoint-file-input" accept=".json,.sainter" style="display: none;" onchange="handleCheckpointFileSelect(event)">
             </div>
         </div>
 
@@ -1454,37 +1547,40 @@
         }
 
         // =========================================================================
-        // 4. MÓDEM ACÚSTICO BIDIRECCIONAL CON BISECCIÓN POR MACRO-SECTORES (S00..S31)
+        // 4. MÓDEM ACÚSTICO EN BANDA VOCAL HUMANA (680 Hz - 1880 Hz) PARA MIC DE LAPTOP
         // =========================================================================
+        // Frecuencias reubicadas en la banda de formantes de la voz humana (680-1880 Hz, paso 80 Hz)
+        // para atravesar sin atenuación los filtros "Voice Focus / Realtek AI" de micrófonos de laptop.
         const ACOUSTIC_PROTOCOL = {
-            HELLO: 1720,   // Celular -> Laptop
-            READY: 1820,   // Laptop -> Celular
-            REPEAT: 1920,  // Separador de símbolo repetido
+            HELLO: 760,    // Tono de inicio en centro de banda vocal (Celular -> Laptop)
+            READY: 1960,   // Reservado
+            REPEAT: 840,   // Separador de símbolo repetido
             SYMBOLS: {
-                '0': 2020,
-                '1': 2120,
-                '2': 2220,
-                '3': 2320,
-                '4': 2420,
-                '5': 2520,
-                '6': 2620,
-                '7': 2720,
-                '8': 2820,
-                '9': 2920,
-                '-': 3020,
-                ',': 3120,
-                'S': 1620      // Prefijo de Macro-Sector (ej. S04,09,12)
+                'S': 680,      // Prefijo de Macro-Sector (ej. S04,09,12)
+                '0': 920,
+                '1': 1000,
+                '2': 1080,
+                '3': 1160,
+                '4': 1240,
+                '5': 1320,
+                '6': 1400,
+                '7': 1480,
+                '8': 1560,
+                '9': 1640,
+                '-': 1720,
+                ',': 1800
             },
-            EOF: 3220,     // Fin de ráfaga FSK
-            ACK_OK: 3320,  // Confirmación desde la laptop
-            FIN_100: 3420, // Confirmación de cierre tras validación SHA-256
-            TOLERANCE_HZ: 44,
-            SYMBOL_MS: 135,
-            GAP_MS: 52
+            EOF: 1880,     // Fin de ráfaga FSK
+            ACK_OK: 2040,  // Reservado
+            FIN_100: 2120, // Reservado
+            TOLERANCE_HZ: 36,
+            SYMBOL_MS: 185,
+            GAP_MS: 55
         };
 
         const acousticModem = {
             ctx: null,
+            compressor: null,
             micStream: null,
             analyser: null,
             rxLoopId: null,
@@ -1501,31 +1597,56 @@
             if (acousticModem.ctx.state === 'suspended') {
                 acousticModem.ctx.resume();
             }
+            if (!acousticModem.compressor && acousticModem.ctx) {
+                const comp = acousticModem.ctx.createDynamicsCompressor();
+                comp.threshold.setValueAtTime(-14, acousticModem.ctx.currentTime);
+                comp.knee.setValueAtTime(10, acousticModem.ctx.currentTime);
+                comp.ratio.setValueAtTime(6, acousticModem.ctx.currentTime);
+                comp.attack.setValueAtTime(0.003, acousticModem.ctx.currentTime);
+                comp.release.setValueAtTime(0.08, acousticModem.ctx.currentTime);
+                comp.connect(acousticModem.ctx.destination);
+                acousticModem.compressor = comp;
+            }
             return acousticModem.ctx;
         }
 
-        function playSingleTone(freq, durationMs, gainLevel = 0.85) {
+        // Emite un tono en banda vocal con micro-vibrato (±2 Hz a 6.5 Hz) para evitar que el DSP antirruido
+        // de Windows lo descarte como silbido estacionario, manteniendo energía concentrada en el bin FFT.
+        function playSingleTone(freq, durationMs, gainLevel = 0.98) {
             return new Promise((resolve) => {
                 const ctx = getAudioCtx();
-                const now = ctx.currentTime + 0.015;
+                const now = ctx.currentTime + 0.012;
                 const durSec = durationMs / 1000;
 
                 const osc = ctx.createOscillator();
+                const lfo = ctx.createOscillator();
+                const lfoGain = ctx.createGain();
                 const gain = ctx.createGain();
+
                 osc.type = 'sine';
                 osc.frequency.setValueAtTime(freq, now);
 
+                // Micro-vibrato tipo cuerda vocal humana (±2.2 Hz) que engaña los filtros "Voice Focus" de laptop
+                lfo.type = 'sine';
+                lfo.frequency.setValueAtTime(6.5, now);
+                lfoGain.gain.setValueAtTime(2.2, now);
+                lfo.connect(lfoGain);
+                lfoGain.connect(osc.frequency);
+
                 gain.gain.setValueAtTime(0.001, now);
-                gain.gain.linearRampToValueAtTime(gainLevel, now + 0.012);
-                gain.gain.setValueAtTime(gainLevel, now + Math.max(0.015, durSec - 0.012));
+                gain.gain.linearRampToValueAtTime(gainLevel, now + 0.014);
+                gain.gain.setValueAtTime(gainLevel, now + Math.max(0.018, durSec - 0.014));
                 gain.gain.linearRampToValueAtTime(0.001, now + durSec);
 
                 osc.connect(gain);
-                gain.connect(ctx.destination);
+                gain.connect(acousticModem.compressor || ctx.destination);
+
+                lfo.start(now);
                 osc.start(now);
+                lfo.stop(now + durSec);
                 osc.stop(now + durSec);
 
-                setTimeout(resolve, durationMs + 15);
+                setTimeout(resolve, durationMs + 14);
             });
         }
 
@@ -1692,111 +1813,42 @@
                 aiTelemetryLogger.acousticSessionsStarted++;
             }
 
+            // IMPORTANTE: No activar el micrófono del celular durante la emisión para evitar que Android/iOS
+            // conmute el audio al modo "Llamada Telefónica" (earpiece) y baje el volumen del altavoz principal.
+            stopPhoneMicListening();
             setAcousticPhaseUI(1);
-            const hasMic = await ensurePhoneMicListening();
 
-            let readyReceived = false;
-            let readyHits = 0;
-
-            const waitReadyPromise = new Promise((resolve) => {
-                let attempts = 0;
-                const emitHelloCycle = async () => {
-                    if (acousticModem.aborted || readyReceived) return;
-                    attempts++;
-                    const helloTxTime = performance.now();
-                    await playSingleTone(ACOUSTIC_PROTOCOL.HELLO, 240);
-
-                    if (!hasMic) {
-                        setTimeout(() => resolve(!acousticModem.aborted), 320);
-                        return;
-                    }
-
-                    const listenStart = performance.now();
-                    const checkLoop = () => {
-                        if (acousticModem.aborted) {
-                            resolve(false);
-                            return;
-                        }
-                        if (hasMic && detectTargetFrequencyOnPhone(ACOUSTIC_PROTOCOL.READY)) {
-                            readyHits++;
-                            if (readyHits >= 2) {
-                                readyReceived = true;
-                                if (typeof aiTelemetryLogger !== 'undefined') {
-                                    aiTelemetryLogger.logAcousticRtt(performance.now() - helloTxTime);
-                                }
-                                resolve(true);
-                                return;
-                            }
-                        } else {
-                            readyHits = 0;
-                        }
-
-                        if (performance.now() - listenStart < 600) {
-                            acousticModem.rxLoopId = requestAnimationFrame(checkLoop);
-                        } else if (attempts < 2) {
-                            if (typeof aiTelemetryLogger !== 'undefined') aiTelemetryLogger.acousticFskErrors++;
-                            emitHelloCycle();
-                        } else {
-                            resolve(true);
-                        }
-                    };
-                    checkLoop();
-                };
-                emitHelloCycle();
-            });
-
-            const canProceed = await waitReadyPromise;
-            if (!canProceed || acousticModem.aborted) {
-                cancelAcousticSession();
-                return;
-            }
-
-            await new Promise(r => setTimeout(r, 170));
-            if (acousticModem.aborted) return;
-
-            // FASE 2: Transmitir los 3 Macro-Sectores con más huecos (ej. S04,09,12) o RLE corto
             const acousticPayload = buildAcousticPayloadString();
             const fskFreqs = encodePayloadToFskFrequencies(acousticPayload);
-
-            setAcousticPhaseUI(2, `[${acousticPayload}]`);
             const fill = document.getElementById('acoustic-progress-fill');
 
-            for (let i = 0; i < fskFreqs.length; i++) {
+            // Emitir 2 pasadas completas (con doble tono HELLO de 300ms en banda vocal 760Hz)
+            // para abrir el AGC del micrófono de la laptop y garantizar recepción a la primera.
+            for (let pass = 1; pass <= 2; pass++) {
                 if (acousticModem.aborted) return;
-                const pct = 30 + Math.round(((i + 1) / fskFreqs.length) * 55);
-                fill.style.width = `${pct}%`;
-                await playSingleTone(fskFreqs[i], ACOUSTIC_PROTOCOL.SYMBOL_MS);
-                await new Promise(r => setTimeout(r, ACOUSTIC_PROTOCOL.GAP_MS));
+
+                setAcousticPhaseUI(1);
+                await playSingleTone(ACOUSTIC_PROTOCOL.HELLO, 310);
+                if (acousticModem.aborted) return;
+                await new Promise(r => setTimeout(r, 85));
+                await playSingleTone(ACOUSTIC_PROTOCOL.HELLO, 260);
+                if (acousticModem.aborted) return;
+                await new Promise(r => setTimeout(r, 110));
+
+                setAcousticPhaseUI(2, `[${acousticPayload}] (Ráfaga ${pass}/2)`);
+                for (let i = 0; i < fskFreqs.length; i++) {
+                    if (acousticModem.aborted) return;
+                    const basePct = pass === 1 ? 20 : 60;
+                    const pct = basePct + Math.round(((i + 1) / fskFreqs.length) * 38);
+                    fill.style.width = `${pct}%`;
+                    await playSingleTone(fskFreqs[i], ACOUSTIC_PROTOCOL.SYMBOL_MS);
+                    await new Promise(r => setTimeout(r, ACOUSTIC_PROTOCOL.GAP_MS));
+                }
+
+                if (pass === 1 && !acousticModem.aborted) {
+                    await new Promise(r => setTimeout(r, 260));
+                }
             }
-
-            if (acousticModem.aborted) return;
-
-            // Escuchar confirmación ACK_OK (3320 Hz) de la laptop
-            await new Promise((resolve) => {
-                let ackHits = 0;
-                const waitStart = performance.now();
-                const listenAckLoop = () => {
-                    if (acousticModem.aborted) {
-                        resolve();
-                        return;
-                    }
-                    if (hasMic && detectTargetFrequencyOnPhone(ACOUSTIC_PROTOCOL.ACK_OK)) {
-                        ackHits++;
-                        if (ackHits >= 2) {
-                            resolve();
-                            return;
-                        }
-                    } else {
-                        ackHits = 0;
-                    }
-                    if (performance.now() - waitStart < 950) {
-                        acousticModem.rxLoopId = requestAnimationFrame(listenAckLoop);
-                    } else {
-                        resolve();
-                    }
-                };
-                listenAckLoop();
-            });
 
             if (acousticModem.aborted) return;
 
@@ -1804,7 +1856,6 @@
             if (navigator.vibrate) {
                 try { navigator.vibrate([40, 50, 90]); } catch (e) { }
             }
-            stopPhoneMicListening();
             acousticModem.sessionActive = false;
 
             setTimeout(() => {
@@ -2373,6 +2424,9 @@
                         sys.rawScans = 1;
                         sys.duplicateScans = 0;
                         sys.uniqueHistory = [];
+                        sys.ewmaRate = 0;
+                        sys.smoothEtaSec = 0;
+                        sys.lastUniqueBlockTime = now;
                         if (typeof aiTelemetryLogger !== 'undefined') aiTelemetryLogger.resetSession();
 
                         if (navigator.vibrate) {
@@ -2416,11 +2470,21 @@
             if (sys.received === sys.total) {
                 sys.completedTime = now;
             }
+            sys.lastUniqueBlockTime = now;
             updateProgressUI();
+        }
+
+        function formatClockTime(dateObj) {
+            const hh = String(dateObj.getHours()).padStart(2, '0');
+            const mm = String(dateObj.getMinutes()).padStart(2, '0');
+            const ss = String(dateObj.getSeconds()).padStart(2, '0');
+            return `${hh}:${mm}:${ss}`;
         }
 
         function updateTelemetryAndMap() {
             const now = performance.now();
+            const dtSec = sys.lastTeleTick ? Math.max(0.01, (now - sys.lastTeleTick) / 1000) : 0.14;
+            sys.lastTeleTick = now;
 
             const reticle = document.getElementById('reticle-box');
             const reticleLbl = document.getElementById('reticle-status');
@@ -2435,17 +2499,21 @@
             const dupRatio = sys.rawScans > 0 ? ((sys.duplicateScans / sys.rawScans) * 100).toFixed(0) : "0";
             document.getElementById('tele-dup').innerText = `${sys.fountainSolved} XOR | ${dupRatio}%`;
 
+            let elapsedSec = 0;
             if (sys.active && sys.startTime > 0) {
                 const endRef = sys.completedTime > 0 ? sys.completedTime : now;
-                document.getElementById('tele-elapsed').innerText = formatMMSS((endRef - sys.startTime) / 1000);
+                elapsedSec = Math.max(0.2, (endRef - sys.startTime) / 1000);
+                document.getElementById('tele-elapsed').innerText = formatMMSS(elapsedSec);
             } else {
                 document.getElementById('tele-elapsed').innerText = "00:00";
             }
 
-            sys.uniqueHistory = sys.uniqueHistory.filter(item => (now - item.t) <= 5000);
-            const uniquePerSec = sys.uniqueHistory.length / 5;
-            const bytesLast5s = sys.uniqueHistory.reduce((acc, item) => acc + item.bytes, 0);
-            const bytesPerSec = bytesLast5s / 5;
+            // Ventana móvil de 8 segundos para estabilidad matemática
+            sys.uniqueHistory = sys.uniqueHistory.filter(item => (now - item.t) <= 8000);
+            const windowSpanSec = sys.active ? Math.min(8, Math.max(1, elapsedSec)) : 5;
+            const instUniquePerSec = sys.uniqueHistory.length / windowSpanSec;
+            const bytesWindow = sys.uniqueHistory.reduce((acc, item) => acc + item.bytes, 0);
+            const bytesPerSec = bytesWindow / windowSpanSec;
             sys.lastSpeedKbps = parseFloat((bytesPerSec / 1024).toFixed(1));
 
             if (bytesPerSec >= 1048576) {
@@ -2454,14 +2522,95 @@
                 document.getElementById('tele-speed').innerText = `${(bytesPerSec / 1024).toFixed(1)} KB/s`;
             }
 
+            // =========================================================================
+            // ESTIMADOR MATEMÁTICO DINÁMICO DE TIEMPO DE FINALIZACIÓN (EWMA + LINEAL + COLA)
+            // =========================================================================
             const remaining = sys.total - sys.received;
-            if (!sys.active || remaining === 0) {
-                document.getElementById('tele-eta').innerText = remaining === 0 && sys.active ? "00:00" : "--:--";
-            } else if (uniquePerSec > 0) {
-                const secs = Math.ceil(remaining / uniquePerSec);
-                document.getElementById('tele-eta').innerText = formatMMSS(secs);
+            const etaBigEl = document.getElementById('eta-countdown-big');
+            const etaClockEl = document.getElementById('eta-finish-clock');
+            const etaRateEl = document.getElementById('eta-rate-lbl');
+            const etaTotalEl = document.getElementById('eta-total-proj-lbl');
+
+            if (!sys.active || sys.total === 0) {
+                document.getElementById('tele-eta').innerText = "--:--";
+                if (etaBigEl) etaBigEl.innerText = "--:--";
+                if (etaClockEl) etaClockEl.innerText = "Hora Fin: --:--:--";
+                if (etaRateEl) etaRateEl.innerText = "Ritmo EWMA: 0.0 blks/s";
+                if (etaTotalEl) etaTotalEl.innerText = "Duración Total Est.: --:--";
+            } else if (remaining === 0) {
+                document.getElementById('tele-eta').innerText = "00:00";
+                if (etaBigEl) {
+                    etaBigEl.innerText = "00:00 (COMPLETADO)";
+                    etaBigEl.style.color = "var(--neon)";
+                }
+                if (etaClockEl) etaClockEl.innerText = "✅ Transferencia Finalizada";
+                if (etaRateEl) etaRateEl.innerText = `Promedio Final: ${(sys.total / elapsedSec).toFixed(1)} blks/s`;
+                if (etaTotalEl) etaTotalEl.innerText = `Duración Total: ${formatMMSS(elapsedSec)}`;
             } else {
-                document.getElementById('tele-eta').innerText = "ESTANCADO";
+                // Tasa global histórica desde el inicio (R / t_elapsed)
+                const globalRate = sys.received / Math.max(1, elapsedSec);
+
+                // Media móvil exponencial suavizada (EWMA) con constante de suavizado alpha
+                if (!sys.ewmaRate || sys.ewmaRate <= 0) {
+                    sys.ewmaRate = instUniquePerSec > 0 ? instUniquePerSec : globalRate;
+                } else {
+                    const alpha = instUniquePerSec > 0 ? 0.18 : 0.04;
+                    sys.ewmaRate = alpha * instUniquePerSec + (1 - alpha) * sys.ewmaRate;
+                }
+
+                // Tasa efectiva híbrida: pondera 65% EWMA reciente + 35% velocidad global acumulada
+                let effectiveRate = 0;
+                if (instUniquePerSec > 0) {
+                    effectiveRate = 0.65 * sys.ewmaRate + 0.35 * globalRate;
+                } else if (sys.received > 0) {
+                    // Si hay una pausa breve sin lecturas, decae suavemente sobre la media histórica sin saltar de golpe
+                    const idleSec = sys.lastUniqueBlockTime ? Math.max(0, (now - sys.lastUniqueBlockTime) / 1000) : 0;
+                    const damping = 1 / (1 + 0.08 * Math.max(0, idleSec - 3));
+                    effectiveRate = (0.5 * sys.ewmaRate + 0.5 * globalRate) * damping;
+                }
+
+                if (effectiveRate > 0.05) {
+                    // Factor de cola estocástico por probabilidad de duplicados al acercarse al 100%
+                    const progressRatio = sys.received / sys.total;
+                    const tailFactor = 1 + 0.12 * progressRatio;
+                    const rawMathEtaSec = (remaining / effectiveRate) * tailFactor;
+
+                    // Interpolación suave + cuenta regresiva continua segundo a segundo
+                    if (!sys.smoothEtaSec || !isFinite(sys.smoothEtaSec) || Math.abs(sys.smoothEtaSec - rawMathEtaSec) > 25) {
+                        sys.smoothEtaSec = rawMathEtaSec;
+                    } else {
+                        // Avanza en cuenta regresiva (-dtSec) cuando la cámara está leyendo y converge suavemente hacia rawMathEtaSec
+                        const countdownStep = instUniquePerSec > 0 ? Math.max(0, sys.smoothEtaSec - dtSec) : sys.smoothEtaSec;
+                        sys.smoothEtaSec = 0.82 * countdownStep + 0.18 * rawMathEtaSec;
+                    }
+
+                    const displaySecs = Math.max(1, Math.round(sys.smoothEtaSec));
+                    const etaFormatted = formatMMSS(displaySecs);
+                    const finishDate = new Date(Date.now() + displaySecs * 1000);
+                    const totalProjectedSec = Math.round(elapsedSec + displaySecs);
+
+                    document.getElementById('tele-eta').innerText = etaFormatted;
+                    if (etaBigEl) {
+                        etaBigEl.innerText = `~ ${etaFormatted}`;
+                        etaBigEl.style.color = instUniquePerSec > 0 ? "var(--neon)" : "var(--warn)";
+                    }
+                    if (etaClockEl) {
+                        etaClockEl.innerText = `Hora Fin: ~${formatClockTime(finishDate)}`;
+                    }
+                    if (etaRateEl) {
+                        etaRateEl.innerText = `Ritmo: ${effectiveRate.toFixed(1)} blks/s (Global: ${globalRate.toFixed(1)}/s)`;
+                    }
+                    if (etaTotalEl) {
+                        etaTotalEl.innerText = `Total Est.: ${formatMMSS(totalProjectedSec)}`;
+                    }
+                } else {
+                    document.getElementById('tele-eta').innerText = "CALCULANDO...";
+                    if (etaBigEl) {
+                        etaBigEl.innerText = "CALCULANDO...";
+                        etaBigEl.style.color = "var(--warn)";
+                    }
+                    if (etaClockEl) etaClockEl.innerText = "Esperando flujo constante...";
+                }
             }
 
             if (chunkMap) {
@@ -2473,6 +2622,13 @@
             const pct = sys.total > 0 ? ((sys.received / sys.total) * 100).toFixed(1) : "0.0";
             document.getElementById('lbl-pct').innerText = `${pct}%`;
             document.getElementById('lbl-count').innerText = `${sys.received} / ${sys.total} Bloques`;
+            const etaFill = document.getElementById('eta-progress-fill');
+            if (etaFill) etaFill.style.width = `${pct}%`;
+
+            const btnExportChk = document.getElementById('btn-export-checkpoint');
+            if (btnExportChk) {
+                btnExportChk.disabled = !(sys.active && sys.received > 0);
+            }
 
             const btnSave = document.getElementById('btn-save');
             const routesCard = document.getElementById('return-routes-card');
@@ -2489,6 +2645,198 @@
                 routesCard.classList.add('visible');
                 const missingCount = sys.total - sys.received;
                 missingBadge.innerText = `${missingCount} bloques pendientes`;
+                btnSave.disabled = true;
+                btnSave.className = "main-action btn-waiting";
+                btnSave.innerText = `RECIBIENDO DATOS (${pct}%)...`;
+            }
+        }
+
+        // =========================================================================
+        // 6.5 RESPALDO Y RESTAURACIÓN DE AVANCE (CHECKPOINT PORTABLE .SAINTER.JSON)
+        // =========================================================================
+        function uint8ToBase64(u8) {
+            let binary = "";
+            const len = u8.byteLength;
+            for (let i = 0; i < len; i++) {
+                binary += String.fromCharCode(u8[i]);
+            }
+            return btoa(binary);
+        }
+
+        function base64ToUint8(b64) {
+            const binary = atob(b64);
+            const len = binary.length;
+            const out = new Uint8Array(len);
+            for (let i = 0; i < len; i++) {
+                out[i] = binary.charCodeAt(i);
+            }
+            return out;
+        }
+
+        function exportProgressCheckpoint() {
+            if (!sys.active || sys.received === 0) {
+                alert("Aún no hay bloques recibidos para guardar.");
+                return;
+            }
+
+            const lbl = document.getElementById('checkpoint-status-lbl');
+            if (lbl) lbl.innerText = "GENERANDO RESPALDO...";
+
+            try {
+                const chunksDict = {};
+                for (let i = 0; i < sys.total; i++) {
+                    if (sys.chunks[i] !== null) {
+                        chunksDict[i] = uint8ToBase64(sys.chunks[i]);
+                    }
+                }
+
+                const serializedPool = sys.fountainPool.map(eq => ({
+                    u: Array.from(eq.unknowns),
+                    x: uint8ToBase64(eq.xorData)
+                }));
+
+                const now = performance.now();
+                const elapsedSec = sys.startTime > 0 ? Math.round((now - sys.startTime) / 1000) : 0;
+                const pct = ((sys.received / sys.total) * 100).toFixed(1);
+
+                const checkpointData = {
+                    format: "SAINTER_CHECKPOINT_V1",
+                    savedAt: new Date().toISOString(),
+                    total: sys.total,
+                    received: sys.received,
+                    mtu: sys.mtu,
+                    fountainSolved: sys.fountainSolved,
+                    elapsedSec: elapsedSec,
+                    meta: sys.meta,
+                    chunks: chunksDict,
+                    fountainPool: serializedPool
+                };
+
+                const jsonStr = JSON.stringify(checkpointData);
+                const blob = new Blob([jsonStr], { type: "application/json" });
+                const safeName = (sys.meta.n || "transferencia").replace(/[^a-zA-Z0-9._-]/g, '_');
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(blob);
+                a.download = `${safeName}.avance_${pct}pct.sainter.json`;
+                a.click();
+
+                if (lbl) {
+                    lbl.style.color = "var(--neon)";
+                    lbl.innerText = `✅ GUARDADO (${sys.received}/${sys.total} BLKS)`;
+                }
+            } catch (err) {
+                console.error("Error exportando avance:", err);
+                alert("Error al generar el archivo de respaldo: " + err.message);
+                if (lbl) lbl.innerText = "❌ ERROR AL GUARDAR";
+            }
+        }
+
+        async function handleCheckpointFileSelect(event) {
+            const file = event.target.files && event.target.files[0];
+            if (!file) return;
+
+            const lbl = document.getElementById('checkpoint-status-lbl');
+            if (lbl) lbl.innerText = "CARGANDO AVANCE...";
+
+            try {
+                const text = await file.text();
+                const data = JSON.parse(text);
+
+                if (!data || data.format !== "SAINTER_CHECKPOINT_V1" || !data.total || !data.chunks) {
+                    throw new Error("El archivo seleccionado no es un respaldo de avance SAINTER válido.");
+                }
+
+                const now = performance.now();
+                const isSameSession = sys.active && sys.meta && data.meta && sys.meta.h === data.meta.h && sys.total === data.total;
+
+                if (!isSameSession) {
+                    sys.active = true;
+                    sys.total = data.total;
+                    sys.received = 0;
+                    sys.mtu = data.mtu || 500;
+                    sys.startTime = now - ((data.elapsedSec || 0) * 1000);
+                    sys.completedTime = 0;
+                    sys.meta = data.meta || { n: "ARCHIVO_RESTAURADO.bin", h: "", s: 0, z: 0, compLen: 0 };
+                    sys.chunks = new Array(data.total).fill(null);
+                    sys.recentTimes = new Array(data.total).fill(0);
+                    sys.fountainPool = [];
+                    sys.fountainSolved = data.fountainSolved || 0;
+                    sys.rawScans = 1;
+                    sys.duplicateScans = 0;
+                    sys.uniqueHistory = [];
+                    sys.ewmaRate = 0;
+                    sys.smoothEtaSec = 0;
+                    sys.lastUniqueBlockTime = now;
+
+                    chunkMap.setTotal(sys.total);
+                    const compLabel = sys.meta.z === 2 ? '[ZSTD]' : (sys.meta.z === 1 ? '[GZIP]' : '');
+                    document.getElementById('lbl-name').innerText = `${sys.meta.n} ${compLabel}`;
+                    document.getElementById('lbl-hash').innerText = `SHA: ${sys.meta.h}`;
+                }
+
+                let addedCount = 0;
+                const keys = Object.keys(data.chunks);
+                for (let k = 0; k < keys.length; k++) {
+                    const idx = parseInt(keys[k], 10);
+                    if (idx >= 0 && idx < sys.total && sys.chunks[idx] === null) {
+                        const bytes = base64ToUint8(data.chunks[keys[k]]);
+                        if (ingestSolvedBlock(idx, bytes, false)) {
+                            addedCount++;
+                        }
+                    }
+                }
+
+                // Restaurar también ecuaciones Fountain XOR pendientes y propagar bloques ya conocidos
+                if (Array.isArray(data.fountainPool)) {
+                    for (const eq of data.fountainPool) {
+                        if (!Array.isArray(eq.u) || !eq.x) continue;
+                        const workingXor = base64ToUint8(eq.x);
+                        const unknowns = new Set();
+                        for (const srcIdx of eq.u) {
+                            if (sys.chunks[srcIdx] !== null) {
+                                xorUint8Arrays(workingXor, getPaddedChunkBytes(srcIdx));
+                            } else {
+                                unknowns.add(srcIdx);
+                            }
+                        }
+                        if (unknowns.size === 1) {
+                            const solvedIdx = unknowns.values().next().value;
+                            if (ingestSolvedBlock(solvedIdx, workingXor, true)) {
+                                addedCount++;
+                            }
+                        } else if (unknowns.size > 1 && sys.fountainPool.length < 1800) {
+                            sys.fountainPool.push({ unknowns, xorData: workingXor });
+                        }
+                    }
+                }
+
+                if (chunkMap) {
+                    chunkMap.needsFullRedraw = true;
+                    chunkMap.render(sys.chunks);
+                }
+
+                updateProgressUI();
+                updateTelemetryAndMap();
+
+                const pct = ((sys.received / sys.total) * 100).toFixed(1);
+                const missing = sys.total - sys.received;
+                if (lbl) {
+                    lbl.style.color = "var(--neon)";
+                    lbl.innerText = `✅ RESTAURADO: ${pct}% (${missing} FALTANTES)`;
+                }
+
+                if (navigator.vibrate) {
+                    try { navigator.vibrate([40, 60, 40]); } catch (e) { }
+                }
+            } catch (err) {
+                console.error("Error importando avance:", err);
+                alert("No se pudo importar el avance: " + err.message);
+                if (lbl) {
+                    lbl.style.color = "var(--err)";
+                    lbl.innerText = "❌ ARCHIVO INVÁLIDO";
+                }
+            } finally {
+                event.target.value = "";
             }
         }
 
