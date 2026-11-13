@@ -1574,8 +1574,8 @@
             ACK_OK: 2040,  // Reservado
             FIN_100: 2120, // Reservado
             TOLERANCE_HZ: 36,
-            SYMBOL_MS: 185,
-            GAP_MS: 55
+            SYMBOL_MS: 260,
+            GAP_MS: 110
         };
 
         const acousticModem = {
@@ -1610,28 +1610,21 @@
             return acousticModem.ctx;
         }
 
-        // Emite un tono en banda vocal con micro-vibrato (±2 Hz a 6.5 Hz) para evitar que el DSP antirruido
-        // de Windows lo descarte como silbido estacionario, manteniendo energía concentrada en el bin FFT.
-        function playSingleTone(freq, durationMs, gainLevel = 0.98) {
+        // Emite el tono FSK junto con un armónico débil para mejorar su detección sin modular la frecuencia.
+        function playSingleTone(freq, durationMs, gainLevel = 0.98, includeHarmonic = true) {
             return new Promise((resolve) => {
                 const ctx = getAudioCtx();
                 const now = ctx.currentTime + 0.012;
                 const durSec = durationMs / 1000;
 
                 const osc = ctx.createOscillator();
-                const lfo = ctx.createOscillator();
-                const lfoGain = ctx.createGain();
                 const gain = ctx.createGain();
+                const harmonicOsc = includeHarmonic ? ctx.createOscillator() : null;
+                const harmonicGain = includeHarmonic ? ctx.createGain() : null;
+                const harmonicLevel = gainLevel * 0.15;
 
                 osc.type = 'sine';
                 osc.frequency.setValueAtTime(freq, now);
-
-                // Micro-vibrato tipo cuerda vocal humana (±2.2 Hz) que engaña los filtros "Voice Focus" de laptop
-                lfo.type = 'sine';
-                lfo.frequency.setValueAtTime(6.5, now);
-                lfoGain.gain.setValueAtTime(2.2, now);
-                lfo.connect(lfoGain);
-                lfoGain.connect(osc.frequency);
 
                 gain.gain.setValueAtTime(0.001, now);
                 gain.gain.linearRampToValueAtTime(gainLevel, now + 0.014);
@@ -1640,11 +1633,21 @@
 
                 osc.connect(gain);
                 gain.connect(acousticModem.compressor || ctx.destination);
-
-                lfo.start(now);
                 osc.start(now);
-                lfo.stop(now + durSec);
                 osc.stop(now + durSec);
+
+                if (harmonicOsc && harmonicGain) {
+                    harmonicOsc.type = 'sine';
+                    harmonicOsc.frequency.setValueAtTime(freq * 2, now);
+                    harmonicGain.gain.setValueAtTime(0.001, now);
+                    harmonicGain.gain.linearRampToValueAtTime(harmonicLevel, now + 0.014);
+                    harmonicGain.gain.setValueAtTime(harmonicLevel, now + Math.max(0.018, durSec - 0.014));
+                    harmonicGain.gain.linearRampToValueAtTime(0.001, now + durSec);
+                    harmonicOsc.connect(harmonicGain);
+                    harmonicGain.connect(acousticModem.compressor || ctx.destination);
+                    harmonicOsc.start(now);
+                    harmonicOsc.stop(now + durSec);
+                }
 
                 setTimeout(resolve, durationMs + 14);
             });
@@ -1822,8 +1825,11 @@
             const fskFreqs = encodePayloadToFskFrequencies(acousticPayload);
             const fill = document.getElementById('acoustic-progress-fill');
 
-            // Emitir 2 pasadas completas (con doble tono HELLO de 300ms en banda vocal 760Hz)
-            // para abrir el AGC del micrófono de la laptop y garantizar recepción a la primera.
+            await playSingleTone(500, 400, 0.98, false);
+            if (acousticModem.aborted) return;
+            await new Promise(r => setTimeout(r, ACOUSTIC_PROTOCOL.GAP_MS));
+
+            // Emitir 2 pasadas completas con doble tono HELLO para abrir el AGC del micrófono.
             for (let pass = 1; pass <= 2; pass++) {
                 if (acousticModem.aborted) return;
 
