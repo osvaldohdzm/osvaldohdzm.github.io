@@ -995,12 +995,29 @@
             <!-- PANEL PROGRESIVO LINEAL DE SINCRONIZACIÓN ACÚSTICA (FASES 1, 2, 3) -->
             <div class="acoustic-sync-panel" id="acoustic-sync-panel">
                 <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.72rem;">
-                    <b style="color: #79c0ff;">Canal de Retorno Acústico</b>
-                    <button class="btn-optic" id="btn-cancel-acoustic" onclick="cancelAcousticSession()" style="padding: 4px 10px; font-size: 0.68rem;">Detener</button>
+                    <b style="color: #79c0ff;">🔊 Elige método de sonido para probar</b>
+                    <button class="btn-optic" id="btn-cancel-acoustic" onclick="cancelAcousticSession()" style="padding: 4px 10px; font-size: 0.68rem;">✖ Cerrar</button>
+                </div>
+
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px;">
+                    <button class="btn-optic active" id="ac-mode-chirp" onclick="setAcousticTxMode('chirp')">🌊 Barrido Chirp</button>
+                    <button class="btn-optic" id="ac-mode-chord" onclick="setAcousticTxMode('chord')">🎹 Acorde + Grave</button>
+                    <button class="btn-optic" id="ac-mode-vocal" onclick="setAcousticTxMode('vocal')">🗣️ Voz Formante</button>
+                </div>
+
+                <div style="font-size: 0.68rem; color: var(--dim); background: #0b1018; padding: 6px 8px; border-radius: 5px; border: 1px solid #1b2434;">
+                    Carga inteligente: <b id="ac-smart-preview" style="color: var(--neon);">--</b>
                 </div>
 
                 <div class="acoustic-progress-bar">
                     <div class="acoustic-progress-fill" id="acoustic-progress-fill"></div>
+                </div>
+
+                <button class="btn-optic active" id="btn-send-acoustic" onclick="triggerAcousticBurstNow()" style="padding: 12px; font-size: 0.82rem; border-color: var(--neon); color: var(--neon); width: 100%;">
+                    📤 ENVIAR RÁFAGA DE SONIDO AHORA
+                </button>
+                <div id="ac-status-line" style="font-size: 0.72rem; color: var(--warn); text-align: center; font-weight: bold;">
+                    Listo. Sube el volumen del celular y elige un método.
                 </div>
 
                 <div class="phase-steps">
@@ -1574,13 +1591,14 @@
             ACK_OK: 2040,  // Reservado
             FIN_100: 2120, // Reservado
             TOLERANCE_HZ: 36,
-            SYMBOL_MS: 260,
+            SYMBOL_MS: 280,
             GAP_MS: 110
         };
 
         const acousticModem = {
             ctx: null,
             compressor: null,
+            txMode: 'chirp',
             micStream: null,
             analyser: null,
             rxLoopId: null,
@@ -1610,34 +1628,70 @@
             return acousticModem.ctx;
         }
 
-        // Emite tonos con textura formántica; el preámbulo puede conservarse como seno puro.
-        function playSingleTone(freq, durationMs, gainLevel = 0.98, formantSynthesis = true) {
+        function setAcousticTxMode(mode) {
+            const modes = ['chirp', 'chord', 'vocal'];
+            if (!modes.includes(mode)) throw new RangeError(`Modo acústico inválido: ${mode}`);
+            if (acousticModem.sessionActive) return;
+
+            acousticModem.txMode = mode;
+            document.getElementById('ac-mode-chirp').classList.toggle('active', mode === 'chirp');
+            document.getElementById('ac-mode-chord').classList.toggle('active', mode === 'chord');
+            document.getElementById('ac-mode-vocal').classList.toggle('active', mode === 'vocal');
+            const statusLine = document.getElementById('ac-status-line');
+            if (statusLine) {
+                statusLine.innerText = `Modo ${mode.toUpperCase()} seleccionado. Pulsa Enviar para transmitir.`;
+            }
+        }
+
+        function playSingleTone(freq, durationMs, gainLevel = 0.98, forceSine = false) {
             return new Promise((resolve) => {
                 const ctx = getAudioCtx();
                 const now = ctx.currentTime + 0.012;
                 const durSec = durationMs / 1000;
-
+                const mode = forceSine ? 'sine' : acousticModem.txMode;
                 const oscMain = ctx.createOscillator();
                 const masterGain = ctx.createGain();
-                let oscChest = null;
-
-                oscMain.type = formantSynthesis ? 'sawtooth' : 'sine';
+                let oscSecond = null;
+                oscMain.type = 'sine';
                 oscMain.frequency.setValueAtTime(freq, now);
 
-                if (formantSynthesis) {
-                    oscChest = ctx.createOscillator();
+                if (mode === 'chirp') {
+                    oscMain.type = 'triangle';
+                    oscMain.frequency.setValueAtTime(freq - 22, now);
+                    oscMain.frequency.linearRampToValueAtTime(freq + 22, now + durSec);
+                    oscSecond = ctx.createOscillator();
+                    const sweepGain = ctx.createGain();
+                    oscSecond.type = 'sine';
+                    oscSecond.frequency.setValueAtTime(freq, now);
+                    sweepGain.gain.setValueAtTime(0.6, now);
+                    oscSecond.connect(sweepGain);
+                    sweepGain.connect(masterGain);
+                    oscMain.connect(masterGain);
+                } else if (mode === 'chord') {
+                    oscMain.type = 'sine';
+                    oscMain.frequency.setValueAtTime(freq, now);
+                    oscSecond = ctx.createOscillator();
+                    const bassGain = ctx.createGain();
+                    oscSecond.type = 'sawtooth';
+                    oscSecond.frequency.setValueAtTime(380, now);
+                    bassGain.gain.setValueAtTime(0.25, now);
+                    oscSecond.connect(bassGain);
+                    bassGain.connect(masterGain);
+                    oscMain.connect(masterGain);
+                } else if (mode === 'vocal') {
+                    oscMain.type = 'sawtooth';
+                    oscMain.frequency.setValueAtTime(freq, now);
+                    oscSecond = ctx.createOscillator();
                     const chestGain = ctx.createGain();
                     const vocalFilter = ctx.createBiquadFilter();
-
-                    oscChest.type = 'triangle';
-                    oscChest.frequency.setValueAtTime(freq * 0.5, now);
+                    oscSecond.type = 'triangle';
+                    oscSecond.frequency.setValueAtTime(freq * 0.5, now);
                     chestGain.gain.setValueAtTime(0.35, now);
                     vocalFilter.type = 'bandpass';
                     vocalFilter.frequency.setValueAtTime(freq, now);
-                    vocalFilter.Q.setValueAtTime(6.5, now);
-
+                    vocalFilter.Q.setValueAtTime(5.5, now);
                     oscMain.connect(vocalFilter);
-                    oscChest.connect(chestGain);
+                    oscSecond.connect(chestGain);
                     chestGain.connect(vocalFilter);
                     vocalFilter.connect(masterGain);
                 } else {
@@ -1652,9 +1706,9 @@
 
                 oscMain.start(now);
                 oscMain.stop(now + durSec);
-                if (oscChest) {
-                    oscChest.start(now);
-                    oscChest.stop(now + durSec);
+                if (oscSecond) {
+                    oscSecond.start(now);
+                    oscSecond.stop(now + durSec);
                 }
 
                 setTimeout(resolve, durationMs + 16);
@@ -1760,14 +1814,13 @@
             return isHit;
         }
 
-        // Construye el payload acústico óptimo: si el RLE es corto (<=12 chars), envía índices exactos;
-        // si hay muchos huecos dispersos, aplica Bisección en 32 Macro-Sectores y envía los 3 sectores más densos (ej. "S04,09,12")
+        // Conserva rangos exactos cortos y limita las listas dispersas a cuatro macro-sectores.
         function buildAcousticPayloadString() {
             if (!sys.active || !sys.total) {
                 return "S00,01,02";
             }
             const exactRle = buildMissingRangesString();
-            if (exactRle.length <= 12) {
+            if (exactRle.length <= 14) {
                 return exactRle;
             }
 
@@ -1788,8 +1841,8 @@
             }
 
             sectorCounts.sort((a, b) => b.count - a.count);
-            const top3 = sectorCounts.slice(0, 3).map(item => String(item.s).padStart(2, '0'));
-            return `S${top3.join(',')}`;
+            const top4 = sectorCounts.slice(0, 4).map(item => String(item.s).padStart(2, '0'));
+            return `S${top4.join(',')}`;
         }
 
         function encodePayloadToFskFrequencies(payloadStr) {
@@ -1810,6 +1863,14 @@
             return freqs;
         }
 
+        function estimateAcousticDurationMs(payload) {
+            const symbolCount = encodePayloadToFskFrequencies(payload).length;
+            const preambleMs = 400 + 16 + ACOUSTIC_PROTOCOL.GAP_MS;
+            const handshakeMs = (310 + 16) + 85 + (260 + 16) + 110;
+            const symbolMs = ACOUSTIC_PROTOCOL.SYMBOL_MS + 16 + ACOUSTIC_PROTOCOL.GAP_MS;
+            return preambleMs + (2 * handshakeMs) + (2 * symbolCount * symbolMs) + 260;
+        }
+
         async function startAcousticReturnSession() {
             if (sys.active && sys.received === sys.total) return;
             if (acousticModem.sessionActive) return;
@@ -1818,65 +1879,93 @@
                 await closeReverseAckModal();
             }
 
-            acousticModem.sessionActive = true;
-            acousticModem.aborted = false;
-            if (typeof aiTelemetryLogger !== 'undefined') {
-                aiTelemetryLogger.acousticSessionsStarted++;
-            }
+            const acousticPayload = buildAcousticPayloadString();
+            const isExact = !acousticPayload.startsWith('S');
+            const estimateSec = (estimateAcousticDurationMs(acousticPayload) / 1000).toFixed(1);
+            setAcousticPhaseUI(0);
+            document.getElementById('acoustic-sync-panel').classList.add('active');
+            document.getElementById('btn-route-acoustic').classList.add('active');
+            document.getElementById('ac-smart-preview').innerText =
+                `${acousticPayload} (${isExact ? 'Rangos exactos' : 'Macro-sectores densos'}) · ~${estimateSec} s · 2 pasadas`;
+            document.getElementById('ac-status-line').innerText =
+                `Listo. Sube el volumen del celular y elige un modo. Duración estimada: ${estimateSec} s.`;
+        }
 
-            // IMPORTANTE: No activar el micrófono del celular durante la emisión para evitar que Android/iOS
-            // conmute el audio al modo "Llamada Telefónica" (earpiece) y baje el volumen del altavoz principal.
-            stopPhoneMicListening();
-            setAcousticPhaseUI(1);
+        async function triggerAcousticBurstNow() {
+            if (acousticModem.sessionActive) return;
 
             const acousticPayload = buildAcousticPayloadString();
             const fskFreqs = encodePayloadToFskFrequencies(acousticPayload);
             const fill = document.getElementById('acoustic-progress-fill');
+            const statusLine = document.getElementById('ac-status-line');
+            const sendButton = document.getElementById('btn-send-acoustic');
+            const modeButtons = ['ac-mode-chirp', 'ac-mode-chord', 'ac-mode-vocal']
+                .map(id => document.getElementById(id));
 
-            await playSingleTone(500, 400, 0.98, false);
-            if (acousticModem.aborted) return;
-            await new Promise(r => setTimeout(r, ACOUSTIC_PROTOCOL.GAP_MS));
+            acousticModem.sessionActive = true;
+            acousticModem.aborted = false;
+            sendButton.disabled = true;
+            modeButtons.forEach(button => button.disabled = true);
+            statusLine.innerText = `🔊 Transmitiendo [${acousticPayload}] en modo ${acousticModem.txMode.toUpperCase()}...`;
 
-            // Emitir 2 pasadas completas con doble tono HELLO para abrir el AGC del micrófono.
-            for (let pass = 1; pass <= 2; pass++) {
-                if (acousticModem.aborted) return;
+            try {
+                if (typeof aiTelemetryLogger !== 'undefined') {
+                    aiTelemetryLogger.acousticSessionsStarted++;
+                }
 
+                stopPhoneMicListening();
                 setAcousticPhaseUI(1);
-                await playSingleTone(ACOUSTIC_PROTOCOL.HELLO, 310);
-                if (acousticModem.aborted) return;
-                await new Promise(r => setTimeout(r, 85));
-                await playSingleTone(ACOUSTIC_PROTOCOL.HELLO, 260);
-                if (acousticModem.aborted) return;
-                await new Promise(r => setTimeout(r, 110));
 
-                setAcousticPhaseUI(2, `[${acousticPayload}] (Ráfaga ${pass}/2)`);
-                for (let i = 0; i < fskFreqs.length; i++) {
+                await playSingleTone(500, 400, 0.98, true);
+                if (acousticModem.aborted) return;
+                await new Promise(r => setTimeout(r, ACOUSTIC_PROTOCOL.GAP_MS));
+
+                for (let pass = 1; pass <= 2; pass++) {
                     if (acousticModem.aborted) return;
-                    const basePct = pass === 1 ? 20 : 60;
-                    const pct = basePct + Math.round(((i + 1) / fskFreqs.length) * 38);
-                    fill.style.width = `${pct}%`;
-                    await playSingleTone(fskFreqs[i], ACOUSTIC_PROTOCOL.SYMBOL_MS);
-                    await new Promise(r => setTimeout(r, ACOUSTIC_PROTOCOL.GAP_MS));
+
+                    setAcousticPhaseUI(1);
+                    await playSingleTone(ACOUSTIC_PROTOCOL.HELLO, 310);
+                    if (acousticModem.aborted) return;
+                    await new Promise(r => setTimeout(r, 85));
+                    await playSingleTone(ACOUSTIC_PROTOCOL.HELLO, 260);
+                    if (acousticModem.aborted) return;
+                    await new Promise(r => setTimeout(r, 110));
+
+                    setAcousticPhaseUI(2, `[${acousticPayload}] (Ráfaga ${pass}/2)`);
+                    for (let i = 0; i < fskFreqs.length; i++) {
+                        if (acousticModem.aborted) return;
+                        const basePct = pass === 1 ? 0 : 50;
+                        fill.style.width = `${basePct + Math.round(((i + 1) / fskFreqs.length) * 50)}%`;
+                        await playSingleTone(fskFreqs[i], ACOUSTIC_PROTOCOL.SYMBOL_MS);
+                        await new Promise(r => setTimeout(r, ACOUSTIC_PROTOCOL.GAP_MS));
+                    }
+
+                    if (pass === 1 && !acousticModem.aborted) {
+                        await new Promise(r => setTimeout(r, 260));
+                    }
                 }
 
-                if (pass === 1 && !acousticModem.aborted) {
-                    await new Promise(r => setTimeout(r, 260));
+                if (acousticModem.aborted) return;
+
+                setAcousticPhaseUI(3);
+                if (navigator.vibrate) {
+                    try { navigator.vibrate([40, 50, 90]); } catch (e) { }
                 }
+                statusLine.innerText = `✅ Ráfaga [${acousticPayload}] enviada en dos pasadas.`;
+
+                setTimeout(() => {
+                    if (!acousticModem.sessionActive && acousticModem.phase === 3) {
+                        setAcousticPhaseUI(0);
+                    }
+                }, 3800);
+            } catch (err) {
+                console.error("Error transmitiendo la ráfaga acústica:", err);
+                statusLine.innerText = `❌ No se pudo enviar la ráfaga: ${err.message || err}`;
+            } finally {
+                acousticModem.sessionActive = false;
+                sendButton.disabled = false;
+                modeButtons.forEach(button => button.disabled = false);
             }
-
-            if (acousticModem.aborted) return;
-
-            setAcousticPhaseUI(3);
-            if (navigator.vibrate) {
-                try { navigator.vibrate([40, 50, 90]); } catch (e) { }
-            }
-            acousticModem.sessionActive = false;
-
-            setTimeout(() => {
-                if (!acousticModem.sessionActive && acousticModem.phase === 3) {
-                    setAcousticPhaseUI(0);
-                }
-            }, 3800);
         }
 
         function cancelAcousticSession() {
@@ -1884,6 +1973,8 @@
             acousticModem.sessionActive = false;
             stopPhoneMicListening();
             setAcousticPhaseUI(0);
+            const statusLine = document.getElementById('ac-status-line');
+            if (statusLine) statusLine.innerText = "Ráfaga cancelada.";
         }
 
         // =========================================================================

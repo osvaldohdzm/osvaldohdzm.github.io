@@ -1141,7 +1141,7 @@
                 </button>
                 <button class="rec-tab-btn tab-ac" id="tab-btn-acoustic" onclick="switchRecoveryTab('acoustic')">
                     <span>🔊 3. Beep-Boop Audio</span>
-                    <small>Apagado por defecto</small>
+                    <small>Micrófono automático</small>
                 </button>
             </div>
 
@@ -1199,36 +1199,36 @@
                 </div>
             </div>
 
-            <!-- VÍA 3 (CONVERSACIÓN BEEP-BOOP ENTRE CELULAR Y LAPTOP - DESACTIVADA POR DEFECTO) -->
+            <!-- VÍA 3 (RECEPTOR ACÚSTICO) -->
             <div class="recovery-pane" id="pane-acoustic">
                 <div class="channel-card acoustic-route">
-                    <div class="config-label">
-                        <b style="color: #79c0ff; font-size: 0.76rem;">🔊 Vía 3: Conversación Acústica Beep-Boop (Celular ↔ Laptop)</b>
-                        <span id="fft-freq-lbl" style="color: var(--dim); font-weight: bold;">APAGADO POR DEFECTO</span>
-                    </div>
-                    <div style="font-size: 0.68rem; color: var(--dim); line-height: 1.3;">
-                        Desactivado al iniciar para no usar micrófono ni emitir sonidos. Pulsa el botón azul abajo solo cuando quieras escuchar al celular.
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <b style="color: #79c0ff; font-size: 0.8rem;">🔊 Receptor Acústico</b>
+                        <span id="fft-freq-lbl" style="color: var(--dim); font-weight: bold; font-size: 0.72rem;">APAGADO</span>
                     </div>
 
-                    <button class="btn btn-mic" id="btn-audio-listen" onclick="toggleAcousticListener()" style="padding: 11px; font-size: 0.78rem;">
-                        🎙️ Activar Escucha Acústica (Encender Micrófono)
+                    <button class="btn btn-mic" id="btn-audio-listen" onclick="toggleAcousticListener()" style="padding: 13px; font-size: 0.85rem; width: 100%;">
+                        🎙️ COMENZAR A ESCUCHAR
                     </button>
 
-                    <!-- Espectrograma Dual: Espectro FFT en vivo (arriba) + Cascada Waterfall 2D (abajo) -->
-                    <canvas id="audio-fft-canvas" onclick="forceActivateMicrophone()" title="Haz clic para activar el micrófono y ver el espectrograma en tiempo real"></canvas>
-
-                    <div class="rx-live-banner">
-                        <span>TRAMA ACÚSTICA RX: <b id="rx-live-buffer">MICRÓFONO EN PAUSA</b></span>
-                        <span id="rx-snr-lbl" style="color: #79c0ff; font-size: 0.64rem;">SNR: 0 dB | Gain: 1.8x</span>
+                    <div style="background: #02060d; border: 1px solid #26354d; border-radius: 6px; padding: 10px; text-align: center;">
+                        <div style="font-size: 0.65rem; color: var(--dim); margin-bottom: 4px;">MENSAJE RECIBIDO DESDE EL CELULAR:</div>
+                        <div id="rx-live-buffer" style="font-family: Consolas, monospace; font-size: 1.05rem; font-weight: 900; color: var(--accent); letter-spacing: 1px; overflow-wrap: anywhere;">ESPERANDO SONIDO...</div>
+                        <div id="rx-snr-lbl" style="color: #79c0ff; font-size: 0.65rem; margin-top: 4px;">Nivel: 0/255 | Gain: 1.8x</div>
                     </div>
+
+                    <canvas id="audio-fft-canvas" onclick="forceActivateMicrophone()" title="El micrófono se activa automáticamente al abrir esta pestaña" style="height: 75px;"></canvas>
 
                     <div class="mic-controls-row">
                         <select id="mic-select" class="mic-select" onchange="switchMicrophoneDevice(this.value)" title="Seleccionar micrófono de la laptop">
                             <option value="">🎙️ Micrófono predeterminado del sistema...</option>
                         </select>
                         <button class="tool-chip" id="btn-mic-gain" onclick="cycleMicGain()" title="Aumentar ganancia digital del micrófono si el sonido del celular llega bajo">🎚️ Gain: 1.8x</button>
-                        <button class="tool-chip amber" onclick="runAcousticLoopbackTest()" title="Emite una ráfaga FSK de prueba solo cuando tú lo pidas">🔊 Probar Sonido</button>
                     </div>
+                    <details>
+                        <summary style="cursor: pointer; color: var(--dim); font-size: 0.7rem;">Diagnóstico de audio</summary>
+                        <button class="tool-chip amber" onclick="runAcousticLoopbackTest()" title="Emite una ráfaga FSK de prueba por las bocinas de esta laptop">🔊 Probar sonido local</button>
+                    </details>
 
                     <!-- ESTADOS VISUALES PROGRESIVOS UNIFICADOS DURANTE TRANSFERENCIA ACÚSTICA -->
                     <div class="sync-phases-box" id="sender-acoustic-phases">
@@ -2113,12 +2113,13 @@
             EOF: 1880,
             ACK_OK: 2040,
             FIN_100: 2120,
-            TOLERANCE_HZ: 36
+            TOLERANCE_HZ: 42
         };
 
         sys.micGainLevel = 1.8;
         sys.micGainNode = null;
         sys.selectedMicId = "";
+        sys.audioStartPending = false;
         sys.loopbackTesting = false;
 
         // Buffer offscreen para el Espectrograma Waterfall (Cascada 2D en tiempo real)
@@ -2244,7 +2245,7 @@
             document.getElementById('pane-acoustic').classList.toggle('active', tabName === 'acoustic');
 
             if (tabName === 'acoustic' && !sys.audioListening) {
-                drawStandbySpectrogram();
+                ensurePassiveAcousticListener(true);
             }
         }
 
@@ -2260,10 +2261,10 @@
             ctx.fillStyle = '#79c0ff';
             ctx.font = 'bold 11px Consolas, monospace';
             ctx.textAlign = 'center';
-            ctx.fillText('🔇 MÓDEM ACÚSTICO DESACTIVADO POR DEFECTO', w / 2, h / 2 - 5);
+            ctx.fillText('🎙️ MICRÓFONO LISTO', w / 2, h / 2 - 5);
             ctx.fillStyle = '#8b949e';
             ctx.font = '10px Consolas, monospace';
-            ctx.fillText('Pulsa el botón "🎙️ Activar Escucha Acústica" arriba cuando lo necesites', w / 2, h / 2 + 12);
+            ctx.fillText('Pulsa COMENZAR A ESCUCHAR para activar el micrófono', w / 2, h / 2 + 12);
         }
 
         async function forceActivateMicrophone() {
@@ -2279,13 +2280,19 @@
             const btn = document.getElementById('btn-audio-listen');
             const lbl = document.getElementById('fft-freq-lbl');
 
+            if (sys.audioStartPending) return;
             if (sys.audioListening && !forceRestart) {
                 if (sys.audioCtx && sys.audioCtx.state === 'suspended') {
                     try { await sys.audioCtx.resume(); } catch (e) { }
                 }
+                btn.innerText = "🟢 ESCUCHANDO AL CELULAR... (Clic p/ Detener)";
                 return;
             }
 
+            sys.audioStartPending = true;
+            btn.disabled = true;
+            btn.innerText = "⏳ SOLICITANDO PERMISO...";
+            lbl.innerText = "SOLICITANDO MICRÓFONO...";
             try {
                 const audioConstraints = {
                     echoCancellation: false,
@@ -2326,16 +2333,22 @@
 
                 sys.audioListening = true;
                 btn.classList.add('listening');
-                btn.innerText = "🎙️ Escucha Continua Activa (Clic p/ Pausar)";
+                btn.innerText = "🟢 ESCUCHANDO AL CELULAR... (Clic p/ Detener)";
                 lbl.innerText = sys.audioCtx.state === 'running' ? "MIC ACTIVO" : "CLIC P/ DESBLOQUEAR AUDIO";
+                const liveBuf = document.getElementById('rx-live-buffer');
+                if (liveBuf) liveBuf.innerText = "ESPERANDO SONIDO...";
 
                 cancelAnimationFrame(sys.fftLoopId);
                 scanAcousticFFTLoop();
             } catch (err) {
                 console.warn("Error accediendo al micrófono:", err);
+                sys.audioListening = false;
+                if (sys.audioStream) {
+                    sys.audioStream.getTracks().forEach(track => track.stop());
+                    sys.audioStream = null;
+                }
                 lbl.innerText = "⚠️ CLIC P/ ACTIVAR MIC";
                 btn.classList.remove('listening');
-                btn.innerText = "🎙️ Activar Micrófono (Haz Clic Aquí)";
                 const canvas = document.getElementById('audio-fft-canvas');
                 if (canvas) {
                     const ctx = canvas.getContext('2d');
@@ -2347,11 +2360,17 @@
                     ctx.fillStyle = '#f85149';
                     ctx.font = 'bold 11px Consolas, monospace';
                     ctx.textAlign = 'center';
-                    ctx.fillText('🎙️ HAZ CLIC AQUÍ PARA CONECTAR EL MICRÓFONO', w / 2, h / 2 - 4);
+                    ctx.fillText('⚠️ NO SE PUDO ACTIVAR EL MICRÓFONO', w / 2, h / 2 - 4);
                     ctx.fillStyle = '#8b949e';
                     ctx.font = '10px Consolas, monospace';
                     ctx.fillText(err && err.name ? `(${err.name}: revisa permisos del navegador)` : '(Permiso requerido en archivo HTML local)', w / 2, h / 2 + 12);
                 }
+            } finally {
+                sys.audioStartPending = false;
+                btn.disabled = false;
+                btn.innerText = sys.audioListening
+                    ? "🟢 ESCUCHANDO AL CELULAR... (Clic p/ Detener)"
+                    : "🎙️ COMENZAR A ESCUCHAR";
             }
         }
 
@@ -2364,16 +2383,17 @@
             if (sys.audioListening && sys.audioCtx && sys.audioCtx.state === 'suspended') {
                 await sys.audioCtx.resume();
                 lbl.innerText = "MIC ACTIVO";
+                btn.innerText = "🟢 ESCUCHANDO AL CELULAR... (Clic p/ Detener)";
                 return;
             }
 
             if (sys.audioListening) {
                 stopAcousticListener();
                 btn.classList.remove('listening');
-                btn.innerText = "🎙️ Activar Escucha Acústica (Encender Micrófono)";
+                btn.innerText = "🎙️ COMENZAR A ESCUCHAR";
                 lbl.innerText = "APAGADO";
                 const liveBuf = document.getElementById('rx-live-buffer');
-                if (liveBuf) liveBuf.innerText = "MICRÓFONO EN PAUSA";
+                if (liveBuf) liveBuf.innerText = "ESPERANDO SONIDO...";
                 setSenderAcousticPhaseUI(0);
                 drawStandbySpectrogram();
                 return;
@@ -2582,7 +2602,7 @@
 
             // Demodulación FSK en banda vocal (680-1880 Hz): sensible al celular pero protegida por preámbulo HELLO
             if (!sys.isEmittingTone) {
-                const isStrongSignal = (peakVal >= 85 && snrDiff >= 24);
+                const isStrongSignal = (peakVal >= 55 && snrDiff >= 16);
                 if (isStrongSignal) {
                     sys.silenceFrames = 0;
                     const sym = classifyFrequencySymbol(dominantFreq);
