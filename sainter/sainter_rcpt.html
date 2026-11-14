@@ -991,10 +991,10 @@
                     <span class="route-desc">Lista separada por comas o rangos</span>
                 </button>
 
-                <button class="route-card-btn" id="btn-route-voice" onclick="openVoiceCarrierPanel()" style="border-color: #a371f7; background: rgba(163, 113, 247, 0.12);">
-                    <span class="route-icon">🗣️</span>
-                    <span class="route-title" style="color: #d2a8ff;">4. Voz Portadora</span>
-                    <span class="route-desc">Graba tu voz y úsala como señal</span>
+                <button class="route-card-btn" id="btn-route-fingerprint" onclick="openLaptopFingerprintPanel()" style="border-color: #a371f7; background: rgba(163, 113, 247, 0.12);">
+                    <span class="route-icon">📡</span>
+                    <span class="route-title" style="color: #d2a8ff;">4. Huella de Laptop</span>
+                    <span class="route-desc">Calibra los tonos con la prueba local</span>
                 </button>
             </div>
 
@@ -1042,32 +1042,27 @@
                 </div>
             </div>
 
-            <div class="acoustic-sync-panel" id="voice-carrier-panel" style="border-color: #a371f7;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.74rem;">
-                        <b style="color: #d2a8ff;">🗣️ Modulador de Voz Humana Real</b>
-                        <button class="btn-optic" onclick="closeVoiceCarrierPanel()" style="padding: 4px 10px; font-size: 0.68rem; color: var(--err);">✖ Cerrar</button>
-                    </div>
+            <div class="acoustic-sync-panel" id="laptop-fingerprint-panel" style="border-color: #a371f7;">
+                <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.74rem;">
+                    <b style="color: #d2a8ff;">📡 Huella acústica de la laptop</b>
+                    <button class="btn-optic" onclick="closeLaptopFingerprintPanel()" style="padding: 4px 10px; font-size: 0.68rem; color: var(--err);">✖ Cerrar</button>
+                </div>
 
-                    <div style="font-size: 0.69rem; color: var(--dim); line-height: 1.35;">
-                        Graba 2,5 segundos de tu voz. El teléfono usará su timbre como portadora para enviar la secuencia acústica.
-                    </div>
+                <div style="font-size: 0.69rem; color: var(--dim); line-height: 1.4;">
+                    Pulsa capturar y, en los siguientes 10 segundos, ejecuta <b>«Probar sonido local»</b> en la laptop. La muestra ajusta el nivel de cada tono; la transmisión calibrada usa tonos sinusoidales puros.
+                </div>
 
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-                        <button class="btn-optic" id="btn-rec-human-voice" onclick="toggleRecordHumanVoice()" style="padding: 11px; border-color: #f85149; color: #ff7b72;">
-                            🎙️ Grabar Mi Voz (2,5 s)
-                        </button>
-                        <button class="btn-optic" id="btn-play-human-sample" onclick="previewHumanVoiceSample()" disabled style="padding: 11px;">
-                            ▶️ Oír Muestra
-                        </button>
-                    </div>
+                <button class="btn-optic" id="btn-capture-laptop-fingerprint" onclick="toggleLaptopFingerprintCapture()" style="padding: 11px; border-color: #a371f7; color: #d2a8ff;">
+                    📡 CAPTURAR HUELLA DE LAPTOP
+                </button>
 
-                    <div style="font-size: 0.68rem; color: var(--dim); background: #0b1018; padding: 6px 8px; border-radius: 5px; border: 1px solid #1b2434;">
-                        Estado voz: <b id="voice-sample-status" style="color: var(--warn);">Sin grabar aún</b> | Trama: <b id="voice-payload-preview" style="color: var(--neon);">--</b>
-                    </div>
+                <div style="font-size: 0.68rem; color: var(--dim); background: #0b1018; padding: 7px 8px; border-radius: 5px; border: 1px solid #1b2434;">
+                    Estado: <b id="laptop-fingerprint-status" role="status" aria-live="polite" style="color: var(--warn);">Sin calibrar. Inicia la captura antes de la prueba local.</b>
+                </div>
 
-                    <button class="btn-optic active" id="btn-send-voice-modulated" onclick="transmitWithHumanVoice()" disabled style="padding: 13px; font-size: 0.82rem; border-color: #a371f7; color: #d2a8ff; background: rgba(163, 113, 247, 0.18); width: 100%;">
-                        📤 TRANSMITIR SECUENCIA CON MI VOZ
-                    </button>
+                <button class="btn-optic active" id="btn-send-calibrated-acoustic" onclick="transmitWithLaptopFingerprint()" disabled style="padding: 13px; font-size: 0.82rem; border-color: #a371f7; color: #d2a8ff; background: rgba(163, 113, 247, 0.18); width: 100%;">
+                    📤 TRANSMITIR CON HUELLA CAPTURADA
+                </button>
             </div>
         </div>
 
@@ -1637,8 +1632,21 @@
             analyser: null,
             rxLoopId: null,
             sessionActive: false,
+            laptopFingerprintTxActive: false,
             phase: 0,
             aborted: false
+        };
+
+        const LAPTOP_TEST_PATTERN = [760, 680, 920, 1240, 1800, 920, 1640, 1880];
+        const laptopFingerprint = {
+            profile: null,
+            recorder: null,
+            stream: null,
+            chunks: [],
+            recording: false,
+            processing: false,
+            requestId: 0,
+            stopTimer: null
         };
 
         function getAudioCtx() {
@@ -1682,7 +1690,11 @@
                 const ctx = getAudioCtx();
                 const now = ctx.currentTime + 0.012;
                 const durSec = durationMs / 1000;
-                const mode = forceSine ? 'sine' : acousticModem.txMode;
+                const fingerprintActive = acousticModem.laptopFingerprintTxActive && laptopFingerprint.profile;
+                const mode = forceSine || fingerprintActive ? 'sine' : acousticModem.txMode;
+                const outputGain = fingerprintActive
+                    ? Math.max(0.15, Math.min(0.98, gainLevel * getLaptopFingerprintGain(freq)))
+                    : gainLevel;
                 const oscMain = ctx.createOscillator();
                 const masterGain = ctx.createGain();
                 let oscSecond = null;
@@ -1733,8 +1745,8 @@
                 }
 
                 masterGain.gain.setValueAtTime(0.001, now);
-                masterGain.gain.linearRampToValueAtTime(gainLevel, now + 0.015);
-                masterGain.gain.setValueAtTime(gainLevel, now + Math.max(0.02, durSec - 0.015));
+                masterGain.gain.linearRampToValueAtTime(outputGain, now + 0.015);
+                masterGain.gain.setValueAtTime(outputGain, now + Math.max(0.02, durSec - 0.015));
                 masterGain.gain.linearRampToValueAtTime(0.001, now + durSec);
                 masterGain.connect(acousticModem.compressor || ctx.destination);
 
@@ -1916,7 +1928,7 @@
             const acousticPayload = buildAcousticPayloadString();
             const isExact = !acousticPayload.startsWith('S');
             const estimateSec = (estimateAcousticDurationMs(acousticPayload) / 1000).toFixed(1);
-            closeVoiceCarrierPanel();
+            closeLaptopFingerprintPanel();
             setAcousticPhaseUI(0);
             document.getElementById('acoustic-sync-panel').classList.add('active');
             document.getElementById('btn-route-acoustic').classList.add('active');
@@ -1941,7 +1953,9 @@
             acousticModem.aborted = false;
             sendButton.disabled = true;
             modeButtons.forEach(button => button.disabled = true);
-            statusLine.innerText = `🔊 Transmitiendo [${acousticPayload}] en modo ${acousticModem.txMode.toUpperCase()}...`;
+            statusLine.innerText = acousticModem.laptopFingerprintTxActive
+                ? `📡 Transmitiendo [${acousticPayload}] con tonos sinusoidales calibrados...`
+                : `🔊 Transmitiendo [${acousticPayload}] en modo ${acousticModem.txMode.toUpperCase()}...`;
 
             try {
                 if (typeof aiTelemetryLogger !== 'undefined') {
@@ -2012,74 +2026,219 @@
             if (statusLine) statusLine.innerText = "Ráfaga cancelada.";
         }
 
-        const voiceCarrier = {
-            buffer: null,
-            recording: false,
-            processing: false,
-            mediaRecorder: null,
-            stream: null,
-            stopTimer: null,
-            requestId: 0
-        };
-
-        function openVoiceCarrierPanel() {
+        function openLaptopFingerprintPanel() {
             if (sys.active && sys.received === sys.total) return;
             cancelAcousticSession();
             document.getElementById('acoustic-sync-panel').classList.remove('active');
             document.getElementById('btn-route-acoustic').classList.remove('active');
-            document.getElementById('voice-carrier-panel').classList.add('active');
-            document.getElementById('btn-route-voice').classList.add('active');
-            document.getElementById('voice-payload-preview').innerText = buildAcousticPayloadString();
+            document.getElementById('laptop-fingerprint-panel').classList.add('active');
+            document.getElementById('btn-route-fingerprint').classList.add('active');
+            document.getElementById('btn-send-calibrated-acoustic').disabled = !laptopFingerprint.profile;
         }
 
-        function closeVoiceCarrierPanel() {
-            voiceCarrier.requestId++;
-            clearTimeout(voiceCarrier.stopTimer);
-            if (voiceCarrier.mediaRecorder && voiceCarrier.mediaRecorder.state === 'recording') {
-                voiceCarrier.mediaRecorder.stop();
+        function closeLaptopFingerprintPanel() {
+            laptopFingerprint.requestId++;
+            clearTimeout(laptopFingerprint.stopTimer);
+            if (laptopFingerprint.recorder && laptopFingerprint.recorder.state === 'recording') {
+                laptopFingerprint.recorder.stop();
             } else {
-                if (voiceCarrier.stream) {
-                    voiceCarrier.stream.getTracks().forEach(track => track.stop());
-                    voiceCarrier.stream = null;
+                if (laptopFingerprint.stream) {
+                    laptopFingerprint.stream.getTracks().forEach(track => track.stop());
+                    laptopFingerprint.stream = null;
                 }
-                voiceCarrier.recording = false;
-                const recordButton = document.getElementById('btn-rec-human-voice');
-                if (recordButton) {
-                    recordButton.disabled = voiceCarrier.processing;
-                    recordButton.innerText = voiceCarrier.processing
-                        ? "⏳ PROCESANDO MUESTRA..."
-                        : (voiceCarrier.buffer ? "🎙️ Re-grabar Mi Voz (2,5 s)" : "🎙️ Grabar Mi Voz (2,5 s)");
+                laptopFingerprint.recording = false;
+                const captureButton = document.getElementById('btn-capture-laptop-fingerprint');
+                if (captureButton) {
+                    captureButton.disabled = laptopFingerprint.processing;
+                    captureButton.innerText = laptopFingerprint.processing
+                        ? "⏳ ANALIZANDO HUELLA..."
+                        : "📡 CAPTURAR HUELLA DE LAPTOP";
                 }
             }
             if (acousticModem.sessionActive) acousticModem.aborted = true;
-            document.getElementById('voice-carrier-panel').classList.remove('active');
-            document.getElementById('btn-route-voice').classList.remove('active');
+            document.getElementById('laptop-fingerprint-panel').classList.remove('active');
+            document.getElementById('btn-route-fingerprint').classList.remove('active');
         }
 
-        async function toggleRecordHumanVoice() {
-            const btn = document.getElementById('btn-rec-human-voice');
-            const status = document.getElementById('voice-sample-status');
-            if (voiceCarrier.processing || acousticModem.sessionActive) return;
-            if (voiceCarrier.recording && voiceCarrier.mediaRecorder) {
-                clearTimeout(voiceCarrier.stopTimer);
-                voiceCarrier.mediaRecorder.stop();
+        function goertzelFingerprintPower(frame, frequency, sampleRate) {
+            const coefficient = 2 * Math.cos(2 * Math.PI * frequency / sampleRate);
+            let previous = 0;
+            let previous2 = 0;
+            for (let i = 0; i < frame.length; i++) {
+                const current = frame[i] + coefficient * previous - previous2;
+                previous2 = previous;
+                previous = current;
+            }
+            const power = previous * previous + previous2 * previous2 -
+                coefficient * previous * previous2;
+            return Math.max(0, power / (frame.length * frame.length));
+        }
+
+        function extractLaptopFingerprint(audioBuffer) {
+            const samples = audioBuffer.getChannelData(0);
+            const sampleRate = audioBuffer.sampleRate;
+            const windowSize = Math.floor(sampleRate * 0.045);
+            const hopSize = Math.max(1, Math.floor(sampleRate * 0.02));
+            const candidates = Array.from(new Set(LAPTOP_TEST_PATTERN));
+            const window = new Float32Array(windowSize);
+            const frame = new Float32Array(windowSize);
+            for (let i = 0; i < windowSize; i++) {
+                window[i] = 0.5 - 0.5 * Math.cos((2 * Math.PI * i) / (windowSize - 1));
+            }
+
+            const detections = [];
+            for (let offset = 0; offset + windowSize <= samples.length; offset += hopSize) {
+                let mean = 0;
+                let squareSum = 0;
+                for (let i = 0; i < windowSize; i++) {
+                    const value = samples[offset + i];
+                    mean += value;
+                    squareSum += value * value;
+                }
+                mean /= windowSize;
+                const rms = Math.sqrt(Math.max(0, squareSum / windowSize - mean * mean));
+                if (rms < 0.003) continue;
+
+                for (let i = 0; i < windowSize; i++) {
+                    frame[i] = (samples[offset + i] - mean) * window[i];
+                }
+
+                let bestFrequency = 0;
+                let bestPower = 0;
+                let secondPower = 0;
+                for (const frequency of candidates) {
+                    const power = goertzelFingerprintPower(frame, frequency, sampleRate);
+                    if (power > bestPower) {
+                        secondPower = bestPower;
+                        bestPower = power;
+                        bestFrequency = frequency;
+                    } else if (power > secondPower) {
+                        secondPower = power;
+                    }
+                }
+                if (!bestFrequency || bestPower < 1e-7 ||
+                    bestPower < rms * rms * 0.025 ||
+                    bestPower < Math.max(1e-9, secondPower) * 1.3) {
+                    continue;
+                }
+                detections.push({
+                    frequency: bestFrequency,
+                    start: offset / sampleRate,
+                    end: (offset + windowSize) / sampleRate,
+                    level: Math.sqrt(bestPower)
+                });
+            }
+
+            const segments = [];
+            let current = null;
+            for (const detection of detections) {
+                if (current && current.frequency === detection.frequency &&
+                    detection.start - current.end <= 0.07) {
+                    current.end = detection.end;
+                    current.levelSum += detection.level;
+                    current.hits++;
+                } else {
+                    if (current) segments.push(current);
+                    current = { ...detection, levelSum: detection.level, hits: 1 };
+                }
+            }
+            if (current) segments.push(current);
+
+            const stableSegments = segments.filter(segment => segment.end - segment.start >= 0.07);
+            let matchedPattern = null;
+            for (let start = 0; start < stableSegments.length && !matchedPattern; start++) {
+                if (Math.abs(stableSegments[start].frequency - LAPTOP_TEST_PATTERN[0]) > ACOUSTIC_PROTOCOL.TOLERANCE_HZ) continue;
+                const match = [stableSegments[start]];
+                let cursor = start + 1;
+                for (let patternIndex = 1; patternIndex < LAPTOP_TEST_PATTERN.length; patternIndex++) {
+                    let bestIndex = -1;
+                    let bestDistance = Infinity;
+                    for (let i = cursor; i < Math.min(stableSegments.length, cursor + 3); i++) {
+                        const distance = Math.abs(stableSegments[i].frequency - LAPTOP_TEST_PATTERN[patternIndex]);
+                        if (distance <= ACOUSTIC_PROTOCOL.TOLERANCE_HZ && distance < bestDistance) {
+                            bestIndex = i;
+                            bestDistance = distance;
+                        }
+                    }
+                    if (bestIndex < 0) break;
+                    match.push(stableSegments[bestIndex]);
+                    cursor = bestIndex + 1;
+                }
+                if (match.length === LAPTOP_TEST_PATTERN.length) matchedPattern = match;
+            }
+            if (!matchedPattern) {
+                throw new Error("No se reconoció la secuencia completa. Inicia otra captura y pulsa «Probar sonido local» en la laptop.");
+            }
+
+            const levelsByFrequency = {};
+            const countsByFrequency = {};
+            for (const segment of matchedPattern) {
+                const key = String(segment.frequency);
+                levelsByFrequency[key] = (levelsByFrequency[key] || 0) + segment.levelSum / segment.hits;
+                countsByFrequency[key] = (countsByFrequency[key] || 0) + 1;
+            }
+            for (const [frequency, count] of Object.entries(countsByFrequency)) {
+                levelsByFrequency[frequency] /= count;
+            }
+            const measuredLevels = Object.values(levelsByFrequency).sort((a, b) => a - b);
+            if (measuredLevels.length < 6 || measuredLevels.some(level => !Number.isFinite(level) || level <= 0)) {
+                throw new Error("La señal recibida fue demasiado débil para calibrar los tonos.");
+            }
+
+            return {
+                levelsByFrequency,
+                referenceLevel: measuredLevels[Math.floor(measuredLevels.length / 2)],
+                matchedToneCount: matchedPattern.length,
+                capturedAt: Date.now()
+            };
+        }
+
+        function getLaptopFingerprintGain(frequency) {
+            const profile = laptopFingerprint.profile;
+            if (!profile) return 1;
+            const points = Object.entries(profile.levelsByFrequency)
+                .map(([f, level]) => ({ frequency: Number(f), level }))
+                .sort((a, b) => a.frequency - b.frequency);
+            if (frequency < points[0].frequency || frequency > points[points.length - 1].frequency) return 1;
+            let lower = points[0];
+            let upper = points[points.length - 1];
+            for (let i = 1; i < points.length; i++) {
+                if (frequency <= points[i].frequency) {
+                    lower = points[i - 1];
+                    upper = points[i];
+                    break;
+                }
+            }
+            const ratio = upper.frequency === lower.frequency
+                ? 0
+                : (frequency - lower.frequency) / (upper.frequency - lower.frequency);
+            const measuredLevel = lower.level + (upper.level - lower.level) * Math.max(0, Math.min(1, ratio));
+            return Math.max(0.7, Math.min(1.4, profile.referenceLevel / Math.max(1e-7, measuredLevel)));
+        }
+
+        async function toggleLaptopFingerprintCapture() {
+            const captureButton = document.getElementById('btn-capture-laptop-fingerprint');
+            const sendButton = document.getElementById('btn-send-calibrated-acoustic');
+            const status = document.getElementById('laptop-fingerprint-status');
+            if (laptopFingerprint.recording && laptopFingerprint.recorder) {
+                clearTimeout(laptopFingerprint.stopTimer);
+                if (laptopFingerprint.recorder.state === 'recording') laptopFingerprint.recorder.stop();
                 return;
             }
-            if (voiceCarrier.recording) return;
+            if (laptopFingerprint.recording || laptopFingerprint.processing || acousticModem.sessionActive) return;
             if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === 'undefined') {
-                status.innerText = "❌ Este navegador no permite grabar audio.";
+                status.innerText = "❌ Este navegador no permite capturar audio.";
                 return;
             }
 
-            voiceCarrier.recording = true;
-            const requestId = ++voiceCarrier.requestId;
-            voiceCarrier.buffer = null;
-            document.getElementById('btn-play-human-sample').disabled = true;
-            document.getElementById('btn-send-voice-modulated').disabled = true;
-            btn.disabled = true;
-            btn.innerText = "⏳ SOLICITANDO MICRÓFONO...";
+            laptopFingerprint.recording = true;
+            const requestId = ++laptopFingerprint.requestId;
+            const chunks = [];
+            captureButton.disabled = true;
+            sendButton.disabled = true;
+            captureButton.innerText = "⏳ SOLICITANDO MICRÓFONO...";
             status.style.color = "var(--warn)";
-            status.innerText = "Solicitando permiso para grabar...";
+            status.innerText = "Pulsa aceptar y luego ejecuta «Probar sonido local» en la laptop.";
 
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({
@@ -2089,209 +2248,86 @@
                         autoGainControl: false
                     }
                 });
-                if (requestId !== voiceCarrier.requestId) {
+                if (requestId !== laptopFingerprint.requestId) {
                     stream.getTracks().forEach(track => track.stop());
                     return;
                 }
-                voiceCarrier.stream = stream;
-                const chunks = [];
-                const recorder = new MediaRecorder(voiceCarrier.stream);
-                voiceCarrier.mediaRecorder = recorder;
+                laptopFingerprint.stream = stream;
+                const recorder = new MediaRecorder(stream);
+                laptopFingerprint.recorder = recorder;
 
                 recorder.ondataavailable = event => {
                     if (event.data.size > 0) chunks.push(event.data);
                 };
                 recorder.onstop = async () => {
-                    clearTimeout(voiceCarrier.stopTimer);
-                    voiceCarrier.recording = false;
-                    voiceCarrier.processing = true;
-                    btn.disabled = true;
-                    btn.innerText = "⏳ PROCESANDO MUESTRA...";
-                    status.innerText = "Analizando la voz grabada...";
-                    voiceCarrier.stream?.getTracks().forEach(track => track.stop());
-                    voiceCarrier.stream = null;
-                    voiceCarrier.mediaRecorder = null;
+                    clearTimeout(laptopFingerprint.stopTimer);
+                    laptopFingerprint.recording = false;
+                    laptopFingerprint.processing = true;
+                    captureButton.disabled = true;
+                    captureButton.innerText = "⏳ ANALIZANDO HUELLA...";
+                    status.innerText = "Analizando los tonos recibidos...";
+                    laptopFingerprint.stream?.getTracks().forEach(track => track.stop());
+                    laptopFingerprint.stream = null;
+                    laptopFingerprint.recorder = null;
 
                     try {
                         if (!chunks.length) throw new Error("No se capturó audio.");
                         const blob = new Blob(chunks, { type: recorder.mimeType || chunks[0].type || 'audio/webm' });
-                        const decoded = await getAudioCtx().decodeAudioData(await blob.arrayBuffer());
-                        const raw = decoded.getChannelData(0);
-                        let peakIdx = 0;
-                        let peakVal = 0;
-                        for (let i = 0; i < raw.length; i++) {
-                            const value = Math.abs(raw[i]);
-                            if (value > peakVal) {
-                                peakVal = value;
-                                peakIdx = i;
-                            }
-                        }
-                        if (peakVal < 0.015) throw new Error("Voz muy baja; habla más cerca del micrófono.");
-
-                        const sliceLen = Math.min(raw.length, Math.floor(decoded.sampleRate * 0.6));
-                        const start = Math.max(0, Math.min(raw.length - sliceLen, peakIdx - Math.floor(sliceLen * 0.25)));
-                        const sample = getAudioCtx().createBuffer(1, sliceLen, decoded.sampleRate);
-                        const output = sample.getChannelData(0);
-                        const gain = 0.92 / peakVal;
-                        for (let i = 0; i < sliceLen; i++) {
-                            output[i] = Math.max(-1, Math.min(1, raw[start + i] * gain));
-                        }
-
-                        voiceCarrier.buffer = sample;
+                        const audioBuffer = await getAudioCtx().decodeAudioData(await blob.arrayBuffer());
+                        laptopFingerprint.profile = extractLaptopFingerprint(audioBuffer);
+                        const corrections = Object.keys(ACOUSTIC_PROTOCOL.SYMBOLS)
+                            .map(char => ACOUSTIC_PROTOCOL.SYMBOLS[char])
+                            .concat([ACOUSTIC_PROTOCOL.HELLO, ACOUSTIC_PROTOCOL.REPEAT, ACOUSTIC_PROTOCOL.EOF])
+                            .map(getLaptopFingerprintGain);
+                        const minGain = Math.min(...corrections).toFixed(2);
+                        const maxGain = Math.max(...corrections).toFixed(2);
                         status.style.color = "var(--neon)";
-                        status.innerText = "✅ Voz humana capturada y lista.";
+                        status.innerText = `✅ Huella validada (${laptopFingerprint.profile.matchedToneCount}/8 tonos). Compensación estimada: ${minGain}–${maxGain}x.`;
                     } catch (err) {
                         status.style.color = "var(--warn)";
                         status.innerText = `❌ ${err.message || err}`;
                     } finally {
-                        voiceCarrier.processing = false;
-                        btn.disabled = acousticModem.sessionActive;
-                        btn.innerText = voiceCarrier.buffer ? "🎙️ Re-grabar Mi Voz (2,5 s)" : "🎙️ Grabar Mi Voz (2,5 s)";
-                        document.getElementById('btn-play-human-sample').disabled = !voiceCarrier.buffer;
-                        document.getElementById('btn-send-voice-modulated').disabled = !voiceCarrier.buffer;
+                        laptopFingerprint.processing = false;
+                        captureButton.disabled = acousticModem.sessionActive;
+                        captureButton.innerText = "📡 CAPTURAR HUELLA DE LAPTOP";
+                        sendButton.disabled = !laptopFingerprint.profile;
                     }
                 };
 
-                voiceCarrier.recording = true;
-                btn.disabled = false;
-                btn.innerText = "⏹️ DETENER Y GUARDAR MUESTRA";
-                status.innerText = "🔴 Grabando... habla ahora.";
-                recorder.start();
-                voiceCarrier.stopTimer = setTimeout(() => {
+                captureButton.disabled = false;
+                captureButton.innerText = "⏹️ DETENER Y ANALIZAR";
+                status.innerText = "🔴 Capturando 10 s. Ejecuta ahora «Probar sonido local» en la laptop.";
+                recorder.start(200);
+                laptopFingerprint.stopTimer = setTimeout(() => {
                     if (recorder.state === 'recording') recorder.stop();
-                }, 2500);
+                }, 10000);
             } catch (err) {
-                if (requestId !== voiceCarrier.requestId) return;
-                voiceCarrier.recording = false;
-                voiceCarrier.mediaRecorder = null;
-                voiceCarrier.stream?.getTracks().forEach(track => track.stop());
-                voiceCarrier.stream = null;
-                btn.disabled = false;
-                btn.innerText = voiceCarrier.buffer ? "🎙️ Re-grabar Mi Voz (2,5 s)" : "🎙️ Grabar Mi Voz (2,5 s)";
+                if (requestId !== laptopFingerprint.requestId) return;
+                laptopFingerprint.recording = false;
+                laptopFingerprint.recorder = null;
+                laptopFingerprint.stream?.getTracks().forEach(track => track.stop());
+                laptopFingerprint.stream = null;
+                captureButton.disabled = false;
+                captureButton.innerText = "📡 CAPTURAR HUELLA DE LAPTOP";
+                sendButton.disabled = !laptopFingerprint.profile;
                 status.style.color = "var(--warn)";
-                status.innerText = `❌ No se pudo grabar: ${err.message || err}`;
+                status.innerText = `❌ No se pudo capturar: ${err.message || err}`;
             }
         }
 
-        function previewHumanVoiceSample() {
-            if (!voiceCarrier.buffer) return;
+        async function transmitWithLaptopFingerprint() {
+            if (!laptopFingerprint.profile || acousticModem.sessionActive) return;
+            const sendButton = document.getElementById('btn-send-calibrated-acoustic');
+            sendButton.disabled = true;
+            closeLaptopFingerprintPanel();
+            document.getElementById('acoustic-sync-panel').classList.add('active');
+            document.getElementById('btn-route-acoustic').classList.add('active');
+            acousticModem.laptopFingerprintTxActive = true;
             try {
-                const ctx = getAudioCtx();
-                const source = ctx.createBufferSource();
-                source.buffer = voiceCarrier.buffer;
-                source.connect(ctx.destination);
-                source.start();
-            } catch (err) {
-                const status = document.getElementById('voice-sample-status');
-                status.style.color = "var(--warn)";
-                status.innerText = `❌ No se pudo reproducir la muestra: ${err.message || err}`;
-            }
-        }
-
-        function playHumanVoiceTone(targetFreq, durationMs) {
-            if (!voiceCarrier.buffer) return Promise.reject(new Error("Primero graba una muestra de voz."));
-            return new Promise((resolve, reject) => {
-                try {
-                    const ctx = getAudioCtx();
-                    const now = ctx.currentTime + 0.01;
-                    const durSec = durationMs / 1000;
-                    const voiceSource = ctx.createBufferSource();
-                    voiceSource.buffer = voiceCarrier.buffer;
-                    voiceSource.loop = true;
-                    voiceSource.playbackRate.setValueAtTime(
-                        0.85 + ((targetFreq - 680) / 1200) * 0.45,
-                        now
-                    );
-
-                    const formantFilter = ctx.createBiquadFilter();
-                    formantFilter.type = 'bandpass';
-                    formantFilter.frequency.setValueAtTime(targetFreq, now);
-                    formantFilter.Q.setValueAtTime(8, now);
-
-                    const voiceGain = ctx.createGain();
-                    voiceGain.gain.setValueAtTime(1.0, now);
-                    const rawVoiceGain = ctx.createGain();
-                    rawVoiceGain.gain.setValueAtTime(0.25, now);
-
-                    const guideOsc = ctx.createOscillator();
-                    guideOsc.type = 'triangle';
-                    guideOsc.frequency.setValueAtTime(targetFreq, now);
-                    const guideGain = ctx.createGain();
-                    guideGain.gain.setValueAtTime(0.45, now);
-
-                    const master = ctx.createGain();
-                    master.gain.setValueAtTime(0.001, now);
-                    master.gain.linearRampToValueAtTime(0.85, now + 0.018);
-                    master.gain.setValueAtTime(0.85, now + Math.max(0.025, durSec - 0.018));
-                    master.gain.linearRampToValueAtTime(0.001, now + durSec);
-
-                    voiceSource.connect(rawVoiceGain);
-                    rawVoiceGain.connect(master);
-                    voiceSource.connect(formantFilter);
-                    formantFilter.connect(voiceGain);
-                    voiceGain.connect(master);
-                    guideOsc.connect(guideGain);
-                    guideGain.connect(master);
-                    master.connect(acousticModem.compressor || ctx.destination);
-
-                    voiceSource.start(now);
-                    guideOsc.start(now);
-                    voiceSource.stop(now + durSec);
-                    guideOsc.stop(now + durSec);
-                    setTimeout(resolve, durationMs + 15);
-                } catch (err) {
-                    reject(err);
-                }
-            });
-        }
-
-        async function transmitWithHumanVoice() {
-            if (!voiceCarrier.buffer || acousticModem.sessionActive) return;
-
-            const btn = document.getElementById('btn-send-voice-modulated');
-            const status = document.getElementById('voice-sample-status');
-            const payload = buildAcousticPayloadString();
-            const frequencies = encodePayloadToFskFrequencies(payload);
-            document.getElementById('voice-payload-preview').innerText = payload;
-            acousticModem.sessionActive = true;
-            acousticModem.aborted = false;
-            btn.disabled = true;
-            status.style.color = "#d2a8ff";
-
-            try {
-                if (typeof aiTelemetryLogger !== 'undefined') aiTelemetryLogger.acousticSessionsStarted++;
-                stopPhoneMicListening();
-                document.getElementById('btn-rec-human-voice').disabled = true;
-                document.getElementById('btn-play-human-sample').disabled = true;
-                status.innerText = `🗣️ Transmitiendo [${payload}] con tu voz...`;
-
-                for (let pass = 1; pass <= 2; pass++) {
-                    if (acousticModem.aborted) return;
-                    await playHumanVoiceTone(ACOUSTIC_PROTOCOL.HELLO, 360);
-                    await new Promise(resolve => setTimeout(resolve, 110));
-
-                    for (const frequency of frequencies) {
-                        if (acousticModem.aborted) return;
-                        await playHumanVoiceTone(frequency, 300);
-                        await new Promise(resolve => setTimeout(resolve, 120));
-                    }
-                    if (pass === 1) await new Promise(resolve => setTimeout(resolve, 300));
-                }
-
-                if (!acousticModem.aborted) {
-                    status.style.color = "var(--neon)";
-                    status.innerText = `✅ Secuencia [${payload}] enviada con portadora de voz.`;
-                    if (navigator.vibrate) navigator.vibrate([40, 50, 90]);
-                }
-            } catch (err) {
-                console.error("Error transmitiendo con la voz portadora:", err);
-                status.style.color = "var(--warn)";
-                status.innerText = `❌ No se pudo transmitir: ${err.message || err}`;
+                await triggerAcousticBurstNow();
             } finally {
-                acousticModem.sessionActive = false;
-                document.getElementById('btn-rec-human-voice').disabled = voiceCarrier.processing;
-                document.getElementById('btn-play-human-sample').disabled = !voiceCarrier.buffer;
-                btn.disabled = !voiceCarrier.buffer;
+                acousticModem.laptopFingerprintTxActive = false;
+                sendButton.disabled = !laptopFingerprint.profile;
             }
         }
 

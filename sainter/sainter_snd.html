@@ -1243,6 +1243,9 @@
                     </div>
                     <details>
                         <summary style="cursor: pointer; color: var(--dim); font-size: 0.7rem;">Diagnóstico de audio</summary>
+                        <div style="font-size: 0.65rem; color: var(--dim); line-height: 1.35; margin: 4px 0;">
+                            La prueba verifica el recorrido físico desde las bocinas hasta el micrófono; no inyecta tonos directamente en el analizador.
+                        </div>
                         <button class="tool-chip amber" onclick="runAcousticLoopbackTest()" title="Emite una ráfaga FSK de prueba por las bocinas de esta laptop">🔊 Probar sonido local</button>
                     </details>
 
@@ -1266,7 +1269,7 @@
 
                 <div class="recovery-pane" id="pane-voice">
                         <div class="channel-card" style="border-color: rgba(163, 113, 247, 0.55);">
-                            <b style="color: #d2a8ff; font-size: 0.8rem;">🎙️ Receptor de Voz Portadora</b>
+                            <b style="color: #d2a8ff; font-size: 0.8rem;">🎙️ Receptor Acústico Offline</b>
                             <div style="font-size: 0.69rem; color: var(--dim); line-height: 1.4;">
                                 Pulsa grabar, transmite desde el celular y detén la grabación al terminar las dos pasadas. La decodificación se realiza localmente en esta página.
                             </div>
@@ -2231,10 +2234,6 @@
 
                 osc.connect(gain);
                 gain.connect(sys.audioCtx.destination);
-                // Si es prueba de autodiagnóstico (suppressRx === false) y el analizador existe, inyectar también al analizador por si el mic físico está muteado en Windows
-                if (!suppressRx && sys.analyser) {
-                    try { gain.connect(sys.analyser); } catch (e) { }
-                }
                 osc.start(now);
                 osc.stop(now + durSec);
 
@@ -2835,14 +2834,18 @@
             }
         }
 
-        // Autotest de Loopback Acústico: emite tonos FSK en banda vocal por las bocinas de la laptop y los decodifica por el micrófono
+        // Prueba acústica física: el micrófono debe captar el sonido real de las bocinas.
         async function runAcousticLoopbackTest() {
             await forceActivateMicrophone();
-            if (!sys.audioListening || sys.loopbackTesting) return;
+            if (sys.loopbackTesting) return;
             sys.loopbackTesting = true;
+            const listenerReady = sys.audioListening;
 
             const liveBuf = document.getElementById('rx-live-buffer');
-            if (liveBuf) liveBuf.innerText = "EMITIENDO TEST LOOPBACK (BANDA VOCAL)...";
+            if (liveBuf) liveBuf.innerText = listenerReady
+                ? "EMITIENDO TEST FÍSICO (BANDA VOCAL)..."
+                : "EMITIENDO TONOS; MICRÓFONO NO DISPONIBLE PARA VALIDAR...";
+            setSenderAcousticPhaseUI(0);
 
             const testSequence = [
                 ACOUSTIC_PROTOCOL.HELLO, // 760 Hz
@@ -2855,12 +2858,26 @@
                 ACOUSTIC_PROTOCOL.EOF    // 1880 Hz
             ];
 
-            for (const f of testSequence) {
-                if (!sys.audioListening) break;
-                await emitLaptopTone(f, 185, false); // suppressRx = false para que el micrófono lo escuche y grafique
-                await new Promise(r => setTimeout(r, 55));
+            try {
+                for (const f of testSequence) {
+                    if (listenerReady && !sys.audioListening) break;
+                    await emitLaptopTone(f, 185, false);
+                    await new Promise(r => setTimeout(r, 55));
+                }
+                if (listenerReady) {
+                    for (let i = 0; i < 24 && sys.audioListening && sys.acousticPhase !== 3; i++) {
+                        await new Promise(r => setTimeout(r, 100));
+                    }
+                    if (sys.audioListening && sys.acousticPhase !== 3 && liveBuf) {
+                        setSenderAcousticPhaseUI(0);
+                        liveBuf.innerText = "❌ Sin recepción física. Revisa micrófono, volumen y distancia.";
+                    }
+                } else if (liveBuf) {
+                    liveBuf.innerText = "🔊 Tonos emitidos. La prueba física necesita permiso de micrófono para confirmar recepción.";
+                }
+            } finally {
+                sys.loopbackTesting = false;
             }
-            sys.loopbackTesting = false;
         }
 
         function classifyFrequencySymbol(freqHz) {
