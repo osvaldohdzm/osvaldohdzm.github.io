@@ -211,15 +211,21 @@
             line-height: 1.35;
         }
 
-        /* --- PESTAÑAS DE LAS 3 VÍAS DE RECUPERACIÓN --- */
+        /* --- PESTAÑAS DE LAS VÍAS DE RECUPERACIÓN --- */
         .recovery-tabs {
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
+            grid-template-columns: repeat(4, 1fr);
             gap: 6px;
             background: #05080d;
             padding: 5px;
             border-radius: 8px;
             border: 1px solid #242c37;
+        }
+
+        @media (max-width: 560px) {
+            .recovery-tabs {
+                grid-template-columns: repeat(2, 1fr);
+            }
         }
 
         .rec-tab-btn {
@@ -267,6 +273,12 @@
             background: rgba(0, 255, 65, 0.12);
             border-color: var(--accent);
             color: var(--accent);
+        }
+
+        .rec-tab-btn.active.tab-voice {
+            background: rgba(163, 113, 247, 0.15);
+            border-color: #a371f7;
+            color: #d2a8ff;
         }
 
         .recovery-pane {
@@ -1129,7 +1141,7 @@
                 <button class="preset-btn" id="tx-mode-priority" onclick="setTxMode('priority')" title="Retransmite únicamente los bloques o macro-sectores faltantes">⚡ Solo Faltantes</button>
             </div>
 
-            <!-- PESTAÑAS CLARAS PARA ELEGIR ENTRE LAS 3 VÍAS DE REINTENTO -->
+            <!-- PESTAÑAS PARA ELEGIR ENTRE LAS 4 VÍAS DE REINTENTO -->
             <div class="recovery-tabs">
                 <button class="rec-tab-btn active tab-opt" id="tab-btn-optical" onclick="switchRecoveryTab('optical')">
                     <span>📷 1. Por QR Inverso</span>
@@ -1142,6 +1154,10 @@
                 <button class="rec-tab-btn tab-ac" id="tab-btn-acoustic" onclick="switchRecoveryTab('acoustic')">
                     <span>🔊 3. Beep-Boop Audio</span>
                     <small>Micrófono automático</small>
+                </button>
+                <button class="rec-tab-btn tab-voice" id="tab-btn-voice" onclick="switchRecoveryTab('voice')">
+                    <span>🎙️ 4. Grabar Audio</span>
+                    <small>Decodificación offline</small>
                 </button>
             </div>
 
@@ -1243,6 +1259,27 @@
                         <div class="sync-phase-row" id="snd-phase-3">
                             <span class="sync-phase-dot"></span>
                             <span>Fase 3: «Confirmación recibida de la laptop»</span>
+                        </div>
+                    </div>
+                </div>
+                </div>
+
+                <div class="recovery-pane" id="pane-voice">
+                        <div class="channel-card" style="border-color: rgba(163, 113, 247, 0.55);">
+                            <b style="color: #d2a8ff; font-size: 0.8rem;">🎙️ Receptor de Voz Portadora</b>
+                            <div style="font-size: 0.69rem; color: var(--dim); line-height: 1.4;">
+                                Pulsa grabar, transmite desde el celular y detén la grabación al terminar las dos pasadas. La decodificación se realiza localmente en esta página.
+                            </div>
+                            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                                <button class="btn btn-mic" id="btn-offline-record" onclick="toggleOfflineRecording()" style="flex: 1; min-width: 150px;">
+                                    🎙️ COMENZAR GRABACIÓN
+                                </button>
+                                <button class="btn" id="btn-offline-play" onclick="playOfflineRecording()" disabled>▶️ OÍR GRABACIÓN</button>
+                                <button class="btn btn-reverse" id="btn-offline-decode" onclick="decodeOfflineBurst()" disabled>🧠 DECODIFICAR Y APLICAR</button>
+                            </div>
+                            <canvas id="offline-audio-waveform" title="Forma de onda de la grabación" style="display: block; width: 100%; height: 72px; background: #02060d; border: 1px solid #26354d; border-radius: 6px;"></canvas>
+                            <div id="offline-audio-status" role="status" aria-live="polite" style="font-size: 0.7rem; color: var(--dim); min-height: 1.2em;">
+                                Aún no hay una grabación.
                         </div>
                     </div>
                 </div>
@@ -2121,6 +2158,18 @@
         sys.selectedMicId = "";
         sys.audioStartPending = false;
         sys.loopbackTesting = false;
+        const offlineAudioCapture = {
+            stream: null,
+            recorder: null,
+            chunks: [],
+            buffer: null,
+            requesting: false,
+            recording: false,
+            requestId: 0,
+            pendingRequest: null,
+            stopWaiter: null,
+            stopPromise: null
+        };
 
         // Buffer offscreen para el Espectrograma Waterfall (Cascada 2D en tiempo real)
         const waterfallCanvas = document.createElement('canvas');
@@ -2235,17 +2284,393 @@
             if (btn) btn.innerText = `🎚️ Gain: ${sys.micGainLevel.toFixed(1)}x`;
         }
 
-        function switchRecoveryTab(tabName) {
+        async function switchRecoveryTab(tabName) {
             document.getElementById('tab-btn-optical').classList.toggle('active', tabName === 'optical');
             document.getElementById('tab-btn-csv').classList.toggle('active', tabName === 'csv');
             document.getElementById('tab-btn-acoustic').classList.toggle('active', tabName === 'acoustic');
+            document.getElementById('tab-btn-voice').classList.toggle('active', tabName === 'voice');
 
             document.getElementById('pane-optical').classList.toggle('active', tabName === 'optical');
             document.getElementById('pane-csv').classList.toggle('active', tabName === 'csv');
             document.getElementById('pane-acoustic').classList.toggle('active', tabName === 'acoustic');
+            document.getElementById('pane-voice').classList.toggle('active', tabName === 'voice');
 
+            if (tabName !== 'acoustic' && sys.audioListening) {
+                stopAcousticListener();
+                document.getElementById('btn-audio-listen').classList.remove('listening');
+                document.getElementById('btn-audio-listen').innerText = "🎙️ COMENZAR A ESCUCHAR";
+                document.getElementById('fft-freq-lbl').innerText = "APAGADO";
+                drawStandbySpectrogram();
+            }
+            let offlineStop;
+            if (tabName !== 'voice' && (offlineAudioCapture.requesting || offlineAudioCapture.recording)) {
+                offlineStop = stopOfflineRecording();
+            }
+            if (offlineStop) await offlineStop;
             if (tabName === 'acoustic' && !sys.audioListening) {
-                ensurePassiveAcousticListener(true);
+                if (document.getElementById('pane-acoustic').classList.contains('active')) {
+                    await ensurePassiveAcousticListener(true);
+                }
+            }
+        }
+
+        function stopOfflineRecording() {
+            const capture = offlineAudioCapture;
+            capture.requestId++;
+            offlineAudioCapture.requesting = false;
+            if (capture.recorder && capture.recording) {
+                const button = document.getElementById('btn-offline-record');
+                if (button) {
+                    button.disabled = true;
+                    button.innerText = "⏳ PROCESANDO GRABACIÓN...";
+                }
+                if (capture.stopPromise) return capture.stopPromise;
+                capture.stopPromise = new Promise(resolve => {
+                    capture.stopWaiter = () => {
+                        capture.stopWaiter = null;
+                        capture.stopPromise = null;
+                        resolve();
+                    };
+                });
+                if (capture.recorder.state === 'recording') capture.recorder.stop();
+                return capture.stopPromise;
+            }
+            if (capture.stream) {
+                capture.stream.getTracks().forEach(track => track.stop());
+                capture.stream = null;
+            }
+            capture.recording = false;
+            const button = document.getElementById('btn-offline-record');
+            if (button) {
+                button.disabled = false;
+                button.innerText = "🎙️ COMENZAR GRABACIÓN";
+            }
+            if (capture.pendingRequest) {
+                return capture.pendingRequest.then(() => undefined, () => undefined);
+            }
+            return Promise.resolve();
+        }
+
+        async function toggleOfflineRecording() {
+            const capture = offlineAudioCapture;
+            const button = document.getElementById('btn-offline-record');
+            const status = document.getElementById('offline-audio-status');
+            if (capture.recording && capture.recorder) {
+                if (capture.recorder.state === 'recording') capture.recorder.stop();
+                return;
+            }
+            if (capture.requesting || capture.recording) return;
+            if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === 'undefined') {
+                status.innerText = "❌ Este navegador no permite grabar audio.";
+                return;
+            }
+
+            capture.requesting = true;
+            const requestId = ++capture.requestId;
+            capture.buffer = null;
+            capture.chunks = [];
+            document.getElementById('btn-offline-play').disabled = true;
+            document.getElementById('btn-offline-decode').disabled = true;
+            button.disabled = true;
+            button.innerText = "⏳ SOLICITANDO MICRÓFONO...";
+            status.style.color = "var(--warn)";
+            status.innerText = "Solicitando permiso para grabar la ráfaga...";
+
+            let pendingRequest = null;
+            try {
+                pendingRequest = navigator.mediaDevices.getUserMedia({
+                    audio: {
+                        echoCancellation: false,
+                        noiseSuppression: false,
+                        autoGainControl: false
+                    }
+                });
+                capture.pendingRequest = pendingRequest;
+                const stream = await pendingRequest;
+                if (requestId !== capture.requestId || !capture.requesting) {
+                    stream.getTracks().forEach(track => track.stop());
+                    if (capture.pendingRequest === pendingRequest) capture.pendingRequest = null;
+                    return;
+                }
+                capture.pendingRequest = null;
+                capture.stream = stream;
+
+                const recorder = new MediaRecorder(stream);
+                capture.recorder = recorder;
+                recorder.ondataavailable = event => {
+                    if (event.data.size > 0) capture.chunks.push(event.data);
+                };
+                recorder.onstop = async () => {
+                    capture.recording = false;
+                    capture.requesting = false;
+                    capture.recorder = null;
+                    capture.stream?.getTracks().forEach(track => track.stop());
+                    capture.stream = null;
+                    if (capture.stopWaiter) {
+                        const resolveStop = capture.stopWaiter;
+                        capture.stopWaiter = null;
+                        resolveStop();
+                    }
+                    button.disabled = true;
+                    button.innerText = "⏳ PROCESANDO GRABACIÓN...";
+                    status.innerText = "Preparando audio para reproducción y decodificación...";
+
+                    try {
+                        if (!capture.chunks.length) throw new Error("No se capturó audio.");
+                        const blob = new Blob(capture.chunks, {
+                            type: recorder.mimeType || capture.chunks[0].type || 'audio/webm'
+                        });
+                        const audioContext = getOfflineAudioContext();
+                        capture.buffer = await audioContext.decodeAudioData(await blob.arrayBuffer());
+                        drawOfflineWaveform(capture.buffer);
+                        document.getElementById('btn-offline-play').disabled = false;
+                        document.getElementById('btn-offline-decode').disabled = false;
+                        status.style.color = "var(--neon)";
+                        status.innerText = `✅ Grabación lista (${capture.buffer.duration.toFixed(1)} s).`;
+                    } catch (err) {
+                        capture.buffer = null;
+                        status.style.color = "var(--warn)";
+                        status.innerText = `❌ No se pudo procesar la grabación: ${err.message || err}`;
+                    } finally {
+                        button.disabled = false;
+                        button.innerText = "🎙️ COMENZAR GRABACIÓN";
+                    }
+                };
+
+                recorder.start(250);
+                capture.requesting = false;
+                capture.recording = true;
+                button.disabled = false;
+                button.innerText = "⏹️ DETENER Y PROCESAR";
+                status.innerText = "🔴 Grabando. Transmite ahora desde el celular y detén aquí al terminar.";
+            } catch (err) {
+                if (requestId !== capture.requestId) {
+                    if (capture.pendingRequest === pendingRequest) capture.pendingRequest = null;
+                    return;
+                }
+                capture.pendingRequest = null;
+                capture.requesting = false;
+                capture.recording = false;
+                capture.recorder = null;
+                capture.stream?.getTracks().forEach(track => track.stop());
+                capture.stream = null;
+                button.disabled = false;
+                button.innerText = "🎙️ COMENZAR GRABACIÓN";
+                status.style.color = "var(--warn)";
+                status.innerText = `❌ No se pudo grabar: ${err.message || err}`;
+            }
+        }
+
+        function getOfflineAudioContext() {
+            const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+            if (!AudioContextClass) throw new Error("Web Audio API no disponible.");
+            if (!sys.audioCtx) sys.audioCtx = new AudioContextClass();
+            return sys.audioCtx;
+        }
+
+        function drawOfflineWaveform(audioBuffer) {
+            const canvas = document.getElementById('offline-audio-waveform');
+            const ctx = canvas.getContext('2d');
+            const width = canvas.width = canvas.clientWidth || 320;
+            const height = canvas.height = canvas.clientHeight || 72;
+            const samples = audioBuffer.getChannelData(0);
+            const samplesPerPixel = Math.max(1, Math.floor(samples.length / width));
+
+            ctx.clearRect(0, 0, width, height);
+            ctx.fillStyle = '#02060d';
+            ctx.fillRect(0, 0, width, height);
+            ctx.strokeStyle = '#a371f7';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            for (let x = 0; x < width; x++) {
+                const start = x * samplesPerPixel;
+                const end = Math.min(samples.length, start + samplesPerPixel);
+                let min = 1;
+                let max = -1;
+                for (let i = start; i < end; i++) {
+                    min = Math.min(min, samples[i]);
+                    max = Math.max(max, samples[i]);
+                }
+                ctx.moveTo(x + 0.5, (1 + min) * height / 2);
+                ctx.lineTo(x + 0.5, (1 + max) * height / 2);
+            }
+            ctx.stroke();
+        }
+
+        async function playOfflineRecording() {
+            if (!offlineAudioCapture.buffer) return;
+            try {
+                const audioContext = getOfflineAudioContext();
+                if (audioContext.state === 'suspended') await audioContext.resume();
+                const source = audioContext.createBufferSource();
+                source.buffer = offlineAudioCapture.buffer;
+                source.connect(audioContext.destination);
+                source.start();
+            } catch (err) {
+                const status = document.getElementById('offline-audio-status');
+                status.style.color = "var(--warn)";
+                status.innerText = `❌ No se pudo reproducir: ${err.message || err}`;
+            }
+        }
+
+        function goertzelPower(frame, frequency, sampleRate) {
+            const omega = 2 * Math.PI * frequency / sampleRate;
+            const coefficient = 2 * Math.cos(omega);
+            let previous = 0;
+            let previous2 = 0;
+            for (let i = 0; i < frame.length; i++) {
+                const current = frame[i] + coefficient * previous - previous2;
+                previous2 = previous;
+                previous = current;
+            }
+            const power = previous * previous + previous2 * previous2 -
+                coefficient * previous * previous2;
+            return Math.max(0, power / (frame.length * frame.length));
+        }
+
+        function decodeOfflineSymbols(audioBuffer) {
+            const samples = audioBuffer.getChannelData(0);
+            const sampleRate = audioBuffer.sampleRate;
+            const windowSize = Math.floor(sampleRate * 0.045);
+            const hopSize = Math.max(1, Math.floor(sampleRate * 0.025));
+            const window = new Float32Array(windowSize);
+            for (let i = 0; i < windowSize; i++) {
+                window[i] = 0.5 - 0.5 * Math.cos((2 * Math.PI * i) / (windowSize - 1));
+            }
+
+            const candidates = [
+                { frequency: ACOUSTIC_PROTOCOL.HELLO, type: 'HELLO' },
+                { frequency: ACOUSTIC_PROTOCOL.REPEAT, type: 'REPEAT' },
+                { frequency: ACOUSTIC_PROTOCOL.EOF, type: 'EOF' },
+                ...ACOUSTIC_PROTOCOL.FREQ_TO_CHAR.map(item => ({
+                    frequency: item.f,
+                    type: 'DATA',
+                    ch: item.ch
+                }))
+            ];
+            const detections = [];
+            const frame = new Float32Array(windowSize);
+            const windowSeconds = windowSize / sampleRate;
+
+            for (let offset = 0; offset + windowSize <= samples.length; offset += hopSize) {
+                let mean = 0;
+                let squareSum = 0;
+                for (let i = 0; i < windowSize; i++) {
+                    const value = samples[offset + i];
+                    mean += value;
+                    squareSum += value * value;
+                }
+                mean /= windowSize;
+                const rms = Math.sqrt(Math.max(0, squareSum / windowSize - mean * mean));
+                if (rms < 0.003) continue;
+
+                for (let i = 0; i < windowSize; i++) {
+                    frame[i] = (samples[offset + i] - mean) * window[i];
+                }
+
+                let bestIndex = -1;
+                let bestPower = 0;
+                let secondPower = 0;
+                for (let i = 0; i < candidates.length; i++) {
+                    const power = goertzelPower(frame, candidates[i].frequency, sampleRate);
+                    if (power > bestPower) {
+                        secondPower = bestPower;
+                        bestPower = power;
+                        bestIndex = i;
+                    } else if (power > secondPower) {
+                        secondPower = power;
+                    }
+                }
+
+                if (bestIndex < 0 || bestPower < 1e-7 ||
+                    bestPower < rms * rms * 0.025 ||
+                    bestPower < Math.max(1e-9, secondPower) * 1.35) {
+                    continue;
+                }
+
+                const candidate = candidates[bestIndex];
+                detections.push({
+                    ...candidate,
+                    start: offset / sampleRate,
+                    end: offset / sampleRate + windowSeconds
+                });
+            }
+
+            const events = [];
+            let current = null;
+            for (const detection of detections) {
+                const sameSymbol = current &&
+                    current.type === detection.type &&
+                    current.ch === detection.ch;
+                if (sameSymbol && detection.start - current.end <= 0.085) {
+                    current.end = detection.end;
+                } else {
+                    if (current) events.push(current);
+                    current = { ...detection };
+                }
+            }
+            if (current) events.push(current);
+
+            const receptions = [];
+            let active = false;
+            let payload = '';
+            let lastChar = '';
+            const savePayload = () => {
+                if (payload.length > 0) receptions.push(payload);
+            };
+
+            for (const event of events) {
+                if (event.type === 'HELLO') {
+                    if (active) savePayload();
+                    active = true;
+                    payload = '';
+                    lastChar = '';
+                } else if (event.type === 'EOF') {
+                    if (active) savePayload();
+                    active = false;
+                    payload = '';
+                    lastChar = '';
+                } else if (active && event.type === 'REPEAT' && lastChar) {
+                    payload += lastChar;
+                } else if (active && event.type === 'DATA') {
+                    if (event.ch === 'S') payload = 'S';
+                    else payload += event.ch;
+                    lastChar = event.ch;
+                }
+            }
+            if (active) savePayload();
+
+            const validReceptions = sys.totalChunks
+                ? receptions.filter(value => parseMacroSectorsOrRanges(value, sys.totalChunks).length > 0)
+                : receptions;
+            return validReceptions.sort((a, b) => b.length - a.length)[0] || '';
+        }
+
+        function decodeOfflineBurst() {
+            const status = document.getElementById('offline-audio-status');
+            if (!offlineAudioCapture.buffer) {
+                status.innerText = "❌ Primero graba una ráfaga.";
+                return;
+            }
+
+            try {
+                const payload = decodeOfflineSymbols(offlineAudioCapture.buffer);
+                if (!payload) throw new Error("No se detectó una trama completa. Asegúrate de grabar ambas pasadas.");
+                document.getElementById('custom-frames').value = payload;
+                if (!sys.totalChunks) {
+                    status.style.color = "var(--warn)";
+                    status.innerText = `✅ Trama detectada: ${payload}. Carga el archivo para aplicar los bloques.`;
+                    return;
+                }
+                if (!processReverseAckPayload(payload)) {
+                    throw new Error("La trama recibida no contiene bloques válidos para este archivo.");
+                }
+                status.style.color = "var(--neon)";
+                status.innerText = `✅ Trama [${payload}] decodificada y aplicada (${sys.activeIndices.length} bloques).`;
+                if (!sys.running) togglePlay();
+            } catch (err) {
+                status.style.color = "var(--warn)";
+                status.innerText = `❌ ${err.message || err}`;
             }
         }
 

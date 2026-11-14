@@ -969,7 +969,7 @@
                 <span id="missing-badge-lbl" style="color: var(--warn); font-weight: bold;">0 pendientes</span>
             </div>
 
-            <div class="dichotomy-grid" style="grid-template-columns: repeat(3, 1fr);">
+            <div class="dichotomy-grid">
                 <!-- RUTA 1: RETORNO ÓPTICO -->
                 <button class="route-card-btn optical" id="btn-route-optical" onclick="openReverseAckModal()">
                     <span class="route-icon">📷</span>
@@ -989,6 +989,12 @@
                     <span class="route-icon">📋</span>
                     <span class="route-title" style="color: #2ea043;">3. Copiar Lista</span>
                     <span class="route-desc">Lista separada por comas o rangos</span>
+                </button>
+
+                <button class="route-card-btn" id="btn-route-voice" onclick="openVoiceCarrierPanel()" style="border-color: #a371f7; background: rgba(163, 113, 247, 0.12);">
+                    <span class="route-icon">🗣️</span>
+                    <span class="route-title" style="color: #d2a8ff;">4. Voz Portadora</span>
+                    <span class="route-desc">Graba tu voz y úsala como señal</span>
                 </button>
             </div>
 
@@ -1034,6 +1040,34 @@
                         <span>Fase 3: «Confirmación recibida de la laptop»</span>
                     </div>
                 </div>
+            </div>
+
+            <div class="acoustic-sync-panel" id="voice-carrier-panel" style="border-color: #a371f7;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.74rem;">
+                        <b style="color: #d2a8ff;">🗣️ Modulador de Voz Humana Real</b>
+                        <button class="btn-optic" onclick="closeVoiceCarrierPanel()" style="padding: 4px 10px; font-size: 0.68rem; color: var(--err);">✖ Cerrar</button>
+                    </div>
+
+                    <div style="font-size: 0.69rem; color: var(--dim); line-height: 1.35;">
+                        Graba 2,5 segundos de tu voz. El teléfono usará su timbre como portadora para enviar la secuencia acústica.
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                        <button class="btn-optic" id="btn-rec-human-voice" onclick="toggleRecordHumanVoice()" style="padding: 11px; border-color: #f85149; color: #ff7b72;">
+                            🎙️ Grabar Mi Voz (2,5 s)
+                        </button>
+                        <button class="btn-optic" id="btn-play-human-sample" onclick="previewHumanVoiceSample()" disabled style="padding: 11px;">
+                            ▶️ Oír Muestra
+                        </button>
+                    </div>
+
+                    <div style="font-size: 0.68rem; color: var(--dim); background: #0b1018; padding: 6px 8px; border-radius: 5px; border: 1px solid #1b2434;">
+                        Estado voz: <b id="voice-sample-status" style="color: var(--warn);">Sin grabar aún</b> | Trama: <b id="voice-payload-preview" style="color: var(--neon);">--</b>
+                    </div>
+
+                    <button class="btn-optic active" id="btn-send-voice-modulated" onclick="transmitWithHumanVoice()" disabled style="padding: 13px; font-size: 0.82rem; border-color: #a371f7; color: #d2a8ff; background: rgba(163, 113, 247, 0.18); width: 100%;">
+                        📤 TRANSMITIR SECUENCIA CON MI VOZ
+                    </button>
             </div>
         </div>
 
@@ -1882,6 +1916,7 @@
             const acousticPayload = buildAcousticPayloadString();
             const isExact = !acousticPayload.startsWith('S');
             const estimateSec = (estimateAcousticDurationMs(acousticPayload) / 1000).toFixed(1);
+            closeVoiceCarrierPanel();
             setAcousticPhaseUI(0);
             document.getElementById('acoustic-sync-panel').classList.add('active');
             document.getElementById('btn-route-acoustic').classList.add('active');
@@ -1975,6 +2010,289 @@
             setAcousticPhaseUI(0);
             const statusLine = document.getElementById('ac-status-line');
             if (statusLine) statusLine.innerText = "Ráfaga cancelada.";
+        }
+
+        const voiceCarrier = {
+            buffer: null,
+            recording: false,
+            processing: false,
+            mediaRecorder: null,
+            stream: null,
+            stopTimer: null,
+            requestId: 0
+        };
+
+        function openVoiceCarrierPanel() {
+            if (sys.active && sys.received === sys.total) return;
+            cancelAcousticSession();
+            document.getElementById('acoustic-sync-panel').classList.remove('active');
+            document.getElementById('btn-route-acoustic').classList.remove('active');
+            document.getElementById('voice-carrier-panel').classList.add('active');
+            document.getElementById('btn-route-voice').classList.add('active');
+            document.getElementById('voice-payload-preview').innerText = buildAcousticPayloadString();
+        }
+
+        function closeVoiceCarrierPanel() {
+            voiceCarrier.requestId++;
+            clearTimeout(voiceCarrier.stopTimer);
+            if (voiceCarrier.mediaRecorder && voiceCarrier.mediaRecorder.state === 'recording') {
+                voiceCarrier.mediaRecorder.stop();
+            } else {
+                if (voiceCarrier.stream) {
+                    voiceCarrier.stream.getTracks().forEach(track => track.stop());
+                    voiceCarrier.stream = null;
+                }
+                voiceCarrier.recording = false;
+                const recordButton = document.getElementById('btn-rec-human-voice');
+                if (recordButton) {
+                    recordButton.disabled = voiceCarrier.processing;
+                    recordButton.innerText = voiceCarrier.processing
+                        ? "⏳ PROCESANDO MUESTRA..."
+                        : (voiceCarrier.buffer ? "🎙️ Re-grabar Mi Voz (2,5 s)" : "🎙️ Grabar Mi Voz (2,5 s)");
+                }
+            }
+            if (acousticModem.sessionActive) acousticModem.aborted = true;
+            document.getElementById('voice-carrier-panel').classList.remove('active');
+            document.getElementById('btn-route-voice').classList.remove('active');
+        }
+
+        async function toggleRecordHumanVoice() {
+            const btn = document.getElementById('btn-rec-human-voice');
+            const status = document.getElementById('voice-sample-status');
+            if (voiceCarrier.processing || acousticModem.sessionActive) return;
+            if (voiceCarrier.recording && voiceCarrier.mediaRecorder) {
+                clearTimeout(voiceCarrier.stopTimer);
+                voiceCarrier.mediaRecorder.stop();
+                return;
+            }
+            if (voiceCarrier.recording) return;
+            if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === 'undefined') {
+                status.innerText = "❌ Este navegador no permite grabar audio.";
+                return;
+            }
+
+            voiceCarrier.recording = true;
+            const requestId = ++voiceCarrier.requestId;
+            voiceCarrier.buffer = null;
+            document.getElementById('btn-play-human-sample').disabled = true;
+            document.getElementById('btn-send-voice-modulated').disabled = true;
+            btn.disabled = true;
+            btn.innerText = "⏳ SOLICITANDO MICRÓFONO...";
+            status.style.color = "var(--warn)";
+            status.innerText = "Solicitando permiso para grabar...";
+
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    audio: {
+                        echoCancellation: false,
+                        noiseSuppression: false,
+                        autoGainControl: false
+                    }
+                });
+                if (requestId !== voiceCarrier.requestId) {
+                    stream.getTracks().forEach(track => track.stop());
+                    return;
+                }
+                voiceCarrier.stream = stream;
+                const chunks = [];
+                const recorder = new MediaRecorder(voiceCarrier.stream);
+                voiceCarrier.mediaRecorder = recorder;
+
+                recorder.ondataavailable = event => {
+                    if (event.data.size > 0) chunks.push(event.data);
+                };
+                recorder.onstop = async () => {
+                    clearTimeout(voiceCarrier.stopTimer);
+                    voiceCarrier.recording = false;
+                    voiceCarrier.processing = true;
+                    btn.disabled = true;
+                    btn.innerText = "⏳ PROCESANDO MUESTRA...";
+                    status.innerText = "Analizando la voz grabada...";
+                    voiceCarrier.stream?.getTracks().forEach(track => track.stop());
+                    voiceCarrier.stream = null;
+                    voiceCarrier.mediaRecorder = null;
+
+                    try {
+                        if (!chunks.length) throw new Error("No se capturó audio.");
+                        const blob = new Blob(chunks, { type: recorder.mimeType || chunks[0].type || 'audio/webm' });
+                        const decoded = await getAudioCtx().decodeAudioData(await blob.arrayBuffer());
+                        const raw = decoded.getChannelData(0);
+                        let peakIdx = 0;
+                        let peakVal = 0;
+                        for (let i = 0; i < raw.length; i++) {
+                            const value = Math.abs(raw[i]);
+                            if (value > peakVal) {
+                                peakVal = value;
+                                peakIdx = i;
+                            }
+                        }
+                        if (peakVal < 0.015) throw new Error("Voz muy baja; habla más cerca del micrófono.");
+
+                        const sliceLen = Math.min(raw.length, Math.floor(decoded.sampleRate * 0.6));
+                        const start = Math.max(0, Math.min(raw.length - sliceLen, peakIdx - Math.floor(sliceLen * 0.25)));
+                        const sample = getAudioCtx().createBuffer(1, sliceLen, decoded.sampleRate);
+                        const output = sample.getChannelData(0);
+                        const gain = 0.92 / peakVal;
+                        for (let i = 0; i < sliceLen; i++) {
+                            output[i] = Math.max(-1, Math.min(1, raw[start + i] * gain));
+                        }
+
+                        voiceCarrier.buffer = sample;
+                        status.style.color = "var(--neon)";
+                        status.innerText = "✅ Voz humana capturada y lista.";
+                    } catch (err) {
+                        status.style.color = "var(--warn)";
+                        status.innerText = `❌ ${err.message || err}`;
+                    } finally {
+                        voiceCarrier.processing = false;
+                        btn.disabled = acousticModem.sessionActive;
+                        btn.innerText = voiceCarrier.buffer ? "🎙️ Re-grabar Mi Voz (2,5 s)" : "🎙️ Grabar Mi Voz (2,5 s)";
+                        document.getElementById('btn-play-human-sample').disabled = !voiceCarrier.buffer;
+                        document.getElementById('btn-send-voice-modulated').disabled = !voiceCarrier.buffer;
+                    }
+                };
+
+                voiceCarrier.recording = true;
+                btn.disabled = false;
+                btn.innerText = "⏹️ DETENER Y GUARDAR MUESTRA";
+                status.innerText = "🔴 Grabando... habla ahora.";
+                recorder.start();
+                voiceCarrier.stopTimer = setTimeout(() => {
+                    if (recorder.state === 'recording') recorder.stop();
+                }, 2500);
+            } catch (err) {
+                if (requestId !== voiceCarrier.requestId) return;
+                voiceCarrier.recording = false;
+                voiceCarrier.mediaRecorder = null;
+                voiceCarrier.stream?.getTracks().forEach(track => track.stop());
+                voiceCarrier.stream = null;
+                btn.disabled = false;
+                btn.innerText = voiceCarrier.buffer ? "🎙️ Re-grabar Mi Voz (2,5 s)" : "🎙️ Grabar Mi Voz (2,5 s)";
+                status.style.color = "var(--warn)";
+                status.innerText = `❌ No se pudo grabar: ${err.message || err}`;
+            }
+        }
+
+        function previewHumanVoiceSample() {
+            if (!voiceCarrier.buffer) return;
+            try {
+                const ctx = getAudioCtx();
+                const source = ctx.createBufferSource();
+                source.buffer = voiceCarrier.buffer;
+                source.connect(ctx.destination);
+                source.start();
+            } catch (err) {
+                const status = document.getElementById('voice-sample-status');
+                status.style.color = "var(--warn)";
+                status.innerText = `❌ No se pudo reproducir la muestra: ${err.message || err}`;
+            }
+        }
+
+        function playHumanVoiceTone(targetFreq, durationMs) {
+            if (!voiceCarrier.buffer) return Promise.reject(new Error("Primero graba una muestra de voz."));
+            return new Promise((resolve, reject) => {
+                try {
+                    const ctx = getAudioCtx();
+                    const now = ctx.currentTime + 0.01;
+                    const durSec = durationMs / 1000;
+                    const voiceSource = ctx.createBufferSource();
+                    voiceSource.buffer = voiceCarrier.buffer;
+                    voiceSource.loop = true;
+                    voiceSource.playbackRate.setValueAtTime(
+                        0.85 + ((targetFreq - 680) / 1200) * 0.45,
+                        now
+                    );
+
+                    const formantFilter = ctx.createBiquadFilter();
+                    formantFilter.type = 'bandpass';
+                    formantFilter.frequency.setValueAtTime(targetFreq, now);
+                    formantFilter.Q.setValueAtTime(8, now);
+
+                    const voiceGain = ctx.createGain();
+                    voiceGain.gain.setValueAtTime(1.0, now);
+                    const rawVoiceGain = ctx.createGain();
+                    rawVoiceGain.gain.setValueAtTime(0.25, now);
+
+                    const guideOsc = ctx.createOscillator();
+                    guideOsc.type = 'triangle';
+                    guideOsc.frequency.setValueAtTime(targetFreq, now);
+                    const guideGain = ctx.createGain();
+                    guideGain.gain.setValueAtTime(0.45, now);
+
+                    const master = ctx.createGain();
+                    master.gain.setValueAtTime(0.001, now);
+                    master.gain.linearRampToValueAtTime(0.85, now + 0.018);
+                    master.gain.setValueAtTime(0.85, now + Math.max(0.025, durSec - 0.018));
+                    master.gain.linearRampToValueAtTime(0.001, now + durSec);
+
+                    voiceSource.connect(rawVoiceGain);
+                    rawVoiceGain.connect(master);
+                    voiceSource.connect(formantFilter);
+                    formantFilter.connect(voiceGain);
+                    voiceGain.connect(master);
+                    guideOsc.connect(guideGain);
+                    guideGain.connect(master);
+                    master.connect(acousticModem.compressor || ctx.destination);
+
+                    voiceSource.start(now);
+                    guideOsc.start(now);
+                    voiceSource.stop(now + durSec);
+                    guideOsc.stop(now + durSec);
+                    setTimeout(resolve, durationMs + 15);
+                } catch (err) {
+                    reject(err);
+                }
+            });
+        }
+
+        async function transmitWithHumanVoice() {
+            if (!voiceCarrier.buffer || acousticModem.sessionActive) return;
+
+            const btn = document.getElementById('btn-send-voice-modulated');
+            const status = document.getElementById('voice-sample-status');
+            const payload = buildAcousticPayloadString();
+            const frequencies = encodePayloadToFskFrequencies(payload);
+            document.getElementById('voice-payload-preview').innerText = payload;
+            acousticModem.sessionActive = true;
+            acousticModem.aborted = false;
+            btn.disabled = true;
+            status.style.color = "#d2a8ff";
+
+            try {
+                if (typeof aiTelemetryLogger !== 'undefined') aiTelemetryLogger.acousticSessionsStarted++;
+                stopPhoneMicListening();
+                document.getElementById('btn-rec-human-voice').disabled = true;
+                document.getElementById('btn-play-human-sample').disabled = true;
+                status.innerText = `🗣️ Transmitiendo [${payload}] con tu voz...`;
+
+                for (let pass = 1; pass <= 2; pass++) {
+                    if (acousticModem.aborted) return;
+                    await playHumanVoiceTone(ACOUSTIC_PROTOCOL.HELLO, 360);
+                    await new Promise(resolve => setTimeout(resolve, 110));
+
+                    for (const frequency of frequencies) {
+                        if (acousticModem.aborted) return;
+                        await playHumanVoiceTone(frequency, 300);
+                        await new Promise(resolve => setTimeout(resolve, 120));
+                    }
+                    if (pass === 1) await new Promise(resolve => setTimeout(resolve, 300));
+                }
+
+                if (!acousticModem.aborted) {
+                    status.style.color = "var(--neon)";
+                    status.innerText = `✅ Secuencia [${payload}] enviada con portadora de voz.`;
+                    if (navigator.vibrate) navigator.vibrate([40, 50, 90]);
+                }
+            } catch (err) {
+                console.error("Error transmitiendo con la voz portadora:", err);
+                status.style.color = "var(--warn)";
+                status.innerText = `❌ No se pudo transmitir: ${err.message || err}`;
+            } finally {
+                acousticModem.sessionActive = false;
+                document.getElementById('btn-rec-human-voice').disabled = voiceCarrier.processing;
+                document.getElementById('btn-play-human-sample').disabled = !voiceCarrier.buffer;
+                btn.disabled = !voiceCarrier.buffer;
+            }
         }
 
         // =========================================================================
