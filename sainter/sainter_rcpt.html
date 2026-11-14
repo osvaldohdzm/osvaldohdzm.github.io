@@ -1610,46 +1610,54 @@
             return acousticModem.ctx;
         }
 
-        // Emite el tono FSK junto con un armónico débil para mejorar su detección sin modular la frecuencia.
-        function playSingleTone(freq, durationMs, gainLevel = 0.98, includeHarmonic = true) {
+        // Emite tonos con textura formántica; el preámbulo puede conservarse como seno puro.
+        function playSingleTone(freq, durationMs, gainLevel = 0.98, formantSynthesis = true) {
             return new Promise((resolve) => {
                 const ctx = getAudioCtx();
                 const now = ctx.currentTime + 0.012;
                 const durSec = durationMs / 1000;
 
-                const osc = ctx.createOscillator();
-                const gain = ctx.createGain();
-                const harmonicOsc = includeHarmonic ? ctx.createOscillator() : null;
-                const harmonicGain = includeHarmonic ? ctx.createGain() : null;
-                const harmonicLevel = gainLevel * 0.15;
+                const oscMain = ctx.createOscillator();
+                const masterGain = ctx.createGain();
+                let oscChest = null;
 
-                osc.type = 'sine';
-                osc.frequency.setValueAtTime(freq, now);
+                oscMain.type = formantSynthesis ? 'sawtooth' : 'sine';
+                oscMain.frequency.setValueAtTime(freq, now);
 
-                gain.gain.setValueAtTime(0.001, now);
-                gain.gain.linearRampToValueAtTime(gainLevel, now + 0.014);
-                gain.gain.setValueAtTime(gainLevel, now + Math.max(0.018, durSec - 0.014));
-                gain.gain.linearRampToValueAtTime(0.001, now + durSec);
+                if (formantSynthesis) {
+                    oscChest = ctx.createOscillator();
+                    const chestGain = ctx.createGain();
+                    const vocalFilter = ctx.createBiquadFilter();
 
-                osc.connect(gain);
-                gain.connect(acousticModem.compressor || ctx.destination);
-                osc.start(now);
-                osc.stop(now + durSec);
+                    oscChest.type = 'triangle';
+                    oscChest.frequency.setValueAtTime(freq * 0.5, now);
+                    chestGain.gain.setValueAtTime(0.35, now);
+                    vocalFilter.type = 'bandpass';
+                    vocalFilter.frequency.setValueAtTime(freq, now);
+                    vocalFilter.Q.setValueAtTime(6.5, now);
 
-                if (harmonicOsc && harmonicGain) {
-                    harmonicOsc.type = 'sine';
-                    harmonicOsc.frequency.setValueAtTime(freq * 2, now);
-                    harmonicGain.gain.setValueAtTime(0.001, now);
-                    harmonicGain.gain.linearRampToValueAtTime(harmonicLevel, now + 0.014);
-                    harmonicGain.gain.setValueAtTime(harmonicLevel, now + Math.max(0.018, durSec - 0.014));
-                    harmonicGain.gain.linearRampToValueAtTime(0.001, now + durSec);
-                    harmonicOsc.connect(harmonicGain);
-                    harmonicGain.connect(acousticModem.compressor || ctx.destination);
-                    harmonicOsc.start(now);
-                    harmonicOsc.stop(now + durSec);
+                    oscMain.connect(vocalFilter);
+                    oscChest.connect(chestGain);
+                    chestGain.connect(vocalFilter);
+                    vocalFilter.connect(masterGain);
+                } else {
+                    oscMain.connect(masterGain);
                 }
 
-                setTimeout(resolve, durationMs + 14);
+                masterGain.gain.setValueAtTime(0.001, now);
+                masterGain.gain.linearRampToValueAtTime(gainLevel, now + 0.015);
+                masterGain.gain.setValueAtTime(gainLevel, now + Math.max(0.02, durSec - 0.015));
+                masterGain.gain.linearRampToValueAtTime(0.001, now + durSec);
+                masterGain.connect(acousticModem.compressor || ctx.destination);
+
+                oscMain.start(now);
+                oscMain.stop(now + durSec);
+                if (oscChest) {
+                    oscChest.start(now);
+                    oscChest.stop(now + durSec);
+                }
+
+                setTimeout(resolve, durationMs + 16);
             });
         }
 
